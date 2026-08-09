@@ -1,0 +1,6 @@
+{
+  "name": "MELSA - Gestión Inmobiliaria",
+  "description": "Sitio web corporativo premium para la inmobiliaria MELSA. Proyectos exclusivos, gestión inmobiliaria, catálogo de propiedades y asesoría personalizada.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

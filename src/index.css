@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  
+  h1, h2, h3, h4, .font-serif-title {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+}
+
+/* Custom Utilities for Melsa Palette */
+:root {
+  --color-melsa-navy: #0F2042;
+  --color-melsa-navy-dark: #0A162D;
+  --color-melsa-navy-light: #1A3462;
+  --color-melsa-gold: #C5A059;
+  --color-melsa-gold-light: #DFC287;
+  --color-melsa-gold-dark: #A27E3A;
+  --color-melsa-cream: #FAF8F5;
+}
+
+.melsa-gold-gradient {
+  background: linear-gradient(135deg, #C5A059 0%, #E8D3A7 50%, #B38E46 100%);
+}
+
+.melsa-text-gold-gradient {
+  background: linear-gradient(135deg, #C5A059 0%, #D4AF37 50%, #B38E46 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.melsa-navy-gradient {
+  background: linear-gradient(180deg, #0F2042 0%, #0A162D 100%);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #FAF8F5;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #C5A059;
+  border-radius: 9999px;
+}
+

@@ -27,7 +27,7 @@ export const WhatsAppWidget: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-6 left-6 z-40 flex flex-col items-start">
+    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end">
       
       {/* Expanded Quick Options Menu */}
       {isOpen && (
@@ -86,7 +86,7 @@ export const WhatsAppWidget: React.FC = () => {
         </div>
       )}
 
-      {/* Floating Bottom Left WhatsApp Button */}
+      {/* Floating Bottom Right WhatsApp Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="group relative flex items-center justify-center w-14 h-14 rounded-full bg-[#25D366] text-white shadow-2xl hover:scale-110 transition-all duration-300 focus:outline-none border-2 border-white"

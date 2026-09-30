@@ -134,6 +134,14 @@ export const Footer: React.FC = () => {
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-400 gap-4">
           <p>© Melsa, Gestión Inmobiliaria. Todos los derechos reservados.</p>
           <div className="flex items-center space-x-6">
+            <a
+              href="https://universo693.com"
+              target="_blank"
+              rel="noopener"
+              className="text-gray-400 hover:text-[#C5A059] transition-colors"
+            >
+              Desarrollado por <span className="font-medium">Uni-Verso693</span>
+            </a>
             <button
               onClick={scrollToTop}
               className="flex items-center gap-1.5 text-[#C5A059] hover:underline font-medium focus:outline-none"

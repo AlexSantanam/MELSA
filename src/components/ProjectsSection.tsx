@@ -44,16 +44,16 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   });
 
   return (
-    <section id="proyectos" className="py-20 bg-[#FAF8F5] relative">
+    <section id="proyectos" className="py-20 bg-[#FAF9F8] relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C5A059]/10 text-[#A27E3A] text-xs font-semibold uppercase tracking-wider mb-3">
-            <Sparkles className="w-3.5 h-3.5" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D02126]/10 text-[#D02126] text-xs font-semibold uppercase tracking-wider mb-3">
+            <Sparkles className="w-3.5 h-3.5 text-[#D02126]" />
             <span>Portafolio Exclusivo</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif text-[#0F2042] font-normal tracking-tight mb-4">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif text-[#0F1115] font-normal tracking-tight mb-4">
             Proyectos Destacados
           </h2>
           <p className="text-gray-600 text-base sm:text-lg font-light leading-relaxed">
@@ -68,8 +68,8 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                 onClick={() => setSelectedTab(tab)}
                 className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ${
                   selectedTab === tab
-                    ? 'bg-[#0F2042] text-white shadow-md border border-[#C5A059]/50'
-                    : 'bg-white text-gray-600 hover:text-[#0F2042] hover:bg-gray-100 border border-gray-200'
+                    ? 'bg-[#D02126] text-white shadow-md'
+                    : 'bg-white text-gray-700 hover:text-[#D02126] hover:bg-gray-100 border border-gray-200'
                 }`}
               >
                 {tab}
@@ -83,7 +83,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
           {filteredProjects.map((project) => (
             <div
               key={project.id}
-              className="group bg-white rounded-2xl overflow-hidden border border-gray-200/80 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+              className="group bg-white rounded-2xl overflow-hidden border border-gray-200/80 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between hover:border-[#D02126]/40"
             >
               <div>
                 {/* Image & Status Tag */}
@@ -97,25 +97,25 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
 
                   {/* Status Badge */}
-                  <div className="absolute top-4 left-4 bg-[#0F2042]/90 backdrop-blur-md text-[#DFC287] text-xs font-semibold px-3 py-1 rounded-full border border-[#C5A059]/30">
+                  <div className="absolute top-4 left-4 bg-[#0F1115]/90 backdrop-blur-md text-white text-xs font-semibold px-3 py-1 rounded-full border border-[#D02126]/40">
                     {project.status}
                   </div>
 
                   {/* Property Type Badge */}
-                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md text-[#0F2042] text-xs font-semibold px-2.5 py-1 rounded-full">
+                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md text-[#0F1115] text-xs font-semibold px-2.5 py-1 rounded-full">
                     {project.type}
                   </div>
 
                   {/* Location Overlay at Image Bottom */}
                   <div className="absolute bottom-3 left-4 right-4 text-white flex items-center gap-1.5 text-xs font-medium">
-                    <MapPin className="w-3.5 h-3.5 text-[#C5A059]" />
+                    <MapPin className="w-3.5 h-3.5 text-[#D02126]" />
                     <span>{project.location}</span>
                   </div>
                 </div>
 
                 {/* Content Details */}
                 <div className="p-6">
-                  <h3 className="text-xl font-serif text-[#0F2042] font-medium group-hover:text-[#C5A059] transition-colors mb-1">
+                  <h3 className="text-xl font-serif text-[#0F1115] font-medium group-hover:text-[#D02126] transition-colors mb-1">
                     {project.name}
                   </h3>
                   <p className="text-xs text-gray-500 font-medium mb-4 line-clamp-1">
@@ -123,13 +123,13 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                   </p>
 
                   {/* Property Specs Pills */}
-                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 bg-[#FAF8F5] p-3 rounded-xl mb-5">
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 bg-[#FAF9F8] p-3 rounded-xl mb-5">
                     <div className="flex items-center gap-1.5">
-                      <Building2 className="w-3.5 h-3.5 text-[#C5A059]" />
+                      <Building2 className="w-3.5 h-3.5 text-[#D02126]" />
                       <span>{project.bedrooms}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-[#C5A059]" />
+                      <Calendar className="w-3.5 h-3.5 text-[#D02126]" />
                       <span>Entrega: {project.deliveryDate}</span>
                     </div>
                   </div>
@@ -140,12 +140,12 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                       <span className="text-xs text-gray-400 font-medium block">
                         Precio desde
                       </span>
-                      <span className="text-lg font-bold text-[#0F2042]">
+                      <span className="text-lg font-bold text-[#0F1115]">
                         ${project.priceFromUSD.toLocaleString('en-US')} USD
                       </span>
                     </div>
                     {project.priceFromUF && (
-                      <span className="text-xs font-semibold text-[#A27E3A] bg-[#C5A059]/10 px-2 py-0.5 rounded">
+                      <span className="text-xs font-semibold text-[#D02126] bg-[#D02126]/10 px-2 py-0.5 rounded">
                         {project.priceFromUF.toLocaleString()} UF
                       </span>
                     )}
@@ -157,9 +157,9 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
               <div className="px-6 pb-6 pt-0">
                 <button
                   onClick={() => onSelectProject(project)}
-                  className="w-full py-3 px-4 rounded-xl text-sm font-semibold text-[#0F2042] bg-[#FAF8F5] hover:bg-[#0F2042] hover:text-white border border-gray-200 hover:border-[#0F2042] transition-all duration-300 flex items-center justify-center gap-2 group/btn"
+                  className="w-full py-3 px-4 rounded-xl text-sm font-semibold text-[#0F1115] bg-[#FAF9F8] hover:bg-[#D02126] hover:text-white border border-gray-200 hover:border-[#D02126] transition-all duration-300 flex items-center justify-center gap-2 group/btn"
                 >
-                  <Eye className="w-4 h-4 text-[#C5A059] group-hover/btn:text-[#DFC287]" />
+                  <Eye className="w-4 h-4 text-[#D02126] group-hover/btn:text-white" />
                   <span>Ver proyecto</span>
                 </button>
               </div>
@@ -174,7 +174,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
             </p>
             <button
               onClick={() => setSelectedTab('Todos')}
-              className="mt-3 text-xs font-semibold text-[#C5A059] underline"
+              className="mt-3 text-xs font-semibold text-[#D02126] underline"
             >
               Ver todos los proyectos
             </button>

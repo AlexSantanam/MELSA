@@ -71,3 +71,86 @@ export interface AdvisoryFormData {
   preferredDate?: string;
   message: string;
 }
+
+export interface ThirdPartyListing {
+  id: string;
+  title: string;
+  code: string;
+  type: 'Casa' | 'Departamento' | 'Townhouse' | 'Terreno' | 'Oficina';
+  operation: 'Venta' | 'Arriendo';
+  location: string;
+  city: string;
+  priceUF: number;
+  priceCLP: number;
+  bedrooms: number;
+  bathrooms: number;
+  areaM2: number;
+  parking: number;
+  image: string;
+  publisherType: 'Corredor Independiente' | 'Dueño Directo' | 'Inmobiliaria Externa';
+  publisherName: string;
+  publisherPhone: string;
+  daysRemaining: number;
+  isAiVerified?: boolean;
+  featured?: boolean;
+  capRateProyectado?: number;
+}
+
+export interface ProviderProject {
+  id: string;
+  title: string;
+  description: string;
+  imageBefore?: string;
+  imageAfter: string;
+  completionDate: string;
+}
+
+export interface HomeServiceProvider {
+  id: string;
+  name: string;
+  companyOrTradeName: string;
+  category: 'Gasfitería' | 'Electricidad' | 'Remodelación & Pintura' | 'Climatización' | 'Jardinería' | 'Cerrajería';
+  coverageZones: string[];
+  rating: number;
+  reviewCount: number;
+  completedJobsCount: number;
+  phone: string;
+  email?: string;
+  avatarUrl: string;
+  badges: string[];
+  experienceYears: number;
+  description: string;
+  planType: 'Independiente' | 'Empresa';
+  featured?: boolean;
+  projectsGallery?: ProviderProject[];
+}
+
+export interface ProviderApplication {
+  id: string;
+  applicantType: 'Particular' | 'Empresa';
+  fullNameOrCompanyName: string;
+  rut: string;
+  contactEmail: string;
+  contactPhone: string;
+  category: string;
+  zones: string[];
+  appliedDate: string;
+  status: 'Pendiente' | 'Aprobado' | 'Rechazado';
+  documents: {
+    name: string;
+    type: string;
+    status: 'Cargado' | 'Auditado' | 'Faltante';
+    fileUrl?: string;
+  }[];
+  notes?: string;
+}
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'provider';
+  providerId?: string;
+  category?: string;
+  companyName?: string;
+}

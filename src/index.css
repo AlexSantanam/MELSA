@@ -10,29 +10,49 @@
   }
 }
 
-/* Custom Utilities for Melsa Palette */
+/* Custom Utilities for Melsa Palette (Red #D02126 & Black #0F1115) */
 :root {
-  --color-melsa-navy: #0F2042;
-  --color-melsa-navy-dark: #0A162D;
-  --color-melsa-navy-light: #1A3462;
-  --color-melsa-gold: #C5A059;
-  --color-melsa-gold-light: #DFC287;
-  --color-melsa-gold-dark: #A27E3A;
-  --color-melsa-cream: #FAF8F5;
+  --color-melsa-red: #D02126;
+  --color-melsa-red-light: #E0353A;
+  --color-melsa-red-dark: #B81B1F;
+  --color-melsa-red-subtle: #FDE8E9;
+  --color-melsa-dark: #0F1115;
+  --color-melsa-dark-light: #181B22;
+  --color-melsa-dark-deep: #090A0D;
+  --color-melsa-light: #FAF9F8;
+
+  /* Backward-compatible aliases */
+  --color-melsa-navy: #0F1115;
+  --color-melsa-navy-dark: #090A0D;
+  --color-melsa-navy-light: #1A1E27;
+  --color-melsa-gold: #D02126;
+  --color-melsa-gold-light: #FDE8E9;
+  --color-melsa-gold-dark: #B81B1F;
+  --color-melsa-cream: #FAF9F8;
+}
+
+.melsa-red-gradient {
+  background: linear-gradient(135deg, #E0353A 0%, #D02126 50%, #B81B1F 100%);
+}
+
+.melsa-text-red-gradient {
+  background: linear-gradient(135deg, #E0353A 0%, #D02126 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .melsa-gold-gradient {
-  background: linear-gradient(135deg, #C5A059 0%, #E8D3A7 50%, #B38E46 100%);
+  background: linear-gradient(135deg, #E0353A 0%, #D02126 50%, #B81B1F 100%);
 }
 
 .melsa-text-gold-gradient {
-  background: linear-gradient(135deg, #C5A059 0%, #D4AF37 50%, #B38E46 100%);
+  background: linear-gradient(135deg, #E0353A 0%, #D02126 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .melsa-navy-gradient {
-  background: linear-gradient(180deg, #0F2042 0%, #0A162D 100%);
+  background: linear-gradient(180deg, #0F1115 0%, #090A0D 100%);
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -40,10 +60,10 @@
   height: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #FAF8F5;
+  background: #FAF9F8;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #C5A059;
+  background: #D02126;
   border-radius: 9999px;
 }
 

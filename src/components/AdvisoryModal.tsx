@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { TEAM_MEMBERS, FEATURED_PROJECTS } from '../data/mockData';
-import { X, Calendar, Clock, CheckCircle2, User, Phone, Mail, Building, Send } from 'lucide-react';
+import { X, Calendar, User, Phone, Mail, Send, CheckCircle2 } from 'lucide-react';
+import { TEAM_MEMBERS } from '../data/mockData';
 
 interface AdvisoryModalProps {
   isOpen: boolean;
@@ -16,19 +16,20 @@ export const AdvisoryModal: React.FC<AdvisoryModalProps> = ({
   preselectedProjectId
 }) => {
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [interestType, setInterestType] = useState('Comprar');
   const [selectedAgent, setSelectedAgent] = useState(preselectedAgentId || '');
-  const [selectedProject, setSelectedProject] = useState(preselectedProjectId || '');
   const [preferredDate, setPreferredDate] = useState('');
-  const [preferredTime, setPreferredTime] = useState('10:00 AM');
+  const [preferredTime, setPreferredTime] = useState('11:30 AM');
   const [message, setMessage] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
     if (preselectedAgentId) setSelectedAgent(preselectedAgentId);
-    if (preselectedProjectId) setSelectedProject(preselectedProjectId);
+    if (preselectedProjectId) {
+      setMessage(`Interesado en proyecto con ID: ${preselectedProjectId}`);
+    }
   }, [preselectedAgentId, preselectedProjectId]);
 
   if (!isOpen) return null;
@@ -45,13 +46,13 @@ export const AdvisoryModal: React.FC<AdvisoryModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-[#E5E0D8] max-h-[90vh] flex flex-col">
+      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200 max-h-[90vh] flex flex-col">
         
         {/* Header */}
-        <div className="bg-[#0F2042] text-white p-6 relative flex items-center justify-between border-b border-[#C5A059]/30">
+        <div className="bg-[#0F1115] text-white p-6 relative flex items-center justify-between border-b border-[#D02126]/30">
           <div>
-            <div className="inline-flex items-center gap-1.5 text-xs text-[#DFC287] font-semibold uppercase tracking-wider mb-1">
-              <Calendar className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-1.5 text-xs text-red-300 font-semibold uppercase tracking-wider mb-1">
+              <Calendar className="w-3.5 h-3.5 text-[#D02126]" />
               <span>Atención Personalizada Melsa</span>
             </div>
             <h3 className="text-2xl font-serif font-normal">Agenda una asesoría</h3>
@@ -68,10 +69,10 @@ export const AdvisoryModal: React.FC<AdvisoryModalProps> = ({
         <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
           {isSubmitted ? (
             <div className="text-center py-10 space-y-4">
-              <div className="w-16 h-16 rounded-full bg-[#C5A059]/15 text-[#A27E3A] flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-10 h-10 text-[#C5A059]" />
+              <div className="w-16 h-16 rounded-full bg-[#D02126]/10 text-[#D02126] flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-10 h-10 text-[#D02126]" />
               </div>
-              <h4 className="text-2xl font-serif text-[#0F2042] font-semibold">
+              <h4 className="text-2xl font-serif text-[#0F1115] font-semibold">
                 ¡Solicitud Registrada con Éxito!
               </h4>
               <p className="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
@@ -80,7 +81,7 @@ export const AdvisoryModal: React.FC<AdvisoryModalProps> = ({
               <div className="pt-4">
                 <button
                   onClick={handleReset}
-                  className="px-8 py-3 rounded-full bg-[#0F2042] text-white text-sm font-semibold hover:bg-[#1A3462] transition-colors"
+                  className="px-8 py-3 rounded-full bg-[#D02126] text-white text-sm font-semibold hover:bg-[#B81B1F] transition-colors shadow-md"
                 >
                   Entendido, volver
                 </button>
@@ -101,7 +102,7 @@ export const AdvisoryModal: React.FC<AdvisoryModalProps> = ({
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Ej. Constanza Silva"
-                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#C5A059] focus:bg-white focus:outline-none"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D02126] focus:bg-white focus:outline-none"
                     />
                   </div>
                 </div>
@@ -118,7 +119,7 @@ export const AdvisoryModal: React.FC<AdvisoryModalProps> = ({
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+56 9 1234 5678"
-                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#C5A059] focus:bg-white focus:outline-none"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D02126] focus:bg-white focus:outline-none"
                     />
                   </div>
                 </div>
@@ -136,7 +137,7 @@ export const AdvisoryModal: React.FC<AdvisoryModalProps> = ({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="correo@ejemplo.com"
-                    className="w-full pl-9 pr-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#C5A059] focus:bg-white focus:outline-none"
+                    className="w-full pl-9 pr-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D02126] focus:bg-white focus:outline-none"
                   />
                 </div>
               </div>
@@ -149,7 +150,7 @@ export const AdvisoryModal: React.FC<AdvisoryModalProps> = ({
                   <select
                     value={interestType}
                     onChange={(e) => setInterestType(e.target.value)}
-                    className="w-full px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#C5A059] focus:bg-white focus:outline-none"
+                    className="w-full px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D02126] focus:bg-white focus:outline-none"
                   >
                     <option value="Comprar">Comprar para Vivir</option>
                     <option value="Invertir">Inversión y Renta</option>
@@ -165,7 +166,7 @@ export const AdvisoryModal: React.FC<AdvisoryModalProps> = ({
                   <select
                     value={selectedAgent}
                     onChange={(e) => setSelectedAgent(e.target.value)}
-                    className="w-full px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#C5A059] focus:bg-white focus:outline-none"
+                    className="w-full px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D02126] focus:bg-white focus:outline-none"
                   >
                     <option value="">Cualquier asesor disponible</option>
                     {TEAM_MEMBERS.map((ag) => (
@@ -186,7 +187,7 @@ export const AdvisoryModal: React.FC<AdvisoryModalProps> = ({
                     type="date"
                     value={preferredDate}
                     onChange={(e) => setPreferredDate(e.target.value)}
-                    className="w-full px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#C5A059] focus:bg-white focus:outline-none"
+                    className="w-full px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D02126] focus:bg-white focus:outline-none"
                   />
                 </div>
 
@@ -197,7 +198,7 @@ export const AdvisoryModal: React.FC<AdvisoryModalProps> = ({
                   <select
                     value={preferredTime}
                     onChange={(e) => setPreferredTime(e.target.value)}
-                    className="w-full px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#C5A059] focus:bg-white focus:outline-none"
+                    className="w-full px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D02126] focus:bg-white focus:outline-none"
                   >
                     <option value="09:30 AM">09:30 AM</option>
                     <option value="11:30 AM">11:30 AM</option>
@@ -216,15 +217,15 @@ export const AdvisoryModal: React.FC<AdvisoryModalProps> = ({
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Detalla tu requerimiento o rango de presupuesto aproximado..."
-                  className="w-full px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#C5A059] focus:bg-white focus:outline-none"
+                  className="w-full px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D02126] focus:bg-white focus:outline-none"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3.5 px-6 rounded-xl bg-[#0F2042] hover:bg-[#1A3462] text-white font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 border border-[#C5A059]/50 shadow-md"
+                className="w-full py-3.5 px-6 rounded-xl bg-[#D02126] hover:bg-[#B81B1F] text-white font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-md"
               >
-                <Send className="w-4 h-4 text-[#C5A059]" />
+                <Send className="w-4 h-4 text-white" />
                 <span>Confirmar y Enviar Solicitud</span>
               </button>
             </form>

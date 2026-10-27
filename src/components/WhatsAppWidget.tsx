@@ -4,7 +4,7 @@ import { MessageCircle, X, ChevronRight, Send } from 'lucide-react';
 export const WhatsAppWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const whatsappNumber = '56973888336'; // Melsa Official WhatsApp
+  const whatsappNumber = '56999899421'; // Melsa Official WhatsApp (+56 9 9989 9421)
 
   const quickOptions = [
     {
@@ -64,7 +64,7 @@ export const WhatsAppWidget: React.FC = () => {
                 onClick={() => handleOpenWhatsApp(opt.text)}
                 className="w-full text-left p-2.5 bg-white hover:bg-[#FAF8F5] border border-gray-200 hover:border-[#25D366] rounded-xl transition-all flex items-center justify-between group shadow-2xs"
               >
-                <span className="font-semibold text-[#0F2042] group-hover:text-[#25D366] pr-2">
+                <span className="font-semibold text-[#0F1115] group-hover:text-[#25D366] pr-2">
                   {opt.title}
                 </span>
                 <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform" />

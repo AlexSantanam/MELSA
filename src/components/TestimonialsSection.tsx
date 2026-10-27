@@ -4,15 +4,15 @@ import { Star, Quote, CheckCircle } from 'lucide-react';
 
 export const TestimonialsSection: React.FC = () => {
   return (
-    <section className="py-20 bg-[#FAF8F5] relative border-t border-gray-200/60">
+    <section className="py-20 bg-[#FAF9F8] relative border-t border-gray-200/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C5A059]/10 text-[#A27E3A] text-xs font-semibold uppercase tracking-wider mb-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D02126]/10 text-[#D02126] text-xs font-semibold uppercase tracking-wider mb-3">
             <span>Experiencias de Clientes</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif text-[#0F2042] font-normal tracking-tight mb-4">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif text-[#0F1115] font-normal tracking-tight mb-4">
             Testimonios
           </h2>
           <p className="text-gray-600 text-base font-light leading-relaxed">
@@ -25,13 +25,13 @@ export const TestimonialsSection: React.FC = () => {
           {TESTIMONIALS.map((testimonial) => (
             <div
               key={testimonial.id}
-              className="bg-white rounded-2xl p-8 border border-[#E5E0D8] shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between relative"
+              className="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between relative hover:border-[#D02126]/30"
             >
-              <Quote className="absolute top-6 right-6 w-8 h-8 text-[#C5A059]/20 pointer-events-none" />
+              <Quote className="absolute top-6 right-6 w-8 h-8 text-[#D02126]/15 pointer-events-none" />
 
               <div>
-                {/* 5 Stars */}
-                <div className="flex items-center gap-1 mb-6 text-[#C5A059]">
+                {/* 5 Stars in Brand Red */}
+                <div className="flex items-center gap-1 mb-6 text-[#D02126]">
                   {[...Array(testimonial.rating)].map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-current" />
                   ))}
@@ -48,15 +48,15 @@ export const TestimonialsSection: React.FC = () => {
                 <img
                   src={testimonial.avatarUrl}
                   alt={testimonial.clientName}
-                  className="w-11 h-11 rounded-full object-cover border-2 border-[#C5A059]"
+                  className="w-11 h-11 rounded-full object-cover border-2 border-[#D02126]"
                   referrerPolicy="no-referrer"
                 />
                 <div>
-                  <h4 className="text-sm font-semibold text-[#0F2042]">
+                  <h4 className="text-sm font-semibold text-[#0F1115]">
                     {testimonial.clientName}
                   </h4>
                   <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
-                    <CheckCircle className="w-3 h-3 text-[#C5A059]" />
+                    <CheckCircle className="w-3 h-3 text-[#D02126]" />
                     <span>{testimonial.propertyType}</span>
                   </div>
                 </div>

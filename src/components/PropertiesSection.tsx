@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Property } from '../types';
 import { TEAM_MEMBERS } from '../data/mockData';
-import { MapPin, Bed, Bath, Maximize2, Car, Key, Filter } from 'lucide-react';
+import { MapPin, Bed, Bath, Maximize2, Key } from 'lucide-react';
 
 interface PropertiesSectionProps {
   onOpenAdvisory: (agentId?: string) => void;
@@ -72,11 +72,11 @@ export const PropertiesSection: React.FC<PropertiesSectionProps> = ({ onOpenAdvi
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C5A059]/10 text-[#A27E3A] text-xs font-semibold uppercase tracking-wider mb-3">
-              <Key className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D02126]/10 text-[#D02126] text-xs font-semibold uppercase tracking-wider mb-3">
+              <Key className="w-3.5 h-3.5 text-[#D02126]" />
               <span>Propiedades Seleccionadas</span>
             </div>
-            <h2 className="text-3xl sm:text-4xl font-serif text-[#0F2042] font-normal tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-serif text-[#0F1115] font-normal tracking-tight">
               Cartera de Propiedades
             </h2>
           </div>
@@ -89,8 +89,8 @@ export const PropertiesSection: React.FC<PropertiesSectionProps> = ({ onOpenAdvi
                 onClick={() => setActiveType(type)}
                 className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                   activeType === type
-                    ? 'bg-[#0F2042] text-white shadow-sm'
-                    : 'bg-[#FAF8F5] text-gray-600 hover:bg-gray-200 border border-gray-200'
+                    ? 'bg-[#0F1115] text-white shadow-sm'
+                    : 'bg-[#FAF9F8] text-gray-700 hover:bg-gray-200 border border-gray-200'
                 }`}
               >
                 {type}
@@ -107,7 +107,7 @@ export const PropertiesSection: React.FC<PropertiesSectionProps> = ({ onOpenAdvi
             return (
               <div
                 key={prop.id}
-                className="bg-[#FAF8F5] rounded-2xl overflow-hidden border border-gray-200/80 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
+                className="bg-[#FAF9F8] rounded-2xl overflow-hidden border border-gray-200/80 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group hover:border-[#D02126]/30"
               >
                 <div>
                   {/* Image */}
@@ -118,19 +118,19 @@ export const PropertiesSection: React.FC<PropertiesSectionProps> = ({ onOpenAdvi
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       referrerPolicy="no-referrer"
                     />
-                    <div className="absolute top-3 left-3 bg-[#0F2042] text-white text-xs font-bold px-3 py-1 rounded-full">
+                    <div className="absolute top-3 left-3 bg-[#0F1115] text-white text-xs font-bold px-3 py-1 rounded-full">
                       {prop.operation} • {prop.code}
                     </div>
                   </div>
 
                   {/* Body */}
                   <div className="p-6">
-                    <h3 className="text-lg font-serif text-[#0F2042] font-semibold mb-2 group-hover:text-[#C5A059] transition-colors">
+                    <h3 className="text-lg font-serif text-[#0F1115] font-semibold mb-2 group-hover:text-[#D02126] transition-colors">
                       {prop.title}
                     </h3>
 
                     <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium mb-4">
-                      <MapPin className="w-3.5 h-3.5 text-[#C5A059]" />
+                      <MapPin className="w-3.5 h-3.5 text-[#D02126]" />
                       <span>{prop.location}</span>
                     </div>
 
@@ -138,20 +138,20 @@ export const PropertiesSection: React.FC<PropertiesSectionProps> = ({ onOpenAdvi
                     <div className="grid grid-cols-3 gap-2 bg-white p-3 rounded-xl border border-gray-200 text-xs text-gray-600 text-center mb-4">
                       <div className="flex flex-col items-center">
                         <span className="text-gray-400 font-normal">Dorms</span>
-                        <span className="font-semibold text-[#0F2042] flex items-center gap-1">
-                          <Bed className="w-3.5 h-3.5 text-[#C5A059]" /> {prop.bedrooms}
+                        <span className="font-semibold text-[#0F1115] flex items-center gap-1">
+                          <Bed className="w-3.5 h-3.5 text-[#D02126]" /> {prop.bedrooms}
                         </span>
                       </div>
                       <div className="flex flex-col items-center border-x border-gray-100">
                         <span className="text-gray-400 font-normal">Baños</span>
-                        <span className="font-semibold text-[#0F2042] flex items-center gap-1">
-                          <Bath className="w-3.5 h-3.5 text-[#C5A059]" /> {prop.bathrooms}
+                        <span className="font-semibold text-[#0F1115] flex items-center gap-1">
+                          <Bath className="w-3.5 h-3.5 text-[#D02126]" /> {prop.bathrooms}
                         </span>
                       </div>
                       <div className="flex flex-col items-center">
                         <span className="text-gray-400 font-normal">Área</span>
-                        <span className="font-semibold text-[#0F2042] flex items-center gap-1">
-                          <Maximize2 className="w-3.5 h-3.5 text-[#C5A059]" /> {prop.areaM2} m²
+                        <span className="font-semibold text-[#0F1115] flex items-center gap-1">
+                          <Maximize2 className="w-3.5 h-3.5 text-[#D02126]" /> {prop.areaM2} m²
                         </span>
                       </div>
                     </div>
@@ -162,11 +162,11 @@ export const PropertiesSection: React.FC<PropertiesSectionProps> = ({ onOpenAdvi
                         <img
                           src={agent.photoUrl}
                           alt={agent.name}
-                          className="w-7 h-7 rounded-full object-cover border border-[#C5A059]"
+                          className="w-7 h-7 rounded-full object-cover border border-[#D02126]"
                           referrerPolicy="no-referrer"
                         />
                         <span className="text-gray-500 font-medium">Asesor asignado:</span>
-                        <span className="font-semibold text-[#0F2042]">{agent.name.split(' ')[0]}</span>
+                        <span className="font-semibold text-[#0F1115]">{agent.name.split(' ')[0]}</span>
                       </div>
                     )}
                   </div>
@@ -176,14 +176,14 @@ export const PropertiesSection: React.FC<PropertiesSectionProps> = ({ onOpenAdvi
                 <div className="px-6 pb-6 pt-2 flex items-center justify-between border-t border-gray-200/50">
                   <div>
                     <span className="text-[11px] text-gray-400 font-medium block">Valor</span>
-                    <span className="text-xl font-bold text-[#0F2042]">
+                    <span className="text-xl font-bold text-[#0F1115]">
                       ${prop.priceUSD.toLocaleString('en-US')} USD
                     </span>
                   </div>
 
                   <button
                     onClick={() => onOpenAdvisory(prop.agentId)}
-                    className="py-2.5 px-4 rounded-xl text-xs font-semibold text-white bg-[#0F2042] hover:bg-[#C5A059] hover:text-[#0F2042] transition-colors"
+                    className="py-2.5 px-4 rounded-xl text-xs font-semibold text-white bg-[#0F1115] hover:bg-[#D02126] transition-colors"
                   >
                     Consultar
                   </button>

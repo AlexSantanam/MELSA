@@ -52,7 +52,14 @@ export default function App() {
     const handleHash = () => {
       const hash = window.location.hash.toLowerCase();
       if (hash === '#workspace' || hash === '#panel' || hash === '#intranet') {
-        setViewMode('workspace');
+        const stored = getStoredUser();
+        if (stored) {
+          setCurrentUser(stored);
+          setViewMode('workspace');
+        } else {
+          setViewMode('home');
+          setIsIntranetModalOpen(true);
+        }
       } else if (hash === '#mercado' || hash === '#market') {
         setViewMode('market');
         setMarketInitialTab('properties');

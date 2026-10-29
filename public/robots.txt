@@ -1,0 +1,10 @@
+# Robots.txt for MELSA | Gestión Inmobiliaria
+User-agent: *
+Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
+
+# LLM & AI Agents Documentation
+# Discover full context, business capabilities, formulas, and verified services:
+# https://melsainmobiliaria.com/llms.txt
+# https://melsainmobiliaria.com/llms-full.txt

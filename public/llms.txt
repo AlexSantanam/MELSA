@@ -1,0 +1,90 @@
+# MELSA | Gestión Inmobiliaria
+
+> MELSA es un ecosistema integral de gestión inmobiliaria, inversión patrimonial y red de servicios técnicos verificados para el hogar con cobertura nacional en Chile. Integra desarrollos exclusivos de alta plusvalía (blanco, verde y entrega inmediata con 0% comisión), consignación y tasación con IA de propiedades, un marketplace de especialistas del hogar certificados bajo auditoría rigurosa ("Sello Melsa"), un simulador de inteligencia financiera (Cap Rate, dividendos, TIR) y un asistente conversacional IA 24/7.
+
+Para una especificación exhaustiva, detalles de cálculo, fichas técnicas, rubros y guías de integración para modelos de lenguaje, consulta [/llms-full.txt](/llms-full.txt).
+
+---
+
+## 1. Identidad & Misión
+- **Razón Social:** MELSA Gestión Inmobiliaria SpA.
+- **Ubicación Base:** Santiago, Chile (Operaciones en Las Condes, Vitacura, Lo Barnechea, Providencia, Chicureo, Costa Central Zapallar/Concón y Región de Los Lagos).
+- **Cobertura:** Nacional en las 16 regiones de Chile.
+- **Contacto Oficial WhatsApp:** [+56 9 9989 9421](https://wa.me/56999899421?text=Hola%20Melsa,%20solicito%20informaci%C3%B3n)
+- **Correo Institucional:** contacto@melsainmobiliaria.com / admin@melsa.cl
+- **Propósito:** Democratizar el acceso a inversiones inmobiliarias de alto rendimiento y conectar a propietarios con una red de confianza técnica auditada legal, tributaria y técnicamente.
+
+---
+
+## 2. Pilares de Propuesta de Valor & Capacidades
+
+### A. Inversión & Proyectos Inmobiliarios Exclusivos
+- **Formatos:** Departamentos, Penthouses, Casas y Villas de estándar premium.
+- **Etapas de Venta:** En Blanco (máxima plusvalía inicial), En Verde (construcción en curso) y Entrega Inmediata (activación de rentas inmediata).
+- **Ventajas Inversionistas:**
+  - **0% Comisión de corretaje:** En la compra de departamentos y unidades en convenio inmobiliario directo.
+  - **Financiamiento Flexible del Pie:** Pago del pie en 18 a 36 cuotas sin interés mediante tarjeta de crédito o pagarés directos con inmobiliaria.
+  - **Exención Tributaria DFL-2:** Para inmuebles residenciales de hasta 140 m² útiles (rebaja 50% en contribuciones, exención en impuesto a la renta por arriendos).
+  - **Proyectos de Referencia:** *MELSA Living Tower* (Las Condes), *Sanctuary Ocean Villas* (Zapallar), *Parque Alerce Residences* (Puerto Varas).
+
+### B. Consignación, Venta & Tasación Algorítmica de Propiedades
+- **Tasación Asistida por IA:** Valoración cuantitativa cruzando datos del Conservador de Bienes Raíces (CBR), comparables de mercado por UF/m² y absorción barrial.
+- **Estrategia Comercial de Alta Velocidad:** Objetivo de cierre en 45 a 60 días gracias a red de compradores calificados pre-aprobados bancariamente.
+- **Marketing Audiovisual de Vanguardia:** Fotografía y video profesional 4K, recorridos virtuales, campañas de performance en Google Ads y Meta Ads.
+- **Seguridad Jurídica:** Estudio exhaustivo de títulos de dominio de 10 años, redacción notarial de Promesas de Compraventa y coordinación bancaria de alzamientos de hipotecas.
+
+### C. Melsa Open Market & Red de Confianza Hogar
+- **Concepto:** Marketplace verificado que conecta a propietarios e inversionistas con técnicos y contratistas calificados para habilitación, post-venta y remodelación.
+- **Rubros Especializados:**
+  1. **Gasfitería & Redes Sanitarias:** Certificación SEC en gas, detección acústica y con gas trazador de fugas no visibles, mantención de calderas y calefonts.
+  2. **Electricidad SEC & Domótica:** Declaración TE1 SEC, normalización de tableros con diferenciales superinmunizados, cargadores residenciales Wallbox para vehículos eléctricos.
+  3. **Remodelación Integral & Obras:** Cocinas con cubiertas de cuarzo/Silestone, baños de suite con duchas walk-in italianas, porcelanatos rectificados y pintura exterior termoplástica hidrófuga.
+  4. **Climatización:** Instalación y desinfección de sistemas Split Inverter de bajo consumo y suelo radiante.
+  5. **Paisajismo & Riego Tecnificado:** Riego automático Wi-Fi por goteo, plantación xerófila de bajo requerimiento hídrico.
+  6. **Cerrajería de Precisión:** Instalación de cerraduras digitales inteligentes con biometría y cilindros antibumping.
+- **Filtro Riguroso "Sello Melsa":** Todo prestador publicado es auditado en:
+  - Cédula de Identidad chilena vigente.
+  - Certificado de Antecedentes para Fines Especiales (Registro Civil).
+  - Carpeta Tributaria Electrónica F29 (Servicio de Impuestos Internos - SII).
+  - Licencias y acreditaciones técnicas (SEC Gas Clase 1/2/3, SEC TE1 Electricista).
+- **Garantía Escrita:** Todo servicio incluye política de respaldo contractual mínimo de 6 a 12 meses.
+
+### D. Centro de Inteligencia Financiera & Simulador Cuantitativo
+- **Cálculo de Cap Rate:** Rendimiento bruto y neto anual por concepto de rentas (Rango óptimo en Chile: 5.0% - 8.5%).
+- **Simulador de Dividendos:** Estimación de cuota bancaria mensual en UF y CLP con tasas de interés referenciales y plazos de 20 a 30 años.
+- **TIR Proyectada (Tasa Interna de Retorno):** Modelación del retorno total combinando arriendos netos más plusvalía compuesta (11% - 16% anual).
+- **Melsa Copilot IA:** Motor conversacional con modelos de lenguaje de baja latencia (Groq Llama 3.3 / Qwen) con respuestas analíticas inmediatas sobre plusvalía, requisitos bancarios y estructura de negocio.
+
+### E. Espacio de Trabajo Colaboradores & Intranet Administrativa (`#workspace`)
+- Entorno full-screen para prestadores y administradores corporativos.
+- Editor de portafolio con módulo interactivo de fotografías comparativas "Antes / Después".
+- Configuración de tarifario transparente de visita técnica y zonas de cobertura nacional.
+- Panel de aprobación y auditoría de expedientes documentales SII / SEC.
+
+---
+
+## 3. Especificación Técnica & Stack de la Plataforma
+- **Frontend:** React 19, TypeScript 5.8, Tailwind CSS v4, Motion (Framer), Lucide Icons, Vite 6.
+- **Backend / Persistencia:** Supabase (PostgreSQL, Supabase Auth con JWT, Políticas de Seguridad RLS, Storage Buckets).
+- **Motor de Inteligencia Artificial:** Groq Cloud API (Llama 3.3 70B Versatile / Qwen 2.5 32B) con fallback resiliente.
+- **Arquitectura de Resiliencia:** ErrorBoundary integrado para prevención total de pantallas en blanco y fallback de credenciales seguras.
+
+---
+
+## 4. Directorio de Enlaces & Enrutamiento
+- [Inicio / Portada Institucional](/#inicio): Presentación ejecutiva, proyectos destacados y propuesta integral.
+- [Proyectos Inmobiliarios](/#proyectos): Catálogo de desarrollos residenciales e inversión con filtros por comuna y tipología.
+- [Ecosistema de Servicios Corporativos](/#servicios): Asesoría legal, tasaciones, gestión de arriendos y administración patrimonial.
+- [Melsa Open Market](/#mercado): Portal público de técnicos verificados, propiedades y formulario de consignación.
+- [Servicios para el Hogar](/#servicios-hogar): Directorio de técnicos con Sello Melsa y cotización directa por WhatsApp.
+- [Consigna / Publicar Propiedad](/#publicar): Formulario de captación para venta o arriendo.
+- [Simulador Financiero & ROI](/#inteligencia-financiera): Calculadora interactiva de rentabilidad, dividendos y amortización.
+- [Espacio de Trabajo / Intranet](/#workspace): Portal privado para colaboradores auditados y administración total.
+
+---
+
+## 5. Contacto & Asesoría Directa
+- **WhatsApp Inmediato:** [+56 9 9989 9421](https://wa.me/56999899421)
+- **Horario de Asesoría:** Lunes a Sábado de 09:00 a 20:00 hrs.
+- **Repositorio de Código Abierto:** [https://github.com/AlexSantanam/MELSA.git](https://github.com/AlexSantanam/MELSA.git)
+- **Documentación Completa para LLMs:** [/llms-full.txt](/llms-full.txt)

@@ -110,11 +110,20 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
   isAdmin,
   onToggleAdminView
 }) => {
-  // Navigation Vertical Tabs (Exact 13 modules from Altenda sidebar)
+  // Navigation Vertical Tabs (Exact 13 modules from Altenda sidebar + Integraciones + Configuración)
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'properties' | 'sales' | 'agenda' | 'clients' | 'contracts' | 
-    'collections' | 'payments' | 'settlement' | 'portals' | 'maintenance' | 'users' | 'plans'
+    'collections' | 'payments' | 'settlement' | 'portals' | 'maintenance' | 'users' | 'plans' |
+    'settings' | 'integrations'
   >('dashboard');
+
+  // Configuración View State (Altenda screenshot 3)
+  const [settingsTab, setSettingsTab] = useState<'legal' | 'contact' | 'payments' | 'notifications'>('legal');
+  const [configCompanyName, setConfigCompanyName] = useState('Los Pinos');
+  const [configRut, setConfigRut] = useState('15.883.974-1');
+  const [configAddress, setConfigAddress] = useState('Los Pinos 356');
+  const [configRepresentative, setConfigRepresentative] = useState('Alexis Rassmusen');
+  const [configSavedNotice, setConfigSavedNotice] = useState(false);
 
   // Load custom onboarding data if saved
   const [onboardingData] = useState<Partial<AgencyOnboardingData>>(() => {
@@ -390,9 +399,11 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
 
           <button 
             type="button"
-            onClick={onOpenOnboarding}
-            className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-            title="Asistente de Configuración (8 pasos)"
+            onClick={() => setActiveTab('settings')}
+            className={`p-2 rounded-xl transition-colors cursor-pointer ${
+              activeTab === 'settings' ? 'text-[#008E88] bg-emerald-50' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
+            }`}
+            title="Configuración de Corredora"
           >
             <Settings className="w-4 h-4" />
           </button>
@@ -665,7 +676,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                         Organiza arriendos y ventas, coordina visitas y comparte documentos con tus clientes desde un solo lugar.
                       </p>
                       <button
-                        onClick={() => setActiveTab('portals')}
+                        onClick={() => setActiveTab('integrations')}
                         className="inline-flex items-center gap-1 text-xs font-bold text-[#008E88] hover:underline cursor-pointer pt-1"
                       >
                         <span>Conoce las integraciones</span>
@@ -2011,18 +2022,13 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             )}
 
             {/* ========================================================== */}
-            {/* TAB 13: MI PLAN                                            */}
+            {/* TAB 13: MI PLAN (SCREENSHOT 1 EXACT MATCH)                */}
             {/* ========================================================== */}
             {activeTab === 'plans' && (
-              <div className="space-y-6 animate-in fade-in duration-150">
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
-                    Planes & Suscripción
-                  </h1>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Tarifas transparentes para corredores. Menos es más.
-                  </p>
-                </div>
+              <div className="space-y-8 animate-in fade-in duration-150">
+                <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
+                  Mi plan
+                </h1>
 
                 {planChangeAlert && (
                   <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-center gap-2">
@@ -2031,49 +2037,512 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {AGENCY_SAAS_PLANS.map((plan) => (
-                    <div 
-                      key={plan.id}
-                      className={`p-6 rounded-3xl border-2 flex flex-col justify-between transition-all bg-white ${
-                        currentPlan === plan.id ? 'border-[#008E88] shadow-md ring-2 ring-[#008E88]/10' : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-bold text-sm text-[#153B50]">{plan.name}</h4>
-                          {currentPlan === plan.id && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E6F4EA] text-[#008E88]">
-                              Activo
-                            </span>
-                          )}
-                        </div>
-                        <div>
-                          <span className="text-2xl font-bold text-[#153B50]">{plan.priceFormatted}</span>
-                          <span className="text-xs text-gray-400 block font-light">/ mes</span>
-                        </div>
-                        <p className="text-xs text-gray-500 font-light">{plan.description}</p>
-                      </div>
+                {/* Dark Navy Banner matching Altenda Screenshot 1 */}
+                <div className="bg-[#153B50] text-white rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+                  <div className="space-y-2 max-w-lg">
+                    <span className="text-xs text-gray-300 font-semibold block tracking-wider">
+                      Tu plan actual
+                    </span>
+                    <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white font-serif">
+                      Inicial
+                    </h2>
+                    <p className="text-xs text-gray-300 font-light leading-relaxed">
+                      Tu prueba termina el 23/11/2026. Al suscribirte, el primer cobro se programa para el término de la prueba.
+                    </p>
+                  </div>
 
-                      <div className="pt-6">
-                        <button
-                          disabled={currentPlan === plan.id}
-                          onClick={() => {
-                            setCurrentPlan(plan.id);
-                            setPlanChangeAlert(`¡Plan actualizado con éxito al ${plan.name}!`);
-                            setTimeout(() => setPlanChangeAlert(null), 3000);
-                          }}
-                          className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            currentPlan === plan.id
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                              : 'bg-[#008E88] hover:bg-[#08736E] text-white shadow-xs'
-                          }`}
-                        >
-                          {currentPlan === plan.id ? 'Plan Actual' : 'Seleccionar Plan'}
-                        </button>
+                  <div className="flex flex-col items-start md:items-end gap-3 shrink-0">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/60 text-emerald-300 border border-emerald-500/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Prueba gratuita
+                    </span>
+
+                    <div className="flex items-center gap-6 pt-2">
+                      <div className="text-left md:text-right">
+                        <span className="text-2xl font-bold text-white block">15</span>
+                        <span className="text-[11px] text-gray-300 block max-w-[130px] leading-tight">
+                          propiedades de arriendo y la misma cantidad para venta
+                        </span>
+                      </div>
+                      <div className="text-left md:text-right border-l border-gray-700/60 pl-6">
+                        <span className="text-2xl font-bold text-white block">2</span>
+                        <span className="text-[11px] text-gray-300 block">usuarios</span>
                       </div>
                     </div>
-                  ))}
+
+                    <span className="text-[11px] text-gray-400 font-light pt-1">
+                      Facturación mensual
+                    </span>
+                  </div>
+                </div>
+
+                {/* Section: Elige tu próximo plan */}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-[#153B50]">
+                      Elige tu próximo plan
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Todos los precios incluyen IVA. Elige el espacio que necesita tu empresa.
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Tu primer cobro será al terminar la prueba. La tarjeta se autoriza en el siguiente paso, con Mercado Pago.
+                    </p>
+                  </div>
+
+                  {/* 4 Plan Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                    {[
+                      {
+                        id: 'inicial',
+                        name: 'Inicial',
+                        price: '$17.990',
+                        badge: 'Tu plan en prueba',
+                        isTrial: true,
+                        props: '15 propiedades',
+                        users: '2 usuarios'
+                      },
+                      {
+                        id: 'profesional',
+                        name: 'Profesional',
+                        price: '$35.990',
+                        badge: undefined,
+                        isTrial: false,
+                        props: '50 propiedades',
+                        users: '5 usuarios'
+                      },
+                      {
+                        id: 'empresa',
+                        name: 'Empresa',
+                        price: '$59.990',
+                        badge: undefined,
+                        isTrial: false,
+                        props: '150 propiedades',
+                        users: '10 usuarios'
+                      },
+                      {
+                        id: 'corporativo',
+                        name: 'Corporativo',
+                        price: '$95.990',
+                        badge: undefined,
+                        isTrial: false,
+                        props: 'Ilimitadas propiedades',
+                        users: 'Usuarios ilimitados'
+                      }
+                    ].map((plan) => (
+                      <div
+                        key={plan.id}
+                        className={`bg-white rounded-3xl p-6 border transition-all flex flex-col justify-between ${
+                          plan.isTrial ? 'border-[#008E88] ring-2 ring-[#008E88]/10 shadow-sm' : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="space-y-3">
+                          <h4 className="text-base font-bold text-[#153B50]">{plan.name}</h4>
+                          {plan.badge && (
+                            <span className="inline-block px-2.5 py-1 rounded-lg bg-[#E6F4EA] text-[#008E88] text-[11px] font-bold">
+                              {plan.badge}
+                            </span>
+                          )}
+                          <div>
+                            <span className="text-2xl font-bold text-[#153B50]">{plan.price}</span>
+                            <span className="text-xs text-gray-500 font-mono ml-1">CLP</span>
+                            <span className="text-xs text-gray-400 block font-light mt-0.5">al mes, IVA incluido</span>
+                          </div>
+                          <div className="pt-2 text-xs text-gray-500 space-y-1 border-t border-gray-100 font-light">
+                            <p>• {plan.props}</p>
+                            <p>• {plan.users}</p>
+                          </div>
+                        </div>
+
+                        <div className="pt-6">
+                          <button
+                            disabled={plan.isTrial}
+                            onClick={() => {
+                              setPlanChangeAlert(`¡Plan ${plan.name} seleccionado para renovación automática!`);
+                              setTimeout(() => setPlanChangeAlert(null), 3000);
+                            }}
+                            className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                              plan.isTrial
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-[#008E88] hover:bg-[#08736E] text-white shadow-xs'
+                            }`}
+                          >
+                            {plan.isTrial ? 'Plan Actual' : 'Seleccionar Plan'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================== */}
+            {/* TAB 14: INTEGRACIONES (SCREENSHOT 2 EXACT MATCH)           */}
+            {/* ========================================================== */}
+            {activeTab === 'integrations' && (
+              <div className="space-y-6 animate-in fade-in duration-150">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
+                    Integraciones
+                  </h1>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Conecta los servicios que utiliza tu corredora. Cada integración conserva sus propios permisos y configuración.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {/* 1. Mercado Pago */}
+                  <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-2xs flex flex-col justify-between space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                          🤝
+                        </div>
+                        <span className="text-[11px] font-semibold text-gray-500">Disponible</span>
+                      </div>
+                      <h4 className="text-base font-bold text-[#153B50]">Mercado Pago</h4>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Cobros en línea para arriendos y otras cuotas.
+                      </p>
+                      <span className="text-[11px] text-emerald-600 font-medium block">
+                        ✓ Sin costo · Incluido en tu suscripción
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100 text-xs">
+                      <button className="text-gray-500 hover:text-gray-900 font-semibold cursor-pointer">
+                        👁 Ver detalles
+                      </button>
+                      <button className="text-[#008E88] hover:underline font-bold cursor-pointer">
+                        Configurar →
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 2. Flow */}
+                  <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-2xs flex flex-col justify-between space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-sm">
+                          flow$
+                        </div>
+                        <span className="text-[11px] font-semibold text-gray-500">Disponible</span>
+                      </div>
+                      <h4 className="text-base font-bold text-[#153B50]">Flow</h4>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Pagos de arriendos y obligaciones en tu propia cuenta Flow.
+                      </p>
+                      <span className="text-[11px] text-emerald-600 font-medium block">
+                        ✓ Sin costo · Incluido en tu suscripción
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100 text-xs">
+                      <button className="text-gray-500 hover:text-gray-900 font-semibold cursor-pointer">
+                        👁 Ver detalles
+                      </button>
+                      <button className="text-[#008E88] hover:underline font-bold cursor-pointer">
+                        Ver integración →
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 3. Transferencia bancaria */}
+                  <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-2xs flex flex-col justify-between space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 rounded-xl bg-teal-50 text-[#008E88] flex items-center justify-center font-bold text-sm">
+                          <Landmark className="w-5 h-5" />
+                        </div>
+                        <span className="text-[11px] font-semibold text-gray-500">Disponible</span>
+                      </div>
+                      <h4 className="text-base font-bold text-[#153B50]">Transferencia bancaria</h4>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Recibe comprobantes de transferencia y valida cada ingreso.
+                      </p>
+                      <span className="text-[11px] text-emerald-600 font-medium block">
+                        ✓ Sin costo · Incluido en tu suscripción
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100 text-xs">
+                      <button className="text-gray-500 hover:text-gray-900 font-semibold cursor-pointer">
+                        👁 Ver detalles
+                      </button>
+                      <button className="text-[#008E88] hover:underline font-bold cursor-pointer">
+                        Ver integración →
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 4. API de consulta */}
+                  <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-2xs flex flex-col justify-between space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm">
+                          <Layers className="w-5 h-5" />
+                        </div>
+                        <span className="text-[11px] font-semibold text-gray-500">Consulta básica</span>
+                      </div>
+                      <h4 className="text-base font-bold text-[#153B50]">API de consulta</h4>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Consulta propiedades y cuotas desde otro software. Solo lectura.
+                      </p>
+                      <span className="text-[11px] text-emerald-600 font-medium block">
+                        ✓ Sin costo · Incluido en tu suscripción
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100 text-xs">
+                      <button className="text-gray-500 hover:text-gray-900 font-semibold cursor-pointer">
+                        👁 Ver detalles
+                      </button>
+                      <button className="text-[#008E88] hover:underline font-bold cursor-pointer">
+                        Ver integración →
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 5. Webpay Plus */}
+                  <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-2xs flex flex-col justify-between space-y-4 opacity-90">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-xs">
+                          TBK
+                        </div>
+                        <span className="text-[11px] font-semibold text-gray-400">Próximamente</span>
+                      </div>
+                      <h4 className="text-base font-bold text-[#153B50]">Webpay Plus</h4>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Pagos con tarjetas a través de Transbank.
+                      </p>
+                      <span className="text-[11px] text-amber-600 font-medium block">
+                        🕒 Costo por confirmar
+                      </span>
+                    </div>
+                    <div className="pt-4 border-t border-gray-100 text-xs">
+                      <button className="text-gray-500 hover:text-gray-900 font-semibold cursor-pointer">
+                        👁 Ver detalles
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 6. Tribuno */}
+                  <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-2xs flex flex-col justify-between space-y-4 opacity-90">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-sm">
+                          ⚖️
+                        </div>
+                        <span className="text-[11px] font-semibold text-gray-400">Próximamente</span>
+                      </div>
+                      <h4 className="text-base font-bold text-[#153B50]">Tribuno</h4>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Facturación electrónica para corredoras.
+                      </p>
+                      <span className="text-[11px] text-amber-600 font-medium block">
+                        🕒 Costo por confirmar
+                      </span>
+                    </div>
+                    <div className="pt-4 border-t border-gray-100 text-xs">
+                      <button className="text-gray-500 hover:text-gray-900 font-semibold cursor-pointer">
+                        👁 Ver detalles
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================== */}
+            {/* TAB 15: CONFIGURACIÓN (SCREENSHOT 3 EXACT MATCH)           */}
+            {/* ========================================================== */}
+            {activeTab === 'settings' && (
+              <div className="space-y-6 animate-in fade-in duration-150">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
+                    Configuración
+                  </h1>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Administra los datos de tu corredora, sus medios de pago y las comunicaciones a tus clientes.
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/90 shadow-2xs space-y-6">
+                  {/* Secondary Tab Navigation */}
+                  <div className="flex items-center gap-6 border-b border-gray-100 pb-3 text-xs">
+                    <button
+                      onClick={() => setSettingsTab('legal')}
+                      className={`font-bold pb-2 -mb-3 transition-colors cursor-pointer ${
+                        settingsTab === 'legal' ? 'text-[#008E88] border-b-2 border-[#008E88]' : 'text-gray-400 hover:text-gray-700'
+                      }`}
+                    >
+                      → Información legal
+                    </button>
+                    <button
+                      onClick={() => setSettingsTab('contact')}
+                      className={`font-bold pb-2 -mb-3 transition-colors cursor-pointer ${
+                        settingsTab === 'contact' ? 'text-[#008E88] border-b-2 border-[#008E88]' : 'text-gray-400 hover:text-gray-700'
+                      }`}
+                    >
+                      → Contacto
+                    </button>
+                    <button
+                      onClick={() => setSettingsTab('payments')}
+                      className={`font-bold pb-2 -mb-3 transition-colors cursor-pointer ${
+                        settingsTab === 'payments' ? 'text-[#008E88] border-b-2 border-[#008E88]' : 'text-gray-400 hover:text-gray-700'
+                      }`}
+                    >
+                      Medios de pago
+                    </button>
+                    <button
+                      onClick={() => setSettingsTab('notifications')}
+                      className={`font-bold pb-2 -mb-3 transition-colors cursor-pointer ${
+                        settingsTab === 'notifications' ? 'text-[#008E88] border-b-2 border-[#008E88]' : 'text-gray-400 hover:text-gray-700'
+                      }`}
+                    >
+                      Notificaciones
+                    </button>
+                  </div>
+
+                  {/* Subtab Content: Información legal */}
+                  {settingsTab === 'legal' && (
+                    <div className="space-y-6 pt-2">
+                      <h3 className="text-base font-bold text-[#153B50]">
+                        Información legal
+                      </h3>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                            Razón social
+                          </label>
+                          <input
+                            type="text"
+                            value={configCompanyName}
+                            onChange={(e) => setConfigCompanyName(e.target.value)}
+                            className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-700 focus:outline-none focus:border-[#008E88]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                            RUT
+                          </label>
+                          <input
+                            type="text"
+                            value={configRut}
+                            onChange={(e) => setConfigRut(e.target.value)}
+                            className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-700 focus:outline-none focus:border-[#008E88]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                            Domicilio legal
+                          </label>
+                          <input
+                            type="text"
+                            value={configAddress}
+                            onChange={(e) => setConfigAddress(e.target.value)}
+                            className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-700 focus:outline-none focus:border-[#008E88]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                            Representante legal
+                          </label>
+                          <input
+                            type="text"
+                            value={configRepresentative}
+                            onChange={(e) => setConfigRepresentative(e.target.value)}
+                            className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-700 focus:outline-none focus:border-[#008E88]"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pt-2">
+                        <button
+                          onClick={() => {
+                            setConfigSavedNotice(true);
+                            setTimeout(() => setConfigSavedNotice(false), 3000);
+                          }}
+                          className="px-5 py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
+                        >
+                          <Save className="w-4 h-4" />
+                          <span>Guardar configuración</span>
+                        </button>
+                      </div>
+
+                      {configSavedNotice && (
+                        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span>¡Configuración legal guardada con éxito!</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Subtab Content: Contacto */}
+                  {settingsTab === 'contact' && (
+                    <div className="space-y-4 pt-2 text-xs">
+                      <h3 className="text-base font-bold text-[#153B50]">Datos de contacto oficial</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block font-semibold text-gray-600 mb-1.5">Correo de contacto</label>
+                          <input
+                            type="email"
+                            defaultValue="alexis.s.m@gmail.com"
+                            className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-700"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-semibold text-gray-600 mb-1.5">Teléfono WhatsApp</label>
+                          <input
+                            type="text"
+                            defaultValue="+56 9 7388 8336"
+                            className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-700"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Subtab Content: Medios de pago */}
+                  {settingsTab === 'payments' && (
+                    <div className="space-y-4 pt-2 text-xs">
+                      <h3 className="text-base font-bold text-[#153B50]">Cuenta para transferencias</h3>
+                      <p className="text-gray-500">
+                        Cuenta bancaria chilena donde tus clientes transferirán y donde se liquidarán las rentas.
+                      </p>
+                      <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-1">
+                        <span className="font-bold text-[#153B50] block">Banco de Chile · Cuenta Corriente</span>
+                        <span className="text-gray-500 font-mono block">N° 00-12345678-00 · RUT: 15.883.974-1</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Subtab Content: Notificaciones */}
+                  {settingsTab === 'notifications' && (
+                    <div className="space-y-3 pt-2 text-xs">
+                      <h3 className="text-base font-bold text-[#153B50]">Comunicaciones automáticas</h3>
+                      <p className="text-gray-500">
+                        Configura los avisos automáticos que reciben arrendatarios y propietarios.
+                      </p>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" defaultChecked className="rounded text-[#008E88]" />
+                          <span>Recordatorio de pago 3 días antes del vencimiento</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" defaultChecked className="rounded text-[#008E88]" />
+                          <span>Aviso por WhatsApp al emitir liquidación mensual a propietario</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-center text-xs text-gray-400 pt-6">
+                  © 2026 Melsa V1.0.0
                 </div>
               </div>
             )}

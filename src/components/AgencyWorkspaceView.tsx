@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard,
   Home,
@@ -81,6 +81,7 @@ import {
 } from '../data/mockData';
 import { MelsaLogo } from './MelsaLogo';
 import { PropertyPhotoUploader } from './PropertyPhotoUploader';
+import { extractPropertyWithGroq, ExtractedPropertyData } from '../services/propertyAiExtractor';
 
 interface AgencyWorkspaceViewProps {
   currentUser: AuthUser;
@@ -220,17 +221,75 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
   const [isSigningProcess, setIsSigningProcess] = useState(false);
   const [signedDocCertificate, setSignedDocCertificate] = useState<string | null>(null);
 
-  // KILLER 1: Ingesta Multimodal de Propiedades (Voz / PDF / Link)
+  // KILLER 1: Ingesta Multimodal de Propiedades (Voz / PDF / Link) con Groq AI y Web Speech API
   const [isMultimodalModalOpen, setIsMultimodalModalOpen] = useState(false);
   const [multimodalTab, setMultimodalTab] = useState<'voice' | 'doc' | 'url'>('voice');
-  const [voiceAudioRecorded, setVoiceAudioRecorded] = useState(false);
-  const [voiceRecordingSimulated, setVoiceRecordingSimulated] = useState(false);
+  const [isListeningVoice, setIsListeningVoice] = useState(false);
+  const [speechError, setSpeechError] = useState<string | null>(null);
+  const speechRecognitionRef = useRef<any>(null);
   const [multimodalTranscript, setMultimodalTranscript] = useState(
     'Es un departamento impecable en Providencia a pasos del metro Manuel Montt, 2 dormitorios, 2 baños, 75 m² útiles, vista norte despejada hacia el cerro San Cristóbal, tasado en 5.200 UF con canon de arriendo estimado en $780.000 mensuales. Cuenta con estacionamiento subterráneo y bodega amplia. Falta pintura en el living y ajuste menor de gasfitería.'
   );
   const [multimodalUrlInput, setMultimodalUrlInput] = useState('https://www.portalinmobiliario.com/venta/departamento/providencia-metropolitana/123456');
   const [isProcessingMultimodal, setIsProcessingMultimodal] = useState(false);
-  const [extractedPropertyResult, setExtractedPropertyResult] = useState<any | null>(null);
+  const [extractedPropertyResult, setExtractedPropertyResult] = useState<ExtractedPropertyData | null>(null);
+
+  const toggleVoiceRecording = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setSpeechError('Tu navegador no soporta reconocimiento por voz nativo. Puedes escribir o pegar la descripción en el cuadro de texto.');
+      return;
+    }
+
+    if (isListeningVoice) {
+      if (speechRecognitionRef.current) {
+        speechRecognitionRef.current.stop();
+      }
+      setIsListeningVoice(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'es-CL';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onstart = () => {
+        setIsListeningVoice(true);
+        setSpeechError(null);
+      };
+
+      recognition.onresult = (event: any) => {
+        let transcriptAccum = '';
+        for (let i = 0; i < event.results.length; i++) {
+          transcriptAccum += event.results[i][0].transcript;
+        }
+        if (transcriptAccum.trim()) {
+          setMultimodalTranscript(transcriptAccum);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('SpeechRecognition error:', event.error);
+        if (event.error === 'not-allowed') {
+          setSpeechError('Permiso de micrófono denegado en tu navegador.');
+        }
+        setIsListeningVoice(false);
+      };
+
+      recognition.onend = () => {
+        setIsListeningVoice(false);
+      };
+
+      speechRecognitionRef.current = recognition;
+      recognition.start();
+    } catch (e: any) {
+      console.warn('Excepción al iniciar reconocimiento de voz:', e);
+      setIsListeningVoice(false);
+      setSpeechError('No se pudo acceder al micrófono.');
+    }
+  };
 
   // KILLER 2: Daily Copilot (Centro de Comando Proactivo)
   const [dismissedCopilotActions, setDismissedCopilotActions] = useState<string[]>([]);
@@ -292,55 +351,75 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
   const [currentPlan, setCurrentPlan] = useState<AgencyPlanTier>(currentUser.agencyPlan || 'basico');
   const [planChangeAlert, setPlanChangeAlert] = useState<string | null>(null);
 
-  // Properties State
+  // Properties State (Persistente con LocalStorage)
   const [propertiesTab, setPropertiesTab] = useState<'active' | 'trash'>('active');
-  const [properties, setProperties] = useState<AgencyPropertyItem[]>([
-    {
-      id: 'prop-1',
-      title: 'Depto Vista Despejada Parque Araucano',
-      address: 'Av. Las Condes 10450, Depto 1402',
-      commune: 'Las Condes, RM',
-      type: 'Depto',
-      bedrooms: 2,
-      bathrooms: 2,
-      surfaceM2: 78,
-      rentCLP: 850000,
-      ownerName: 'Gonzalo Vial Echenique',
-      tenantName: 'Sebastián Valenzuela R.',
-      status: 'arrendada',
-      coverPhoto: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=800'
-    },
-    {
-      id: 'prop-2',
-      title: 'Penthouse Dúplex con Quincho Privado',
-      address: 'Camino El Golf 320, Depto 1101',
-      commune: 'Las Condes, RM',
-      type: 'Depto',
-      bedrooms: 3,
-      bathrooms: 3,
-      surfaceM2: 145,
-      rentCLP: 1650000,
-      ownerName: 'Inversiones Los Andes SpA',
-      tenantName: 'Carolina Morales P.',
-      status: 'arrendada',
-      coverPhoto: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800'
-    },
-    {
-      id: 'prop-3',
-      title: 'Casa Mediterránea en Condominio Cerrado',
-      address: 'Los Pinos 356',
-      commune: 'Lo Barnechea, RM',
-      type: 'Casa',
-      bedrooms: 4,
-      bathrooms: 4,
-      surfaceM2: 240,
-      rentCLP: 2400000,
-      ownerName: 'Rodrigo Matte Larraín',
-      tenantName: 'Felipe Correa B.',
-      status: 'disponible',
-      coverPhoto: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800'
+  const [properties, setProperties] = useState<AgencyPropertyItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('melsa_agency_properties');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Error leyendo propiedades guardadas:', e);
     }
-  ]);
+    return [
+      {
+        id: 'prop-1',
+        title: 'Depto Vista Despejada Parque Araucano',
+        address: 'Av. Las Condes 10450, Depto 1402',
+        commune: 'Las Condes, RM',
+        type: 'Depto',
+        bedrooms: 2,
+        bathrooms: 2,
+        surfaceM2: 78,
+        rentCLP: 850000,
+        ownerName: 'Gonzalo Vial Echenique',
+        tenantName: 'Sebastián Valenzuela R.',
+        status: 'arrendada',
+        coverPhoto: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=800'
+      },
+      {
+        id: 'prop-2',
+        title: 'Penthouse Dúplex con Quincho Privado',
+        address: 'Camino El Golf 320, Depto 1101',
+        commune: 'Las Condes, RM',
+        type: 'Depto',
+        bedrooms: 3,
+        bathrooms: 3,
+        surfaceM2: 145,
+        rentCLP: 1650000,
+        ownerName: 'Inversiones Los Andes SpA',
+        tenantName: 'Carolina Morales P.',
+        status: 'arrendada',
+        coverPhoto: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800'
+      },
+      {
+        id: 'prop-3',
+        title: 'Casa Mediterránea en Condominio Cerrado',
+        address: 'Los Pinos 356',
+        commune: 'Lo Barnechea, RM',
+        type: 'Casa',
+        bedrooms: 4,
+        bathrooms: 4,
+        surfaceM2: 240,
+        rentCLP: 2400000,
+        ownerName: 'Rodrigo Matte Larraín',
+        tenantName: 'Felipe Correa B.',
+        status: 'disponible',
+        coverPhoto: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800'
+      }
+    ];
+  });
+
+  // Guardado persistente automático
+  useEffect(() => {
+    try {
+      localStorage.setItem('melsa_agency_properties', JSON.stringify(properties));
+    } catch (e) {
+      console.warn('Error guardando propiedades:', e);
+    }
+  }, [properties]);
   const [isAddingPropertyModal, setIsAddingPropertyModal] = useState(false);
   const [newPropAddress, setNewPropAddress] = useState('');
   const [newPropCommune, setNewPropCommune] = useState('Las Condes');
@@ -615,9 +694,9 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
       <div className="flex-1 flex overflow-hidden">
         
         {/* LEFT VERTICAL SIDEBAR (MELSA EXECUTIVE WORKSPACE OS) */}
-        <aside className="w-64 bg-white border-r border-gray-200/90 shrink-0 flex flex-col justify-between py-4 px-3 overflow-y-auto">
+        <aside className="w-64 bg-[#0F1115] border-r border-white/5 shrink-0 flex flex-col justify-between py-4 px-3 overflow-y-auto">
           <div className="space-y-4">
-            
+
             {/* GRUPO 1: COMANDO AGÉNTICO */}
             <div className="space-y-1">
               <span className="px-3 text-[10px] uppercase font-bold tracking-widest text-[#D02126] flex items-center gap-1">
@@ -628,7 +707,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                 {[
                   { id: 'dashboard', label: 'Panel General', icon: LayoutDashboard },
                   { id: 'inbox', label: 'Inbox Omnicanal (IA)', icon: MessageCircle, badge: '3 leads', badgeStyle: 'bg-[#D02126] text-white' },
-                  { id: 'matching', label: 'Smart Matching (IA)', icon: Sparkles, badge: 'Auto', badgeStyle: 'bg-[#0F1115] text-amber-300' }
+                  { id: 'matching', label: 'Smart Matching (IA)', icon: Sparkles, badge: 'Auto', badgeStyle: 'bg-white/10 text-amber-300' }
                 ].map((item) => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
@@ -636,14 +715,14 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id as any)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left ${
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left border-l-2 ${
                         isActive
-                          ? 'bg-[#0F1115] text-white font-bold shadow-xs'
-                          : 'text-gray-600 hover:text-[#0F1115] hover:bg-gray-100/70'
+                          ? 'bg-[#1A1D23] text-white font-bold border-[#D02126]'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5 border-transparent'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 truncate">
-                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#D02126]' : 'text-gray-400'}`} />
+                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#D02126]' : 'text-gray-500'}`} />
                         <span className="truncate">{item.label}</span>
                       </div>
                       {item.badge && (
@@ -659,7 +738,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
 
             {/* GRUPO 2: CARTERA & CIERRE */}
             <div className="space-y-1">
-              <span className="px-3 text-[10px] uppercase font-bold tracking-widest text-gray-400">
+              <span className="px-3 text-[10px] uppercase font-bold tracking-widest text-gray-500">
                 Cartera & Cierre
               </span>
               <div className="space-y-0.5 pt-1">
@@ -675,14 +754,14 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id as any)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left ${
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left border-l-2 ${
                         isActive
-                          ? 'bg-[#0F1115] text-white font-bold shadow-xs'
-                          : 'text-gray-600 hover:text-[#0F1115] hover:bg-gray-100/70'
+                          ? 'bg-[#1A1D23] text-white font-bold border-[#D02126]'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5 border-transparent'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 truncate">
-                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#D02126]' : 'text-gray-400'}`} />
+                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#D02126]' : 'text-gray-500'}`} />
                         <span className="truncate">{item.label}</span>
                       </div>
                     </button>
@@ -693,7 +772,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
 
             {/* GRUPO 3: GESTIÓN & FINANZAS */}
             <div className="space-y-1">
-              <span className="px-3 text-[10px] uppercase font-bold tracking-widest text-gray-400">
+              <span className="px-3 text-[10px] uppercase font-bold tracking-widest text-gray-500">
                 Gestión & Finanzas
               </span>
               <div className="space-y-0.5 pt-1">
@@ -710,14 +789,14 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id as any)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left ${
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left border-l-2 ${
                         isActive
-                          ? 'bg-[#0F1115] text-white font-bold shadow-xs'
-                          : 'text-gray-600 hover:text-[#0F1115] hover:bg-gray-100/70'
+                          ? 'bg-[#1A1D23] text-white font-bold border-[#D02126]'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5 border-transparent'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 truncate">
-                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#D02126]' : 'text-gray-400'}`} />
+                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#D02126]' : 'text-gray-500'}`} />
                         <span className="truncate">{item.label}</span>
                       </div>
                     </button>
@@ -728,7 +807,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
 
             {/* GRUPO 4: PLATAFORMA & MARCA */}
             <div className="space-y-1">
-              <span className="px-3 text-[10px] uppercase font-bold tracking-widest text-gray-400">
+              <span className="px-3 text-[10px] uppercase font-bold tracking-widest text-gray-500">
                 Plataforma
               </span>
               <div className="space-y-0.5 pt-1">
@@ -743,14 +822,14 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id as any)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left ${
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left border-l-2 ${
                         isActive
-                          ? 'bg-[#0F1115] text-white font-bold shadow-xs'
-                          : 'text-gray-600 hover:text-[#0F1115] hover:bg-gray-100/70'
+                          ? 'bg-[#1A1D23] text-white font-bold border-[#D02126]'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5 border-transparent'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 truncate">
-                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#D02126]' : 'text-gray-400'}`} />
+                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#D02126]' : 'text-gray-500'}`} />
                         <span className="truncate">{item.label}</span>
                       </div>
                     </button>
@@ -762,16 +841,16 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
           </div>
 
           {/* Quick Setup Shortcut Sello Melsa */}
-          <div className="pt-4 border-t border-gray-100">
+          <div className="pt-4 border-t border-white/10">
             <button
               onClick={onOpenOnboarding}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[11px] font-semibold text-gray-600 hover:text-[#D02126] hover:bg-rose-50 transition-colors cursor-pointer border border-gray-100"
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[11px] font-semibold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer border border-white/10"
             >
               <span className="flex items-center gap-1.5 font-bold">
                 <span className="w-2 h-2 rounded-full bg-[#D02126]" />
                 Activación de Corredora
               </span>
-              <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">88%</span>
+              <span className="text-[10px] text-emerald-300 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">88%</span>
             </button>
           </div>
         </aside>
@@ -5094,32 +5173,50 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                 {multimodalTab === 'voice' && (
                   <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200/80 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#0F1115]">Grabar o dictar características del inmueble:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[#0F1115]">Dicta o describe el inmueble:</span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-semibold">
+                          Micro en vivo
+                        </span>
+                      </div>
                       <button
-                        onClick={() => {
-                          setVoiceRecordingSimulated(true);
-                          setTimeout(() => {
-                            setVoiceRecordingSimulated(false);
-                            setVoiceAudioRecorded(true);
-                          }, 1500);
-                        }}
+                        onClick={toggleVoiceRecording}
                         className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                          voiceRecordingSimulated 
-                            ? 'bg-red-500 text-white animate-pulse' 
+                          isListeningVoice 
+                            ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse shadow-md' 
                             : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
                         }`}
                       >
                         <Mic className="w-3.5 h-3.5" />
-                        <span>{voiceRecordingSimulated ? 'Grabando audio...' : '🎙️ Iniciar Dictado'}</span>
+                        <span>{isListeningVoice ? '⏹️ Detener Grabación' : '🎙️ Dictar por Micrófono'}</span>
                       </button>
                     </div>
 
+                    {isListeningVoice && (
+                      <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-red-700 animate-in fade-in">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping" />
+                        <span className="font-medium text-[11px]">
+                          Escuchando activamente... Habla claro (ej: <em>"Depto 2 dormitorios en Las Condes, arriendo 850 mil, 75 metros..."</em>)
+                        </span>
+                      </div>
+                    )}
+
+                    {speechError && (
+                      <div className="p-2 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px]">
+                        {speechError}
+                      </div>
+                    )}
+
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold text-gray-400">Transcripción Whisper / LLM:</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] uppercase font-bold text-gray-400">Transcripción / Texto a procesar:</label>
+                        <span className="text-[10px] text-gray-400">Puedes editar el texto antes de extraer</span>
+                      </div>
                       <textarea
                         rows={4}
                         value={multimodalTranscript}
                         onChange={(e) => setMultimodalTranscript(e.target.value)}
+                        placeholder="Habla por micrófono o escribe los detalles del departamento/casa..."
                         className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-700 leading-relaxed focus:outline-none focus:border-[#D02126]"
                       />
                     </div>
@@ -5130,7 +5227,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                   <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center space-y-2 bg-gray-50/50">
                     <UploadCloud className="w-8 h-8 text-[#D02126] mx-auto" />
                     <div className="font-bold text-[#0F1115]">Arrastra aquí la ficha antigua, orden de visita o PDF del inmueble</div>
-                    <p className="text-[11px] text-gray-400">El modelo OCR extraerá metros útiles, orientación, rol y tasación</p>
+                    <p className="text-[11px] text-gray-400">El modelo extraerá metros útiles, orientación, rol, arriendo y tasación</p>
                     <button
                       onClick={() => {
                         setMultimodalTranscript('Ficha Técnica de Depto: Manuel Montt 890, Providencia. Rol 1289-4. 2 dormitorios, 2 baños, 75 m² construidos, orientación Norte. Canon sugerido: $780.000. Incluye 1 estacionamiento y 1 bodega.');
@@ -5153,45 +5250,35 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                       className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono text-gray-700 outline-none"
                     />
                     <span className="text-[10px] text-gray-400 block">
-                      Scrapea los datos del inmueble sin necesidad de volver a digitar los 40 campos.
+                      Extrae las variables del inmueble sin tener que volver a digitar cada campo.
                     </span>
                   </div>
                 )}
 
                 <button
-                  disabled={isProcessingMultimodal}
-                  onClick={() => {
+                  disabled={isProcessingMultimodal || !multimodalTranscript.trim()}
+                  onClick={async () => {
                     setIsProcessingMultimodal(true);
-                    setTimeout(() => {
+                    try {
+                      const extracted = await extractPropertyWithGroq(multimodalTranscript);
+                      setExtractedPropertyResult(extracted);
+                    } catch (e) {
+                      console.error('Error extrayendo con Groq:', e);
+                    } finally {
                       setIsProcessingMultimodal(false);
-                      setExtractedPropertyResult({
-                        title: 'Departamento Vista Norte en Manuel Montt',
-                        address: 'Manuel Montt 890',
-                        commune: 'Providencia',
-                        type: 'Depto',
-                        bedrooms: 2,
-                        bathrooms: 2,
-                        surfaceM2: 75,
-                        rentCLP: 780000,
-                        priceUF: 5200,
-                        parking: 1,
-                        storage: 1,
-                        maintenanceStatus: 'Falta pintura en living (Agendado)',
-                        generatedCopy: '✨ VIVE EN EL CORAZÓN DE PROVIDENCIA ✨\n\nDepartamento en piso alto con privilegiada vista norte despejada hacia el Cerro San Cristóbal. A pasos del Metro Manuel Montt.\n\n• 2 Dormitorios amplios (principal en suite)\n• 2 Baños completos con finas terminaciones\n• 75 m² útiles con terraza privada\n• Incluye estacionamiento subterráneo y bodega amplia\n\n💰 Canon arriendo: $780.000 / mes · Disponibilidad inmediata.'
-                      });
-                    }, 1400);
+                    }
                   }}
                   className="w-full py-3 rounded-xl bg-[#D02126] hover:bg-[#B81B1F] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isProcessingMultimodal ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Extrayendo Variables con LLM (Groq & DeepSeek)...</span>
+                      <span>Extrayendo Variables con Groq AI (Qwen 3.8 / Llama 3)...</span>
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4 text-amber-300" />
-                      <span>Procesar y Extraer Datos Estructurados con IA</span>
+                      <span>⚡ Procesar y Extraer con Groq AI en Vivo</span>
                     </>
                   )}
                 </button>
@@ -5202,29 +5289,61 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                 <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-emerald-800">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span className="font-bold">Extracción completada con éxito. Revisa y aprueba con un clic:</span>
+                    <span className="font-bold">Datos estructurados por Groq AI. Revisa y aprueba:</span>
                   </div>
                   <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded-full border border-emerald-300">
-                    Confianza 99.4%
+                    Groq 400 tok/s
                   </span>
+                </div>
+
+                <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-1">
+                  <span className="text-[10px] text-gray-400 uppercase font-bold">Título de la Propiedad</span>
+                  <input
+                    type="text"
+                    value={extractedPropertyResult.title}
+                    onChange={(e) => setExtractedPropertyResult({ ...extractedPropertyResult, title: e.target.value })}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 font-bold text-[#0F1115] text-xs"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200">
                     <span className="text-[10px] text-gray-400 block uppercase font-bold">Comuna</span>
-                    <span className="font-bold text-[#0F1115]">{extractedPropertyResult.commune}</span>
+                    <input
+                      type="text"
+                      value={extractedPropertyResult.commune}
+                      onChange={(e) => setExtractedPropertyResult({ ...extractedPropertyResult, commune: e.target.value })}
+                      className="w-full bg-white border border-gray-200 rounded px-1.5 py-0.5 font-bold text-[#0F1115] text-xs"
+                    />
                   </div>
                   <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200">
                     <span className="text-[10px] text-gray-400 block uppercase font-bold">Distribución</span>
-                    <span className="font-bold text-[#0F1115]">{extractedPropertyResult.bedrooms}D / {extractedPropertyResult.bathrooms}B</span>
+                    <span className="font-bold text-[#0F1115] block pt-1">{extractedPropertyResult.bedrooms}D / {extractedPropertyResult.bathrooms}B</span>
                   </div>
                   <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200">
                     <span className="text-[10px] text-gray-400 block uppercase font-bold">Superficie</span>
-                    <span className="font-bold text-[#0F1115]">{extractedPropertyResult.surfaceM2} m²</span>
+                    <span className="font-bold text-[#0F1115] block pt-1">{extractedPropertyResult.surfaceM2} m²</span>
                   </div>
                   <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200">
                     <span className="text-[10px] text-gray-400 block uppercase font-bold">Canon Arriendo</span>
-                    <span className="font-bold text-[#D02126]">{formatCLP(extractedPropertyResult.rentCLP)}</span>
+                    <span className="font-bold text-[#D02126] block pt-1">{formatCLP(extractedPropertyResult.rentCLP)}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-2 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="text-[10px] text-gray-400 block uppercase font-bold">Estacionamientos</span>
+                    <span className="font-bold text-[#0F1115]">{extractedPropertyResult.parking} unid.</span>
+                  </div>
+                  <div className="p-2 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="text-[10px] text-gray-400 block uppercase font-bold">Bodegas</span>
+                    <span className="font-bold text-[#0F1115]">{extractedPropertyResult.storage} unid.</span>
+                  </div>
+                  <div className="p-2 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="text-[10px] text-gray-400 block uppercase font-bold">Mantenimiento</span>
+                    <span className="font-bold text-gray-700 truncate block" title={extractedPropertyResult.maintenanceStatus}>
+                      {extractedPropertyResult.maintenanceStatus}
+                    </span>
                   </div>
                 </div>
 
@@ -5234,7 +5353,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     rows={5}
                     value={extractedPropertyResult.generatedCopy}
                     onChange={(e) => setExtractedPropertyResult({ ...extractedPropertyResult, generatedCopy: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs text-gray-800 leading-relaxed focus:outline-none"
+                    className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 leading-relaxed focus:outline-none focus:border-[#D02126]"
                   />
                 </div>
 
@@ -5244,9 +5363,9 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                       const newProp: AgencyPropertyItem = {
                         id: 'prop-' + Date.now(),
                         title: extractedPropertyResult.title,
-                        address: extractedPropertyResult.address,
+                        address: extractedPropertyResult.address || 'Dirección registrada',
                         commune: extractedPropertyResult.commune,
-                        type: 'Depto',
+                        type: extractedPropertyResult.type === 'Casa' ? 'Casa' : 'Depto',
                         bedrooms: extractedPropertyResult.bedrooms,
                         bathrooms: extractedPropertyResult.bathrooms,
                         surfaceM2: extractedPropertyResult.surfaceM2,
@@ -5258,7 +5377,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                       setProperties(prev => [newProp, ...prev]);
                       setIsMultimodalModalOpen(false);
                       setExtractedPropertyResult(null);
-                      alert('✓ ¡Propiedad ingresada a tu cartera y sincronizada a portales!');
+                      setCopilotActionNotice(`✓ ¡Propiedad "${newProp.title}" incorporada a tu cartera y guardada en el sistema!`);
                     }}
                     className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2"
                   >

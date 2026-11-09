@@ -398,7 +398,7 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl border border-gray-200 relative max-h-[92vh] overflow-y-auto text-[#0F1115]">
-        
+
         {/* Top Close Button */}
         <button
           onClick={onClose}
@@ -1133,7 +1133,7 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
           /* 2. INTRANET ADMIN VIEW (EQUIPO MELSA)                         */
           /* ------------------------------------------------------------- */
           <div className="space-y-6">
-            
+
             {/* Admin Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-200 gap-4">
               <div className="flex items-center gap-3">

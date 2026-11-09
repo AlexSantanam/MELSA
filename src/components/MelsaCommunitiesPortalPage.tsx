@@ -482,7 +482,39 @@ export const MelsaCommunitiesPortalPage: React.FC<MelsaCommunitiesPortalPageProp
                   </div>
                 </div>
 
-                {/* Row 2 */}
+                {/* Row 2: Conciliación Bancaria Automática */}
+                <div className="grid grid-cols-12 p-4 items-center bg-gray-900/30">
+                  <div className="col-span-5">
+                    <strong className="text-white block font-bold">Conciliación Bancaria Automática</strong>
+                    <span className="text-gray-400 text-[11px]">Cruce inteligente de transferencias bancarias</span>
+                  </div>
+                  <div className="col-span-3 text-center text-red-400 font-bold">
+                    Cobran +2 UF extra/mes <br />
+                    <span className="text-[10px] text-gray-500">(~$78.000 CLP adicionales)</span>
+                  </div>
+                  <div className="col-span-4 text-center text-emerald-400 font-bold">
+                    <span className="text-emerald-300 font-extrabold">100% INCLUIDO</span> <br />
+                    <span className="text-[10px] text-gray-400">Auto-match por monto y glosa en 1 clic</span>
+                  </div>
+                </div>
+
+                {/* Row 3: Remuneraciones & Previred */}
+                <div className="grid grid-cols-12 p-4 items-center">
+                  <div className="col-span-5">
+                    <strong className="text-white block font-bold">Sueldos Conserjería & Previred (.txt)</strong>
+                    <span className="text-gray-400 text-[11px]">Turnos 4x4, horas extras y liquidaciones DT</span>
+                  </div>
+                  <div className="col-span-3 text-center text-red-400 font-bold">
+                    Cobran +1 UF extra/mes <br />
+                    <span className="text-[10px] text-gray-500">(~$39.000 CLP adicionales)</span>
+                  </div>
+                  <div className="col-span-4 text-center text-emerald-400 font-bold">
+                    <span className="text-emerald-300 font-extrabold">100% INCLUIDO</span> <br />
+                    <span className="text-[10px] text-gray-400">Exporta archivo Previred oficial</span>
+                  </div>
+                </div>
+
+                {/* Row 4: Red de Técnicos SEC */}
                 <div className="grid grid-cols-12 p-4 items-center">
                   <div className="col-span-5">
                     <strong className="text-white block font-bold">Red de Técnicos de Mantención SEC</strong>

@@ -87,7 +87,6 @@ import { PropertyPhotoUploader } from './PropertyPhotoUploader';
 import { extractPropertyWithGroq, ExtractedPropertyData } from '../services/propertyAiExtractor';
 import { AgencyDevelopmentsHub } from './AgencyDevelopmentsHub';
 import { AgencyValuationHub } from './AgencyValuationHub';
-import { BuildingManagementHub } from './BuildingManagementHub';
 
 interface AgencyWorkspaceViewProps {
   currentUser: AuthUser;
@@ -135,7 +134,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
 }) => {
   // Navigation Vertical Tabs (Exact 13 modules from Altenda sidebar + Integraciones + Configuración + Superpoderes Proptech)
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'properties' | 'developments' | 'communities' | 'sales' | 'agenda' | 'clients' | 'contracts' | 
+    'dashboard' | 'properties' | 'developments' | 'sales' | 'agenda' | 'clients' | 'contracts' | 
     'collections' | 'payments' | 'settlement' | 'portals' | 'maintenance' | 'users' | 'plans' |
     'settings' | 'integrations' | 'inbox' | 'matching' | 'valuation'
   >('dashboard');
@@ -804,7 +803,6 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                 {[
                   { id: 'properties', label: 'Propiedades', icon: Home },
                   { id: 'developments', label: 'Proyectos & Masterplan', icon: Building2, badge: 'Hub', badgeStyle: 'bg-emerald-500/20 text-emerald-300' },
-                  { id: 'communities', label: 'Edificios & Condominios', icon: ShieldCheck, badge: 'Ley 21.442', badgeStyle: 'bg-blue-500/20 text-blue-300' },
                   { id: 'sales', label: 'Cartera de Ventas', icon: Layers },
                   { id: 'agenda', label: 'Agenda & Visitas', icon: Calendar },
                   { id: 'clients', label: 'Clientes & Inversionistas', icon: Users }
@@ -2159,14 +2157,6 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
               </div>
             )}
 
-            {/* ========================================================== */}
-            {/* TAB: ADMINISTRACIÓN DE EDIFICIOS & CONDOMINIOS (LEY 21.442) */}
-            {/* ========================================================== */}
-            {activeTab === 'communities' && (
-              <div className="animate-in fade-in duration-150">
-                <BuildingManagementHub />
-              </div>
-            )}
 
             {/* ========================================================== */}
             {/* TAB 3: CARTERA DE VENTAS (SCREENSHOT 4 EXACT MATCH)       */}

@@ -442,6 +442,29 @@ export const AgencySaaSSection: React.FC<AgencySaaSSectionProps> = ({
           </div>
         </div>
 
+        {/* Dedicated Banner: Portal Edificios & Condominios OS (vs ComunidadFeliz) */}
+        <div className="mt-8 bg-gradient-to-r from-gray-950 via-[#131720] to-gray-950 rounded-3xl p-8 border border-emerald-500/30 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-black uppercase border border-emerald-500/20">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Plataforma Dedicada â€¢ Ley 21.442 de Copropiedad</span>
+            </div>
+            <h4 className="text-xl sm:text-2xl font-black text-white">
+              Â¿Administras Edificios o Condominios? Conoce MELSA Comunidades OS
+            </h4>
+            <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
+              La alternativa chilena de alta eficiencia a ComunidadFeliz: prorrateo de gastos comunes al milÃ­metro, terminal de conserjerÃ­a para tablet, avisos de encomiendas por WhatsApp y la <strong className="text-white">Ãºnica red de tÃ©cnicos SEC integrada</strong> a una fracciÃ³n del costo.
+            </p>
+          </div>
+          <a
+            href="#comunidades"
+            className="shrink-0 px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-xl shadow-emerald-950/50 flex items-center gap-2 cursor-pointer transition-all"
+          >
+            <span>Ver Software para Edificios (-65%)</span>
+            <ArrowRight className="w-4 h-4" />
+          </a>
+        </div>
+
       </div>
     </section>
   );

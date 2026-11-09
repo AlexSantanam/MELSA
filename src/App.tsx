@@ -25,9 +25,10 @@ import { MOCK_APPLICATIONS } from './data/mockData';
 import { getStoredUser, logoutUser } from './services/authService';
 import { CollaboratorWorkspacePage } from './components/CollaboratorWorkspacePage';
 import { AgencySaaSSection } from './components/AgencySaaSSection';
+import { MelsaCommunitiesPortalPage } from './components/MelsaCommunitiesPortalPage';
 
 export default function App() {
-  const [viewMode, setViewMode] = useState<'home' | 'market' | 'workspace'>('home');
+  const [viewMode, setViewMode] = useState<'home' | 'market' | 'workspace' | 'communities'>('home');
   const [marketInitialTab, setMarketInitialTab] = useState<'properties' | 'services' | 'publish'>('properties');
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(getStoredUser());
 
@@ -71,6 +72,8 @@ export default function App() {
       } else if (hash === '#publicar') {
         setViewMode('market');
         setMarketInitialTab('publish');
+      } else if (hash === '#comunidades' || hash === '#edificios' || hash === '#condominios') {
+        setViewMode('communities');
       } else if (hash === '#software-agencias' || hash === '#saas') {
         setViewMode('home');
       } else if (hash === '#inicio' || hash === '') {
@@ -82,6 +85,12 @@ export default function App() {
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
+
+  const handleOpenCommunities = () => {
+    setViewMode('communities');
+    window.location.hash = '#comunidades';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleOpenMarket = (tab: 'properties' | 'services' | 'publish' = 'properties') => {
     setMarketInitialTab(tab);
@@ -211,6 +220,23 @@ export default function App() {
     );
   }
 
+  // If user navigated to the dedicated Communities OS sub-page:
+  if (viewMode === 'communities') {
+    return (
+      <div className="min-h-screen bg-[#0B0D11] text-white font-sans selection:bg-[#D02126] selection:text-white">
+        <MelsaCommunitiesPortalPage 
+          onBackToHome={handleBackToHome}
+          onOpenWorkspace={handleOpenIntranetOrWorkspace}
+          currentUser={currentUser}
+        />
+        
+        {/* Floating Utilities */}
+        <WhatsAppWidget />
+        <AIAssistantWidget />
+      </div>
+    );
+  }
+
   // Standard Clean Institutional Landing Page
   return (
     <div className="min-h-screen bg-[#FAF9F8] text-[#1E293B] font-sans selection:bg-[#D02126] selection:text-white">
@@ -219,6 +245,7 @@ export default function App() {
       <Header 
         onOpenAdvisoryModal={handleOpenAdvisoryModal}
         onOpenMarket={handleOpenMarket}
+        onOpenCommunities={handleOpenCommunities}
         onOpenIntranetModal={handleOpenIntranetOrWorkspace}
         currentUser={currentUser}
       />

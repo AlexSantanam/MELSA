@@ -6,6 +6,7 @@ import { AuthUser } from '../types';
 interface HeaderProps {
   onOpenAdvisoryModal: (agentId?: string, projectId?: string) => void;
   onOpenMarket?: (tab?: 'properties' | 'services' | 'publish') => void;
+  onOpenCommunities?: () => void;
   onOpenIntranetModal?: () => void;
   currentUser?: AuthUser | null;
 }
@@ -13,6 +14,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ 
   onOpenAdvisoryModal, 
   onOpenMarket, 
+  onOpenCommunities,
   onOpenIntranetModal,
   currentUser 
 }) => {
@@ -34,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   const navLinks = [
     { label: 'Inicio', href: '#inicio' },
     { label: 'Software Agencias', href: '#software-agencias' },
+    { label: 'Edificios & Condominios', href: '#comunidades', badge: 'Ley 21.442' },
     { label: 'Proyectos', href: '#proyectos' },
     { label: 'Market', href: '#mercado' },
     { label: 'Inteligencia IA', href: '#inteligencia-financiera' },
@@ -89,7 +92,7 @@ export const Header: React.FC<HeaderProps> = ({
           </a>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden lg:flex items-center space-x-8">
+          <div className="hidden lg:flex items-center space-x-7">
             {navLinks.map((link) => (
               <a
                 key={link.label}
@@ -98,11 +101,19 @@ export const Header: React.FC<HeaderProps> = ({
                   if (link.href === '#mercado') {
                     e.preventDefault();
                     onOpenMarket?.('properties');
+                  } else if (link.href === '#comunidades') {
+                    e.preventDefault();
+                    onOpenCommunities?.();
                   }
                 }}
-                className="text-sm font-medium text-[#0F1115] hover:text-[#D02126] transition-colors relative py-1 group"
+                className="text-sm font-medium text-[#0F1115] hover:text-[#D02126] transition-colors relative py-1 group flex items-center gap-1.5"
               >
-                {link.label}
+                <span>{link.label}</span>
+                {link.badge && (
+                  <span className="text-[10px] font-black uppercase px-1.5 py-0.2 rounded-full bg-red-500/10 text-[#D02126] border border-red-500/20">
+                    {link.badge}
+                  </span>
+                )}
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#D02126] transition-all duration-300 group-hover:w-full" />
               </a>
             ))}
@@ -170,12 +181,20 @@ export const Header: React.FC<HeaderProps> = ({
                   if (link.href === '#mercado') {
                     e.preventDefault();
                     onOpenMarket?.('properties');
+                  } else if (link.href === '#comunidades') {
+                    e.preventDefault();
+                    onOpenCommunities?.();
                   }
                   setIsMobileMenuOpen(false);
                 }}
-                className="block text-base font-medium text-[#0F1115] hover:text-[#D02126] py-2 border-b border-gray-100"
+                className="flex items-center justify-between text-base font-medium text-[#0F1115] hover:text-[#D02126] py-2 border-b border-gray-100"
               >
-                {link.label}
+                <span>{link.label}</span>
+                {link.badge && (
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-red-500/10 text-[#D02126]">
+                    {link.badge}
+                  </span>
+                )}
               </a>
             ))}
             <div className="pt-2">

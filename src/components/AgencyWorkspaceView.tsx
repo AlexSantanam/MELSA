@@ -899,18 +899,15 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
 
           </div>
 
-          {/* Quick Setup Shortcut Sello Melsa */}
+          {/* Status Badge */}
           <div className="pt-4 border-t border-white/10">
-            <button
-              onClick={onOpenOnboarding}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[11px] font-semibold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer border border-white/10"
-            >
-              <span className="flex items-center gap-1.5 font-bold">
-                <span className="w-2 h-2 rounded-full bg-[#D02126]" />
-                Activación de Corredora
+            <div className="px-3 py-2 rounded-xl text-[11px] font-semibold text-gray-400 bg-white/5 border border-white/10 flex items-center justify-between">
+              <span className="flex items-center gap-1.5 font-bold text-gray-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                Agencia Conectada
               </span>
-              <span className="text-[10px] text-emerald-300 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">88%</span>
-            </button>
+              <span className="text-[10px] text-emerald-300 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Activa</span>
+            </div>
           </div>
         </aside>
 

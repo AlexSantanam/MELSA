@@ -297,97 +297,17 @@ export const CollaboratorWorkspacePage: React.FC<CollaboratorWorkspacePageProps>
     setTimeout(() => setSavedProfileAlert(false), 3000);
   };
 
-  // Dedicated SaaS OS Layout for Real Estate Agencies
+  // Dedicated SaaS OS Layout for Real Estate Agencies (Melsa Agency OS)
   if (currentUser.role === 'agency' || (isAdmin && adminViewMode === 'agency')) {
-    if (showOnboarding) {
-      return (
-        <AgencyOnboardingWizard
-          currentUser={currentUser}
-          onComplete={() => setShowOnboarding(false)}
-          onSkip={() => setShowOnboarding(false)}
-        />
-      );
-    }
-
     return (
-      <div className="min-h-screen bg-[#F8F9FA] text-[#0F1115] font-sans flex flex-col">
-        {/* Top Corporate Bar */}
-        <header className="sticky top-0 z-40 bg-[#0F1115] text-white border-b border-[#D02126]/30 shadow-lg">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={onBackToHome}
-                className="flex items-center gap-2 text-xs font-semibold text-gray-300 hover:text-white transition-colors cursor-pointer py-1.5 px-3 rounded-xl hover:bg-white/10"
-              >
-                <ArrowLeft className="w-4 h-4 text-[#D02126]" />
-                <span className="hidden sm:inline">Ver Sitio Web Público</span>
-              </button>
-
-              <div className="h-6 w-px bg-white/20 hidden sm:block" />
-
-              <div className="flex items-center gap-3">
-                <MelsaLogo isLight={true} className="h-8" />
-                <div className="hidden md:flex flex-col">
-                  <span className="text-[11px] font-bold text-gray-200 uppercase tracking-wider flex items-center gap-1.5">
-                    <span>🏢 MELSA Agency OS</span>
-                  </span>
-                  <span className="text-[10px] text-gray-400 font-light">
-                    Software de Arriendos, Cobranzas & Ventas
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowOnboarding(true)}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 border border-white/20 text-xs font-semibold transition-all cursor-pointer"
-                title="Reabrir Asistente de Configuración Inicial (8 pasos)"
-              >
-                <span>⚙️ Asistente Corredora (8 Pasos)</span>
-              </button>
-
-              {isAdmin && (
-                <button
-                  onClick={() => setAdminViewMode('admin')}
-                  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold transition-all cursor-pointer"
-                  title="Cambiar a vista de Auditoría Nacional Sello Melsa"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Panel Auditoría Sello Melsa</span>
-                </button>
-              )}
-
-              <span className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/10 text-[#D02126] border border-[#D02126]/30">
-                <Zap className="w-3.5 h-3.5" />
-                <span>Agencia Conectada</span>
-              </span>
-
-              <div className="flex items-center gap-2 pl-2 sm:border-l sm:border-white/10">
-                <div className="w-9 h-9 rounded-xl bg-[#D02126] text-white font-bold flex items-center justify-center text-sm shadow-sm">
-                  {currentUser.name.charAt(0)}
-                </div>
-                <div className="hidden sm:block text-left">
-                  <span className="text-xs font-bold text-white block leading-tight">{currentUser.name}</span>
-                  <span className="text-[10px] text-gray-400 block font-light">{currentUser.email}</span>
-                </div>
-              </div>
-
-              <button
-                onClick={onLogout}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-red-500/20 hover:text-red-400 border border-white/15 text-xs font-semibold text-gray-200 transition-all cursor-pointer ml-1"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Cerrar Sesión</span>
-              </button>
-            </div>
-          </div>
-        </header>
-
-        {/* Agency Operating System Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
-          <AgencyWorkspaceView currentUser={currentUser} />
-        </main>
+      <div className="min-h-screen bg-[#FAF9F8] text-[#0F1115] font-sans flex flex-col">
+        <AgencyWorkspaceView 
+          currentUser={currentUser} 
+          onBackToHome={onBackToHome}
+          onLogout={onLogout}
+          isAdmin={isAdmin}
+          onToggleAdminView={() => setAdminViewMode('admin')}
+        />
       </div>
     );
   }

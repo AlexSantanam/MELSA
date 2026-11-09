@@ -41,7 +41,12 @@ import {
   ArrowUpDown,
   Landmark,
   FileCode,
-  FolderOpen
+  FolderOpen,
+  Save,
+  Copy,
+  Lock,
+  Mail,
+  Globe
 } from 'lucide-react';
 import { 
   AuthUser, 
@@ -246,6 +251,37 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
   const [newClientName, setNewClientName] = useState('');
   const [newClientEmail, setNewClientEmail] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
+
+  // Portales module state (Altenda screenshots 1, 2, 3)
+  const [portalCustomName, setPortalCustomName] = useState(companyDisplayName || 'Los Pinos');
+  const [portalPrimaryColor, setPortalPrimaryColor] = useState('#153b50');
+  const [portalAccentColor, setPortalAccentColor] = useState('#008e88');
+  const [portalAllowedDomains, setPortalAllowedDomains] = useState('https://www.tuempresa.cl');
+  const [portalPublishRut, setPortalPublishRut] = useState(true);
+  const [portalSavedAlert, setPortalSavedAlert] = useState(false);
+  const [portalCopiedItem, setPortalCopiedItem] = useState<string | null>(null);
+
+  // Gastos y servicios module state (Altenda screenshot 4)
+  const [isNewExpenseModalOpen, setIsNewExpenseModalOpen] = useState(false);
+  const [newExpenseProp, setNewExpenseProp] = useState('');
+  const [newExpenseCat, setNewExpenseCat] = useState('Gasfitería');
+  const [newExpenseAmount, setNewExpenseAmount] = useState(45000);
+  const [newExpenseDesc, setNewExpenseDesc] = useState('');
+
+  // Usuarios module state (Altenda screenshot 5)
+  const [teamMembers, setTeamMembers] = useState([
+    {
+      id: 'usr-1',
+      name: representativeName,
+      email: currentUser.email || 'alexis.s.m@gmail.com',
+      role: 'Propietario de la empresa',
+      type: 'Cuenta de equipo'
+    }
+  ]);
+  const [isNewUserModalOpen, setIsNewUserModalOpen] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'Colaborador' | 'Administrador'>('Colaborador');
 
   const formatCLP = (val: number) => '$' + Math.round(val).toLocaleString('es-CL');
 
@@ -1577,149 +1613,399 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             )}
 
             {/* ========================================================== */}
-            {/* TAB 10: PORTALES DE AUTOSERVICIO                           */}
+            {/* TAB 10: PORTALES (SCREENSHOTS 1, 2, 3 EXACT MATCH)        */}
             {/* ========================================================== */}
             {activeTab === 'portals' && (
-              <div className="space-y-6 animate-in fade-in duration-150">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
-                      Portales de Clientes
-                    </h1>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Enlaces personalizados para que tus arrendatarios y propietarios consulten su estado en línea.
-                    </p>
+              <div className="space-y-8 animate-in fade-in duration-150">
+                <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
+                  Portales
+                </h1>
+
+                {/* Section 1: Acceso de propietarios y arrendatarios */}
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/90 shadow-2xs space-y-4">
+                  <div className="flex items-center gap-2.5 text-[#153B50]">
+                    <div className="w-8 h-8 rounded-full bg-[#E6F4EA] text-[#008E88] flex items-center justify-center">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-base font-bold">Acceso de propietarios y arrendatarios</h3>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setPortalPreviewMode('tenant')}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        portalPreviewMode === 'tenant' ? 'bg-[#008E88] text-white' : 'bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      Portal Arrendatario
-                    </button>
-                    <button
-                      onClick={() => setPortalPreviewMode('owner')}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        portalPreviewMode === 'owner' ? 'bg-[#008E88] text-white' : 'bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      Portal Propietario
-                    </button>
+                  <p className="text-xs text-gray-500 font-normal leading-relaxed">
+                    Las personas registradas con correo acceden solicitando un código. Cada cuenta conserva sus permisos y los documentos que le corresponden.
+                  </p>
+
+                  <div className="space-y-1.5 pt-1">
+                    <label className="block text-xs font-semibold text-gray-600">
+                      Enlace de acceso personal
+                    </label>
+                    <div className="relative flex items-center max-w-2xl">
+                      <input
+                        type="text"
+                        readOnly
+                        value={`https://user.melsa.cl/my/33`}
+                        className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-700 font-mono pr-20 select-all"
+                      />
+                      <div className="absolute right-2 flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            navigator.clipboard?.writeText(`https://user.melsa.cl/my/33`);
+                            setPortalCopiedItem('personal');
+                            setTimeout(() => setPortalCopiedItem(null), 2000);
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-[#008E88] transition-colors cursor-pointer"
+                          title="Copiar enlace"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                        <a
+                          href={`https://user.melsa.cl/my/33`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1.5 text-gray-400 hover:text-[#008E88] transition-colors"
+                          title="Abrir enlace"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      </div>
+                    </div>
+                    {portalCopiedItem === 'personal' && (
+                      <span className="text-[10px] text-emerald-600 font-bold block">✓ ¡Enlace copiado al portapapeles!</span>
+                    )}
                   </div>
                 </div>
 
-                <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-2xs space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 text-xs">
-                    <div>
-                      <span className="font-bold text-[#153B50] block">Enlace público de tu portal:</span>
-                      <span className="text-[#008E88] font-mono">
-                        {portalPreviewMode === 'tenant' 
-                          ? `https://user.melsa.cl/pay/${companyDisplayName.toLowerCase().replace(/\s+/g, '-')}`
-                          : `https://user.melsa.cl/my/33`}
-                      </span>
+                {/* Section 2: Tu portal de pagos */}
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/90 shadow-2xs space-y-6">
+                  <div className="flex items-center gap-2.5 text-[#153B50]">
+                    <div className="w-8 h-8 rounded-full bg-[#E6F4EA] text-[#008E88] flex items-center justify-center">
+                      <Globe className="w-4 h-4" />
                     </div>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard?.writeText(`https://user.melsa.cl/pay/${companyDisplayName.toLowerCase().replace(/\s+/g, '-')}`);
-                        setCopiedLinkNotice('¡Enlace copiado!');
-                        setTimeout(() => setCopiedLinkNotice(null), 2000);
-                      }}
-                      className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-[#E6F4EA] text-[#008E88] font-bold text-xs cursor-pointer"
-                    >
-                      {copiedLinkNotice || 'Copiar Enlace'}
-                    </button>
+                    <h3 className="text-base font-bold">Tu portal de pagos</h3>
                   </div>
 
-                  {/* Simulator Box */}
-                  <div className="bg-[#FAF9F8] p-6 rounded-2xl border border-gray-200 max-w-md mx-auto text-center space-y-3">
-                    <h4 className="text-sm font-bold text-[#153B50]">
-                      {portalPreviewMode === 'tenant' ? '🏠 Consulta tus pagos de arriendo' : '🏢 Liquidaciones para propietarios'}
-                    </h4>
-                    <p className="text-xs text-gray-400">
-                      Tus clientes ingresan su RUT y ven su estado de cuenta en tiempo real.
+                  <p className="text-xs text-gray-500 font-normal leading-relaxed">
+                    Personaliza el portal donde tus arrendatarios consultan sus obligaciones por RUT. Puedes publicarlo también en tu sitio web.
+                  </p>
+
+                  <div className="space-y-4 max-w-2xl">
+                    {/* Nombre del portal */}
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                        Nombre del portal
+                      </label>
+                      <input
+                        type="text"
+                        value={portalCustomName}
+                        onChange={(e) => setPortalCustomName(e.target.value)}
+                        className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-700 focus:outline-none focus:border-[#008E88]"
+                      />
+                    </div>
+
+                    {/* Colores */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                          Color principal
+                        </label>
+                        <div className="flex items-center gap-2 bg-[#F4F8F7] border border-gray-200 rounded-xl px-3 py-2">
+                          <input
+                            type="color"
+                            value={portalPrimaryColor}
+                            onChange={(e) => setPortalPrimaryColor(e.target.value)}
+                            className="w-7 h-7 rounded-lg border-0 cursor-pointer p-0 bg-transparent"
+                          />
+                          <input
+                            type="text"
+                            value={portalPrimaryColor}
+                            onChange={(e) => setPortalPrimaryColor(e.target.value)}
+                            className="bg-transparent text-xs font-mono text-gray-700 outline-none w-24"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                          Color de acento
+                        </label>
+                        <div className="flex items-center gap-2 bg-[#F4F8F7] border border-gray-200 rounded-xl px-3 py-2">
+                          <input
+                            type="color"
+                            value={portalAccentColor}
+                            onChange={(e) => setPortalAccentColor(e.target.value)}
+                            className="w-7 h-7 rounded-lg border-0 cursor-pointer p-0 bg-transparent"
+                          />
+                          <input
+                            type="text"
+                            value={portalAccentColor}
+                            onChange={(e) => setPortalAccentColor(e.target.value)}
+                            className="bg-transparent text-xs font-mono text-gray-700 outline-none w-24"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Logo de tu empresa */}
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                        Logo de tu empresa
+                      </label>
+                      <div className="border-2 border-dashed border-[#D2E7E4] bg-[#F4F9F8] rounded-2xl p-6 text-center cursor-pointer hover:bg-emerald-50/40 transition-colors relative">
+                        <UploadCloud className="w-6 h-6 text-[#008E88] mx-auto mb-1.5" />
+                        <p className="text-xs font-bold text-[#153B50]">
+                          Arrastra un archivo aquí o haz clic para seleccionarlo
+                        </p>
+                        <p className="text-[11px] text-gray-400 mt-0.5">
+                          Selecciona un archivo compatible
+                        </p>
+                        <span className="inline-block mt-3 px-3 py-1 bg-gray-900 text-white text-[10px] rounded font-mono">
+                          Ningún archivo seleccionado
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-400 mt-1.5">
+                        PNG, JPG o WebP de hasta 500 KB. Se optimiza a un máximo de 400 px de ancho.
+                      </p>
+                    </div>
+
+                    {/* Sitios autorizados para insertar el widget */}
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                        Sitios autorizados para insertar el widget
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={portalAllowedDomains}
+                        onChange={(e) => setPortalAllowedDomains(e.target.value)}
+                        placeholder="https://www.tuempresa.cl"
+                        className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-700 font-mono focus:outline-none focus:border-[#008E88]"
+                      />
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        Un dominio HTTPS por línea. Añade por separado las versiones con y sin www que utilices.
+                      </p>
+                    </div>
+
+                    {/* Checkbox Publicar */}
+                    <div className="flex items-center gap-2.5 pt-1">
+                      <input
+                        type="checkbox"
+                        id="pub-rut"
+                        checked={portalPublishRut}
+                        onChange={(e) => setPortalPublishRut(e.target.checked)}
+                        className="w-4 h-4 rounded text-[#008E88] border-gray-300 focus:ring-[#008E88] cursor-pointer"
+                      />
+                      <label htmlFor="pub-rut" className="text-xs text-gray-700 cursor-pointer select-none">
+                        Publicar portal y aceptar consultas por RUT
+                      </label>
+                    </div>
+
+                    {/* Guardar portal de pagos button */}
+                    <div className="pt-2">
+                      <button
+                        onClick={() => {
+                          setPortalSavedAlert(true);
+                          setTimeout(() => setPortalSavedAlert(false), 3000);
+                        }}
+                        className="px-5 py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>Guardar portal de pagos</span>
+                      </button>
+                    </div>
+
+                    {portalSavedAlert && (
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span>¡Configuración del portal guardada con éxito!</span>
+                      </div>
+                    )}
+
+                    <p className="text-[11px] text-gray-500 leading-relaxed pt-2">
+                      Para habilitar los pagos de este portal, configura al menos una opción: Flow o transferencia bancaria. El acceso personal por correo es independiente de los medios de pago. Melsa protege las consultas con su comprobación de seguridad.
                     </p>
-                    <input
-                      type="text"
-                      readOnly
-                      value="18.999.888-7"
-                      className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-center text-gray-500 font-mono"
-                    />
-                    <button
-                      style={{ backgroundColor: onboardingData?.portalAccentColor || '#008E88' }}
-                      className="w-full py-2.5 rounded-xl text-white font-bold text-xs shadow-xs"
-                    >
-                      {portalPreviewMode === 'tenant' ? 'Pagar con Webpay / Khipu' : 'Ver Liquidación'}
-                    </button>
+                  </div>
+
+                  {/* Section 3: Enlace de tu portal */}
+                  <div className="pt-6 border-t border-gray-100 space-y-2 max-w-2xl">
+                    <h4 className="text-xs font-bold text-[#153B50]">Enlace de tu portal</h4>
+                    <label className="block text-[11px] text-gray-500">URL pública</label>
+                    <div className="relative flex items-center">
+                      <input
+                        type="text"
+                        readOnly
+                        value={`https://user.melsa.cl/pay/c8fd0927723bfabb542051e19c733246`}
+                        className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-700 font-mono pr-20 select-all"
+                      />
+                      <div className="absolute right-2 flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            navigator.clipboard?.writeText(`https://user.melsa.cl/pay/c8fd0927723bfabb542051e19c733246`);
+                            setPortalCopiedItem('public');
+                            setTimeout(() => setPortalCopiedItem(null), 2000);
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-[#008E88] transition-colors cursor-pointer"
+                          title="Copiar enlace"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                        <a
+                          href={`https://user.melsa.cl/pay/c8fd0927723bfabb542051e19c733246`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1.5 text-gray-400 hover:text-[#008E88] transition-colors"
+                          title="Abrir enlace"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      </div>
+                    </div>
+                    {portalCopiedItem === 'public' && (
+                      <span className="text-[10px] text-emerald-600 font-bold block">✓ ¡URL pública copiada!</span>
+                    )}
+                  </div>
+
+                  {/* Section 4: Widget para tu web */}
+                  <div className="pt-4 border-t border-gray-100 space-y-2 max-w-2xl">
+                    <h4 className="text-xs font-bold text-[#153B50]">Widget para tu web</h4>
+                    <p className="text-[11px] text-gray-500">
+                      Copia este código en un bloque HTML de uno de los sitios autorizados.
+                    </p>
+                    <div className="relative">
+                      <textarea
+                        readOnly
+                        rows={3}
+                        value={`<iframe src="https://user.melsa.cl/pay/c8fd0927723bfabb542051e19c733246?widget=1" title="Portal de pagos" width="100%" height="720" style="border:0" loading="lazy" referrerpolicy="no-referrer"></iframe>`}
+                        className="w-full bg-[#153B50] text-[#00E5D4] p-3 rounded-xl font-mono text-[11px] border border-gray-700 focus:outline-none select-all"
+                      />
+                      <button
+                        onClick={() => {
+                          navigator.clipboard?.writeText(`<iframe src="https://user.melsa.cl/pay/c8fd0927723bfabb542051e19c733246?widget=1" title="Portal de pagos" width="100%" height="720" style="border:0" loading="lazy" referrerpolicy="no-referrer"></iframe>`);
+                          setPortalCopiedItem('widget');
+                          setTimeout(() => setPortalCopiedItem(null), 2000);
+                        }}
+                        className="absolute top-2 right-2 px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[10px] font-bold transition-colors cursor-pointer"
+                      >
+                        {portalCopiedItem === 'widget' ? '✓ Copiado' : 'Copiar Widget'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
             {/* ========================================================== */}
-            {/* TAB 11: GASTOS Y SERVICIOS (SELLO MELSA RED TÉCNICA)      */}
+            {/* TAB 11: GASTOS Y SERVICIOS (SCREENSHOT 4 EXACT MATCH)     */}
             {/* ========================================================== */}
             {activeTab === 'maintenance' && (
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
-                      Gastos y Servicios Técnicos
-                    </h1>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Helpdesk de reparaciones con técnicos certificados del Sello Melsa.
-                    </p>
+                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
+                    Gastos y servicios
+                  </h1>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowDemoData(!showDemoData)}
+                      className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      {showDemoData ? '👁️ Ver limpio inicial' : '📊 Ver gastos de ejemplo'}
+                    </button>
+                    <button
+                      onClick={() => setIsNewExpenseModalOpen(true)}
+                      className="px-3.5 py-1.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Registrar gasto</span>
+                    </button>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-2xs space-y-4">
-                  <div className="divide-y divide-gray-100">
-                    {tickets.map((tck) => (
-                      <div key={tck.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-[#153B50]">{tck.propertyAddress}</span>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                              {tck.category}
-                            </span>
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/90 shadow-2xs space-y-4 min-h-[360px] flex flex-col justify-between">
+                  <p className="text-xs text-gray-500 font-normal">
+                    Registra y consulta los gastos de tus propiedades. Los pagos se anotan manualmente y no modifican por sí solos las liquidaciones.
+                  </p>
+
+                  {!showDemoData ? (
+                    <div className="py-20 text-center flex items-center justify-center gap-2.5 text-xs text-gray-400">
+                      <Inbox className="w-5 h-5 text-gray-400 shrink-0" />
+                      <span>Todavía no hay movimientos para mostrar.</span>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100 text-xs py-2">
+                      {tickets.map(t => (
+                        <div key={t.id} className="py-3 flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-[#153B50]">{t.propertyAddress}</span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                                {t.category}
+                              </span>
+                            </div>
+                            <p className="text-gray-500 text-[11px] mt-0.5">{t.description}</p>
+                            <span className="text-[10px] text-gray-400">Técnico SEC Sello Melsa: <strong>{t.assignedTechnician}</strong></span>
                           </div>
-                          <p className="text-gray-500 mt-0.5">{tck.description}</p>
-                          <span className="text-[10px] text-gray-400">Técnico SEC: <strong>{tck.assignedTechnician}</strong></span>
+                          <div className="text-right">
+                            <span className="font-mono font-bold text-[#153B50] block">{formatCLP(t.costEstimateCLP)}</span>
+                            <span className="text-[10px] text-emerald-600 font-bold">Imputable a liquidación</span>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className="font-mono font-bold text-[#153B50] block">{formatCLP(tck.costEstimateCLP)}</span>
-                          <span className="text-[10px] text-emerald-700 font-semibold">Gasto imputado a liquidación</span>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="pt-4 border-t border-gray-100 text-[11px] text-gray-400">
+                    Soporte técnico y mantenciones respaldadas bajo el estándar de calidad del Sello Melsa.
                   </div>
                 </div>
               </div>
             )}
 
             {/* ========================================================== */}
-            {/* TAB 12: USUARIOS Y EQUIPO                                 */}
+            {/* TAB 12: USUARIOS (SCREENSHOT 5 EXACT MATCH)                */}
             {/* ========================================================== */}
             {activeTab === 'users' && (
               <div className="space-y-6 animate-in fade-in duration-150">
-                <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
-                  Usuarios y Permisos
-                </h1>
-                <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-2xs space-y-4 text-xs">
-                  <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                    <div>
-                      <span className="font-bold text-[#153B50] block text-sm">{representativeName}</span>
-                      <span className="text-gray-400 block">{currentUser.email}</span>
-                    </div>
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#E6F4EA] text-[#008E88]">
-                      Administrador Principal
-                    </span>
+                <div className="flex items-center justify-between">
+                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
+                    Usuarios
+                  </h1>
+                </div>
+
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/90 shadow-2xs space-y-6">
+                  {/* User rows */}
+                  <div className="space-y-3">
+                    {teamMembers.map(usr => (
+                      <div key={usr.id} className="bg-[#FAF9F8] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-gray-100">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-10 h-10 rounded-full bg-[#E6F4EA] text-[#008E88] font-bold flex items-center justify-center text-sm shadow-2xs">
+                            {usr.name.charAt(0) || 'A'}
+                          </div>
+                          <div>
+                            <span className="font-bold text-sm text-[#153B50] block">{usr.name}</span>
+                            <span className="text-xs text-gray-400 block">{usr.type}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                          <Mail className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="font-mono">{usr.email}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+                          <Lock className="w-3.5 h-3.5 text-gray-400" />
+                          <span>{usr.role}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <p className="text-gray-500">
-                    Tienes 1 de 2 cupos de usuarios en uso según tu plan actual.
-                  </p>
+
+                  {/* Bottom Action: + Crear usuario */}
+                  <div className="flex justify-end pt-2">
+                    <button
+                      onClick={() => setIsNewUserModalOpen(true)}
+                      className="px-5 py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Crear usuario</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -2271,6 +2557,185 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                 className="w-full py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer mt-2"
               >
                 Guardar Cliente
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL: REGISTRAR GASTO / MANTENCIÓN (ALTENDA SCREENSHOT 4)     */}
+      {/* ============================================================== */}
+      {isNewExpenseModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-gray-200 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <h3 className="text-base font-bold text-[#153B50]">Registrar Gasto o Servicio</h3>
+              <button 
+                onClick={() => setIsNewExpenseModalOpen(false)}
+                className="text-gray-400 hover:text-gray-700 cursor-pointer p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const newTck: AgencyMaintenanceTicket = {
+                  id: 'tck-' + Date.now(),
+                  propertyAddress: newExpenseProp || (properties[0]?.address || 'Av. Las Condes 10450'),
+                  category: newExpenseCat,
+                  costEstimateCLP: newExpenseAmount,
+                  description: newExpenseDesc.trim() || 'Servicio de mantenimiento preventivo',
+                  assignedTechnician: 'Técnico SEC Autorizado Melsa',
+                  status: 'en_curso'
+                };
+                setTickets(prev => [newTck, ...prev]);
+                setShowDemoData(true);
+                setIsNewExpenseModalOpen(false);
+                setNewExpenseDesc('');
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Propiedad Asociada *</label>
+                <select
+                  value={newExpenseProp}
+                  onChange={(e) => setNewExpenseProp(e.target.value)}
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs text-[#153B50] outline-none"
+                >
+                  {properties.map(p => (
+                    <option key={p.id} value={p.address}>{p.address}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">Categoría</label>
+                  <select
+                    value={newExpenseCat}
+                    onChange={(e) => setNewExpenseCat(e.target.value)}
+                    className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs text-[#153B50] outline-none"
+                  >
+                    <option value="Gasfitería">Gasfitería</option>
+                    <option value="Electricidad SEC">Electricidad SEC</option>
+                    <option value="Pintura y Muros">Pintura y Muros</option>
+                    <option value="Gasto Común">Gasto Común</option>
+                    <option value="Cerrajería">Cerrajería</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">Monto CLP *</label>
+                  <input
+                    type="number"
+                    value={newExpenseAmount}
+                    onChange={(e) => setNewExpenseAmount(Number(e.target.value))}
+                    className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs text-[#153B50] font-bold outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Descripción del Trabajo</label>
+                <textarea
+                  rows={2}
+                  value={newExpenseDesc}
+                  onChange={(e) => setNewExpenseDesc(e.target.value)}
+                  placeholder="ej. Reparación de monomando en baño principal"
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs text-[#153B50] outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer mt-2"
+              >
+                Registrar Gasto
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL: CREAR USUARIO (ALTENDA SCREENSHOT 5)                     */}
+      {/* ============================================================== */}
+      {isNewUserModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-gray-200 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <h3 className="text-base font-bold text-[#153B50]">Crear Nuevo Usuario</h3>
+              <button 
+                onClick={() => setIsNewUserModalOpen(false)}
+                className="text-gray-400 hover:text-gray-700 cursor-pointer p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newUserName.trim() || !newUserEmail.trim()) return;
+                setTeamMembers(prev => [
+                  ...prev,
+                  {
+                    id: 'usr-' + Date.now(),
+                    name: newUserName,
+                    email: newUserEmail,
+                    role: newUserRole,
+                    type: 'Cuenta de equipo'
+                  }
+                ]);
+                setIsNewUserModalOpen(false);
+                setNewUserName('');
+                setNewUserEmail('');
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Nombre y Apellido *</label>
+                <input
+                  type="text"
+                  required
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  placeholder="ej. Claudia Pizarro"
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs text-[#153B50] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Correo Electrónico (Acceso) *</label>
+                <input
+                  type="email"
+                  required
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  placeholder="ej. claudia@corredora.cl"
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs text-[#153B50] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Rol de Acceso</label>
+                <select
+                  value={newUserRole}
+                  onChange={(e) => setNewUserRole(e.target.value as any)}
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs text-[#153B50] outline-none"
+                >
+                  <option value="Colaborador">Colaborador (Acceso a captación y cartera)</option>
+                  <option value="Administrador">Administrador (Control total y liquidaciones)</option>
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer mt-2"
+              >
+                Invitar al Equipo
               </button>
             </form>
           </div>

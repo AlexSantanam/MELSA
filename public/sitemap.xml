@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sitemap de MELSA | Gestión Inmobiliaria — https://melsa.cl
+  Nota: la app es un SPA con navegación por hash (#seccion). Google trata las URLs
+  con hash como la misma página canónica, por lo que solo la raíz lleva prioridad
+  máxima; las anclas se listan como referencia de contenido/crawl hints, no como
+  páginas indexables independientes. #workspace es intranet privada y se excluye
+  a propósito (ver robots.txt).
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <url>
+    <loc>https://melsa.cl/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://melsa.cl/#proyectos</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://melsa.cl/#servicios</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://melsa.cl/#mercado</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://melsa.cl/#servicios-hogar</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://melsa.cl/#publicar</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://melsa.cl/#inteligencia-financiera</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://melsa.cl/#software-agencias</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+</urlset>

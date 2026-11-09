@@ -2,16 +2,18 @@ import React from 'react';
 
 interface MelsaLogoProps {
   variant?: 'full' | 'emblem' | 'light' | 'stacked' | 'image';
+  isLight?: boolean;
   className?: string;
   height?: number;
 }
 
 export const MelsaLogo: React.FC<MelsaLogoProps> = ({
   variant = 'full',
+  isLight: isLightProp,
   className = '',
   height = 48
 }) => {
-  const isLight = variant === 'light';
+  const isLight = isLightProp ?? variant === 'light';
   const blackColor = isLight ? '#FFFFFF' : '#111111';
   const redColor = '#D02126';
 

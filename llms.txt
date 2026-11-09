@@ -80,14 +80,14 @@ Para una especificación exhaustiva, detalles de cálculo, fichas técnicas, rub
 ---
 
 ## 4. Directorio de Enlaces & Enrutamiento
-- [Inicio / Portada Institucional](/#inicio): Presentación ejecutiva, proyectos destacados y propuesta integral.
-- [Proyectos Inmobiliarios](/#proyectos): Catálogo de desarrollos residenciales e inversión con filtros por comuna y tipología.
-- [Ecosistema de Servicios Corporativos](/#servicios): Asesoría legal, tasaciones, gestión de arriendos y administración patrimonial.
-- [Melsa Open Market](/#mercado): Portal público de técnicos verificados, propiedades y formulario de consignación.
-- [Servicios para el Hogar](/#servicios-hogar): Directorio de técnicos con Sello Melsa y cotización directa por WhatsApp.
-- [Consigna / Publicar Propiedad](/#publicar): Formulario de captación para venta o arriendo.
-- [Simulador Financiero & ROI](/#inteligencia-financiera): Calculadora interactiva de rentabilidad, dividendos y amortización.
-- [Espacio de Trabajo / Intranet](/#workspace): Portal privado para colaboradores auditados y administración total.
+- [Inicio / Portada Institucional](https://melsa.cl/#inicio): Presentación ejecutiva, proyectos destacados y propuesta integral.
+- [Proyectos Inmobiliarios](https://melsa.cl/#proyectos): Catálogo de desarrollos residenciales e inversión con filtros por comuna y tipología.
+- [Ecosistema de Servicios Corporativos](https://melsa.cl/#servicios): Asesoría legal, tasaciones, gestión de arriendos y administración patrimonial.
+- [Melsa Open Market](https://melsa.cl/#mercado): Portal público de técnicos verificados, propiedades y formulario de consignación.
+- [Servicios para el Hogar](https://melsa.cl/#servicios-hogar): Directorio de técnicos con Sello Melsa y cotización directa por WhatsApp.
+- [Consigna / Publicar Propiedad](https://melsa.cl/#publicar): Formulario de captación para venta o arriendo.
+- [Simulador Financiero & ROI](https://melsa.cl/#inteligencia-financiera): Calculadora interactiva de rentabilidad, dividendos y amortización.
+- [Espacio de Trabajo / Intranet](https://melsa.cl/#workspace): Portal privado para colaboradores auditados y administración total (no indexado, ver robots.txt).
 
 ---
 
@@ -95,5 +95,6 @@ Para una especificación exhaustiva, detalles de cálculo, fichas técnicas, rub
 - **WhatsApp Inmediato:** [+56 9 9989 9421](https://wa.me/56999899421)
 - **Horario de Asesoría:** Lunes a Sábado de 09:00 a 20:00 hrs.
 - **Repositorio de Código Abierto:** [https://github.com/AlexSantanam/MELSA.git](https://github.com/AlexSantanam/MELSA.git)
-- **Documentación Completa para LLMs:** [/llms-full.txt](/llms-full.txt)
+- **Documentación Completa para LLMs:** [https://melsa.cl/llms-full.txt](https://melsa.cl/llms-full.txt)
+- **Sitemap:** [https://melsa.cl/sitemap.xml](https://melsa.cl/sitemap.xml)
 

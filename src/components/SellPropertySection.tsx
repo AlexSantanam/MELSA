@@ -271,19 +271,80 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                       onChange={(e) => setCommune(e.target.value)}
                       className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
                     >
-                      <option value="Las Condes">Las Condes (RM)</option>
-                      <option value="Vitacura">Vitacura (RM)</option>
-                      <option value="Lo Barnechea">Lo Barnechea / La Dehesa (RM)</option>
-                      <option value="Providencia">Providencia (RM)</option>
-                      <option value="Ñuñoa">Ñuñoa (RM)</option>
-                      <option value="La Reina">La Reina (RM)</option>
-                      <option value="Chicureo">Chicureo / Colina (RM)</option>
-                      <option value="Santiago">Santiago Centro (RM)</option>
-                      <option value="San Miguel">San Miguel (RM)</option>
-                      <option value="Viña del Mar">Viña del Mar (Valparaíso)</option>
-                      <option value="Concón">Concón (Valparaíso)</option>
-                      <option value="Puerto Varas">Puerto Varas (Los Lagos)</option>
-                      <option value="Concepción">Concepción (Biobío)</option>
+                      <optgroup label="── Región de Valparaíso ──">
+                        <option value="Villa Alemana">Villa Alemana</option>
+                        <option value="Quilpué">Quilpué</option>
+                        <option value="Viña del Mar">Viña del Mar</option>
+                        <option value="Concón">Concón</option>
+                        <option value="Valparaíso">Valparaíso</option>
+                        <option value="Limache">Limache</option>
+                        <option value="Olmué">Olmué</option>
+                        <option value="Quillota">Quillota</option>
+                        <option value="La Calera">La Calera / La Cruz</option>
+                        <option value="San Antonio">San Antonio / Santo Domingo</option>
+                        <option value="Algarrobo">Algarrobo / El Quisco</option>
+                        <option value="Maitencillo">Maitencillo / Zapallar / Papudo</option>
+                      </optgroup>
+
+                      <optgroup label="── Región Metropolitana ──">
+                        <option value="Las Condes">Las Condes</option>
+                        <option value="Vitacura">Vitacura</option>
+                        <option value="Lo Barnechea">Lo Barnechea / La Dehesa</option>
+                        <option value="Providencia">Providencia</option>
+                        <option value="Ñuñoa">Ñuñoa</option>
+                        <option value="La Reina">La Reina</option>
+                        <option value="Santiago">Santiago Centro</option>
+                        <option value="San Miguel">San Miguel</option>
+                        <option value="Macul">Macul</option>
+                        <option value="La Florida">La Florida</option>
+                        <option value="Peñalolén">Peñalolén</option>
+                        <option value="Independencia">Independencia / Recoleta</option>
+                        <option value="Estación Central">Estación Central</option>
+                        <option value="Maipú">Maipú</option>
+                        <option value="Puente Alto">Puente Alto</option>
+                        <option value="San Bernardo">San Bernardo</option>
+                        <option value="Chicureo">Chicureo / Colina</option>
+                        <option value="Buin">Buin / Paine</option>
+                        <option value="Talagante">Talagante / Peñaflor</option>
+                      </optgroup>
+
+                      <optgroup label="── Región de Coquimbo ──">
+                        <option value="La Serena">La Serena</option>
+                        <option value="Coquimbo">Coquimbo</option>
+                        <option value="Ovalle">Ovalle</option>
+                      </optgroup>
+
+                      <optgroup label="── Región de Antofagasta ──">
+                        <option value="Antofagasta">Antofagasta</option>
+                        <option value="Calama">Calama</option>
+                      </optgroup>
+
+                      <optgroup label="── Región de O'Higgins y Maule ──">
+                        <option value="Rancagua">Rancagua / Machalí</option>
+                        <option value="Talca">Talca</option>
+                        <option value="Curicó">Curicó</option>
+                      </optgroup>
+
+                      <optgroup label="── Región del Biobío ──">
+                        <option value="Concepción">Concepción</option>
+                        <option value="San Pedro de la Paz">San Pedro de la Paz</option>
+                        <option value="Chiguayante">Chiguayante</option>
+                        <option value="Talcahuano">Talcahuano / Hualpén</option>
+                        <option value="Los Ángeles">Los Ángeles</option>
+                      </optgroup>
+
+                      <optgroup label="── Región de La Araucanía y Los Ríos ──">
+                        <option value="Temuco">Temuco</option>
+                        <option value="Pucón">Pucón / Villarrica</option>
+                        <option value="Valdivia">Valdivia</option>
+                      </optgroup>
+
+                      <optgroup label="── Región de Los Lagos y Magallanes ──">
+                        <option value="Puerto Varas">Puerto Varas / Frutillar</option>
+                        <option value="Puerto Montt">Puerto Montt</option>
+                        <option value="Osorno">Osorno</option>
+                        <option value="Punta Arenas">Punta Arenas</option>
+                      </optgroup>
                     </select>
                   </div>
 

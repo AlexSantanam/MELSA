@@ -1,11 +1,28 @@
-# Robots.txt for MELSA | Gestión Inmobiliaria
+# Robots.txt for MELSA | Gestión Inmobiliaria — https://melsa.cl
 User-agent: *
 Allow: /
 Allow: /llms.txt
 Allow: /llms-full.txt
+Disallow: /#workspace
+Disallow: /#panel
+Disallow: /#intranet
+
+Sitemap: https://melsa.cl/sitemap.xml
 
 # LLM & AI Agents Documentation
 # Discover full context, business capabilities, formulas, and verified services:
-# https://melsainmobiliaria.com/llms.txt
-# https://melsainmobiliaria.com/llms-full.txt
+# https://melsa.cl/llms.txt
+# https://melsa.cl/llms-full.txt
 
+# AI crawlers explicitly welcomed (LLM-facing docs above are built for them)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /

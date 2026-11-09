@@ -117,13 +117,23 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
     'settings' | 'integrations'
   >('dashboard');
 
-  // Configuración View State (Altenda screenshot 3)
+  // Configuración View State (Altenda screenshot 3 & detailed subtabs)
   const [settingsTab, setSettingsTab] = useState<'legal' | 'contact' | 'payments' | 'notifications'>('legal');
   const [configCompanyName, setConfigCompanyName] = useState('Los Pinos');
   const [configRut, setConfigRut] = useState('15.883.974-1');
   const [configAddress, setConfigAddress] = useState('Los Pinos 356');
   const [configRepresentative, setConfigRepresentative] = useState('Alexis Rassmusen');
   const [configSavedNotice, setConfigSavedNotice] = useState(false);
+  const [configBankTransferActive, setConfigBankTransferActive] = useState(true);
+  const [configNotifDays, setConfigNotifDays] = useState(['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']);
+  const [configNotifFrom, setConfigNotifFrom] = useState('08:00');
+  const [configNotifTo, setConfigNotifTo] = useState('18:00');
+  const [configNotifFallback, setConfigNotifFallback] = useState('Anticipar al día habilitado anterior');
+  const [configNotifFirstDays, setConfigNotifFirstDays] = useState(3);
+  const [configNotifOverdueDays, setConfigNotifOverdueDays] = useState(3);
+  const [configNotifHoursBefore, setConfigNotifHoursBefore] = useState(2);
+  const [configNotifOwnerMandateDays, setConfigNotifOwnerMandateDays] = useState(14);
+  const [configNotifSecondNotice, setConfigNotifSecondNotice] = useState(true);
 
   // Load custom onboarding data if saved
   const [onboardingData] = useState<Partial<AgencyOnboardingData>>(() => {
@@ -2506,36 +2516,336 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     </div>
                   )}
 
-                  {/* Subtab Content: Medios de pago */}
+                  {/* Subtab Content: Medios de pago (Screenshot 1 Exact Match) */}
                   {settingsTab === 'payments' && (
-                    <div className="space-y-4 pt-2 text-xs">
-                      <h3 className="text-base font-bold text-[#153B50]">Cuenta para transferencias</h3>
-                      <p className="text-gray-500">
-                        Cuenta bancaria chilena donde tus clientes transferirán y donde se liquidarán las rentas.
-                      </p>
-                      <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-1">
-                        <span className="font-bold text-[#153B50] block">Banco de Chile · Cuenta Corriente</span>
-                        <span className="text-gray-500 font-mono block">N° 00-12345678-00 · RUT: 15.883.974-1</span>
+                    <div className="space-y-6 pt-2">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-[#153B50]">
+                          <CreditCard className="w-5 h-5 text-[#008E88]" />
+                          <h3 className="text-base font-bold">Medios de pago de tus portales</h3>
+                        </div>
+                        <p className="text-xs text-gray-500 font-normal">
+                          Elige las opciones que podrán usar tus clientes. Cada medio se configura en Integraciones.
+                        </p>
                       </div>
+
+                      <div className="space-y-3 max-w-2xl">
+                        {/* 1. Mercado Pago */}
+                        <div className="bg-[#FAF9F8] rounded-2xl p-4 flex items-center justify-between border border-gray-100">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                              🤝
+                            </div>
+                            <div>
+                              <span className="font-bold text-xs text-[#153B50] block">Mercado Pago</span>
+                              <span className="text-[11px] text-gray-400 block">Configura primero este medio en Integraciones</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setActiveTab('integrations')}
+                            className="text-xs font-bold text-[#008E88] hover:underline cursor-pointer"
+                          >
+                            Configurar →
+                          </button>
+                        </div>
+
+                        {/* 2. Flow */}
+                        <div className="bg-[#FAF9F8] rounded-2xl p-4 flex items-center justify-between border border-gray-100">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs">
+                              flow$
+                            </div>
+                            <div>
+                              <span className="font-bold text-xs text-[#153B50] block">Flow</span>
+                              <span className="text-[11px] text-gray-400 block">Configura primero este medio en Integraciones</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setActiveTab('integrations')}
+                            className="text-xs font-bold text-[#008E88] hover:underline cursor-pointer"
+                          >
+                            Configurar →
+                          </button>
+                        </div>
+
+                        {/* 3. Transferencia bancaria */}
+                        <div className="bg-[#FAF9F8] rounded-2xl p-4 flex items-center justify-between border border-gray-100">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#008E88] flex items-center justify-center font-bold text-xs">
+                              <Landmark className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <span className="font-bold text-xs text-[#153B50] block">Transferencia bancaria</span>
+                              <span className="text-[11px] text-gray-400 block">Disponible para activar</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setConfigBankTransferActive(!configBankTransferActive)}
+                            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
+                              configBankTransferActive ? 'bg-[#008E88] justify-end' : 'bg-gray-300 justify-start'
+                            }`}
+                          >
+                            <span className="w-4 h-4 rounded-full bg-white shadow-xs" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="pt-2">
+                        <button
+                          onClick={() => {
+                            setConfigSavedNotice(true);
+                            setTimeout(() => setConfigSavedNotice(false), 3000);
+                          }}
+                          className="px-5 py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
+                        >
+                          <Save className="w-4 h-4" />
+                          <span>Guardar preferencias</span>
+                        </button>
+                      </div>
+
+                      {configSavedNotice && (
+                        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span>¡Preferencias de medios de pago actualizadas!</span>
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* Subtab Content: Notificaciones */}
+                  {/* Subtab Content: Notificaciones (Screenshots 2, 3, 4, 5 Exact Match) */}
                   {settingsTab === 'notifications' && (
-                    <div className="space-y-3 pt-2 text-xs">
-                      <h3 className="text-base font-bold text-[#153B50]">Comunicaciones automáticas</h3>
-                      <p className="text-gray-500">
-                        Configura los avisos automáticos que reciben arrendatarios y propietarios.
-                      </p>
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" defaultChecked className="rounded text-[#008E88]" />
-                          <span>Recordatorio de pago 3 días antes del vencimiento</span>
+                    <div className="space-y-8 pt-2">
+                      <div className="space-y-1">
+                        <h3 className="text-base font-bold text-[#153B50]">
+                          Notificaciones a tus clientes
+                        </h3>
+                        <p className="text-xs text-gray-500 font-normal">
+                          Define cuándo enviar tus avisos y elige los canales para cada comunicación.
+                        </p>
+                      </div>
+
+                      {/* 1. Días y horario de envío */}
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <h4 className="text-xs font-bold text-[#153B50]">Días y horario de envío</h4>
+                          <p className="text-[11px] text-gray-500">Horarios de Chile. Estos ajustes se aplican a los avisos de tu corredora.</p>
+                        </div>
+
+                        {/* Days checkboxes */}
+                        <div className="flex flex-wrap items-center gap-4 text-xs text-gray-700">
+                          {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map((day) => {
+                            const isChecked = configNotifDays.includes(day);
+                            return (
+                              <label key={day} className="flex items-center gap-1.5 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {
+                                    if (isChecked) {
+                                      setConfigNotifDays(configNotifDays.filter(d => d !== day));
+                                    } else {
+                                      setConfigNotifDays([...configNotifDays, day]);
+                                    }
+                                  }}
+                                  className="w-4 h-4 rounded text-[#008E88] border-gray-300 focus:ring-[#008E88]"
+                                />
+                                <span>{day}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+
+                        {/* Time range */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Desde</label>
+                            <input
+                              type="time"
+                              value={configNotifFrom}
+                              onChange={(e) => setConfigNotifFrom(e.target.value)}
+                              className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-700 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Hasta</label>
+                            <input
+                              type="time"
+                              value={configNotifTo}
+                              onChange={(e) => setConfigNotifTo(e.target.value)}
+                              className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-700 outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Non-business day fallback */}
+                        <div className="max-w-xl">
+                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                            Si el aviso de vencimiento cae en un día no habilitado
+                          </label>
+                          <select
+                            value={configNotifFallback}
+                            onChange={(e) => setConfigNotifFallback(e.target.value)}
+                            className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-700 outline-none"
+                          >
+                            <option value="Anticipar al día habilitado anterior">Anticipar al día habilitado anterior</option>
+                            <option value="Postergar al día hábil siguiente">Postergar al día hábil siguiente</option>
+                            <option value="Enviar de todas formas">Enviar de todas formas</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* 2. Recordatorios */}
+                      <div className="space-y-4 pt-4 border-t border-gray-100">
+                        <h4 className="text-xs font-bold text-[#153B50]">Recordatorios</h4>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Primer aviso: días antes del vencimiento</label>
+                            <input
+                              type="number"
+                              value={configNotifFirstDays}
+                              onChange={(e) => setConfigNotifFirstDays(Number(e.target.value))}
+                              className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-700 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Aviso de saldo vencido: días después</label>
+                            <input
+                              type="number"
+                              value={configNotifOverdueDays}
+                              onChange={(e) => setConfigNotifOverdueDays(Number(e.target.value))}
+                              className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-700 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Recordatorio de citas: horas antes</label>
+                            <input
+                              type="number"
+                              value={configNotifHoursBefore}
+                              onChange={(e) => setConfigNotifHoursBefore(Number(e.target.value))}
+                              className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-700 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Propietarios: días antes del término del contrato o mandato</label>
+                            <input
+                              type="number"
+                              value={configNotifOwnerMandateDays}
+                              onChange={(e) => setConfigNotifOwnerMandateDays(Number(e.target.value))}
+                              className="w-full bg-[#F4F8F7] border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-700 outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer pt-1 select-none">
+                          <input
+                            type="checkbox"
+                            checked={configNotifSecondNotice}
+                            onChange={(e) => setConfigNotifSecondNotice(e.target.checked)}
+                            className="w-4 h-4 rounded text-[#008E88] border-gray-300 focus:ring-[#008E88]"
+                          />
+                          <span>Añadir un segundo aviso para el vencimiento</span>
                         </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" defaultChecked className="rounded text-[#008E88]" />
-                          <span>Aviso por WhatsApp al emitir liquidación mensual a propietario</span>
-                        </label>
+                      </div>
+
+                      {/* 3. Canales por aviso */}
+                      <div className="space-y-6 pt-4 border-t border-gray-100">
+                        <div className="space-y-1">
+                          <h4 className="text-xs font-bold text-[#153B50]">Canales por aviso</h4>
+                          <p className="text-[11px] text-gray-500">Marca los medios que deseas utilizar en cada caso.</p>
+                        </div>
+
+                        {/* Helper table builder */}
+                        {[
+                          {
+                            sectionTitle: 'Notificaciones de arrendatarios',
+                            items: [
+                              'Bienvenida al portal',
+                              'Nuevo cobro de arriendo',
+                              'Aviso previo al vencimiento',
+                              'Aviso de vencimiento',
+                              'Saldo vencido',
+                              'Pago registrado'
+                            ]
+                          },
+                          {
+                            sectionTitle: 'Documentos y firmas',
+                            items: [
+                              'Documento para firmar',
+                              'Documento firmado'
+                            ]
+                          },
+                          {
+                            sectionTitle: 'Propietarios de arriendos',
+                            items: [
+                              'Arriendo: pago registrado',
+                              'Arriendo: saldo vencido',
+                              'Arriendo: liquidación cerrada'
+                            ]
+                          },
+                          {
+                            sectionTitle: 'Propietarios: documentos',
+                            items: [
+                              'Documento para firmar',
+                              'Documento firmado'
+                            ]
+                          }
+                        ].map((group, gIdx) => (
+                          <div key={gIdx} className="space-y-3">
+                            <h5 className="text-xs font-bold text-[#153B50]">{group.sectionTitle}</h5>
+                            
+                            <div className="border border-gray-100 rounded-2xl overflow-hidden">
+                              <table className="w-full text-left text-xs">
+                                <thead>
+                                  <tr className="bg-[#FAF9F8] border-b border-gray-100 text-gray-400 font-semibold text-[11px]">
+                                    <th className="py-2.5 px-4 w-1/2">
+                                      <span className="flex items-center gap-1">Aviso <ArrowUpDown className="w-3 h-3" /></span>
+                                    </th>
+                                    <th className="py-2.5 px-4 text-center">
+                                      <span className="inline-flex items-center gap-1">Email <ArrowUpDown className="w-3 h-3" /></span>
+                                    </th>
+                                    <th className="py-2.5 px-4 text-center">
+                                      <span className="inline-flex items-center gap-1">WhatsApp <ArrowUpDown className="w-3 h-3" /></span>
+                                    </th>
+                                    <th className="py-2.5 px-4 text-center">
+                                      <span className="inline-flex items-center gap-1">SMS <ArrowUpDown className="w-3 h-3" /></span>
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 bg-white">
+                                  {group.items.map((rowName, rIdx) => (
+                                    <tr key={rIdx} className="hover:bg-gray-50/50">
+                                      <td className="py-3 px-4 font-medium text-gray-700">{rowName}</td>
+                                      <td className="py-3 px-4 text-center">
+                                        <input type="checkbox" defaultChecked className="w-4 h-4 rounded text-[#008E88] border-gray-300 focus:ring-[#008E88]" />
+                                      </td>
+                                      <td className="py-3 px-4 text-center">
+                                        <input type="checkbox" defaultChecked className="w-4 h-4 rounded text-[#008E88] border-gray-300 focus:ring-[#008E88]" />
+                                      </td>
+                                      <td className="py-3 px-4 text-center">
+                                        <input type="checkbox" defaultChecked className="w-4 h-4 rounded text-[#008E88] border-gray-300 focus:ring-[#008E88]" />
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ))}
+
+                        <div className="pt-2">
+                          <button
+                            onClick={() => {
+                              setConfigSavedNotice(true);
+                              setTimeout(() => setConfigSavedNotice(false), 3000);
+                            }}
+                            className="px-5 py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
+                          >
+                            <Save className="w-4 h-4" />
+                            <span>Guardar configuración de notificaciones</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}

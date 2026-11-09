@@ -22,10 +22,24 @@ import {
   HelpCircle,
   Smartphone,
   Tablet,
-  Laptop
+  Laptop,
+  ArrowRight,
+  CreditCard,
+  Briefcase,
+  QrCode,
+  Zap,
+  Lock,
+  User,
+  LogOut
 } from 'lucide-react';
+import { MelsaLogo } from './MelsaLogo';
 import { BuildingManagementHub } from './BuildingManagementHub';
-import { UF_CURRENT_CLP } from '../services/propertyValuationEngine';
+import { CommunityAuthModal } from './CommunityAuthModal';
+import { 
+  CommunityUser, 
+  getStoredCommunityUser, 
+  saveStoredCommunityUser 
+} from '../services/communityAuthService';
 
 interface MelsaCommunitiesPortalPageProps {
   onBackToHome: () => void;
@@ -35,12 +49,21 @@ interface MelsaCommunitiesPortalPageProps {
 
 export const MelsaCommunitiesPortalPage: React.FC<MelsaCommunitiesPortalPageProps> = ({
   onBackToHome,
-  onOpenWorkspace,
-  currentUser
+  onOpenWorkspace
 }) => {
-  // Navigation inside Communities Portal
-  const [activeSection, setActiveSection] = useState<'console' | 'comparison' | 'calculator' | 'concierge-tablet' | 'resident-app'>('console');
-  
+  // Independent Community User Session
+  const [communityUser, setCommunityUser] = useState<CommunityUser | null>(getStoredCommunityUser());
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalInitialMode, setAuthModalInitialMode] = useState<'login' | 'register'>('register');
+
+  // Active View: 'presentation' (Landing Institucional) | 'console' (Sistema Operativo de Edificio)
+  const [activeView, setActiveView] = useState<'presentation' | 'console'>(
+    getStoredCommunityUser() ? 'console' : 'presentation'
+  );
+
+  // Sub-Navigation within Console
+  const [consoleQuickTab, setConsoleQuickTab] = useState<'expenses' | 'conciliation' | 'payroll' | 'concierge' | 'maintenances'>('expenses');
+
   // Savings Calculator State
   const [calculatorUnits, setCalculatorUnits] = useState<number>(64);
   const cfPriceMonthlyCLP = Math.round(calculatorUnits * 1450); // ComunidadFeliz approx market pricing
@@ -48,175 +71,297 @@ export const MelsaCommunitiesPortalPage: React.FC<MelsaCommunitiesPortalPageProp
   const monthlySavingsCLP = cfPriceMonthlyCLP - melsaPriceMonthlyCLP;
   const annualSavingsCLP = monthlySavingsCLP * 12;
 
+  const handleOpenAuth = (mode: 'login' | 'register') => {
+    setAuthModalInitialMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  const handleLoginSuccess = (user: CommunityUser) => {
+    setCommunityUser(user);
+    setActiveView('console');
+  };
+
+  const handleLogoutCommunity = () => {
+    saveStoredCommunityUser(null);
+    setCommunityUser(null);
+    setActiveView('presentation');
+  };
+
   return (
-    <div className="min-h-screen bg-[#0B0D11] text-white font-sans selection:bg-[#D02126] selection:text-white pb-20">
+    <div className="min-h-screen bg-[#FAF9F8] text-[#0F1115] font-sans selection:bg-[#D02126] selection:text-white pb-20">
+      
       {/* ============================================================== */}
-      {/* TOP STANDALONE NAVIGATION HEADER                              */}
+      {/* 1. TOP NAVBAR: IMPECCABLE MELSA CORPORATE BRANDING            */}
       {/* ============================================================== */}
-      <header className="sticky top-0 z-50 bg-[#0F1115]/95 backdrop-blur-md border-b border-gray-800 px-4 sm:px-8 py-3.5">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Logo & Identity */}
-          <div className="flex items-center gap-4">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-200/80 shadow-xs px-4 sm:px-8 py-3.5">
+        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-4">
+          
+          {/* Left: Back Link & Logo */}
+          <div className="flex items-center gap-4 shrink-0">
             <button
               onClick={onBackToHome}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-900 border border-gray-800 text-xs font-semibold text-gray-300 hover:text-white hover:border-gray-700 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-700 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Volver a MELSA</span>
+              <span className="hidden sm:inline">Sitio Inmobiliario</span>
             </button>
 
+            <div className="h-6 w-px bg-gray-200 hidden sm:block" />
+
+            {/* Melsa Brand */}
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#D02126] to-[#991418] flex items-center justify-center text-white shadow-lg shadow-red-950/40">
-                <Building2 className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-black text-sm tracking-tight text-white">MELSA COMUNIDADES OS</span>
-                  <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    Ley 21.442
-                  </span>
-                </div>
-                <p className="text-[11px] text-gray-400">Plataforma Integral de Copropiedad, Conserjería & Mantención SEC</p>
+              <MelsaLogo height={38} />
+              <div className="hidden lg:block pl-2 border-l border-gray-200">
+                <span className="text-[11px] font-black tracking-wider uppercase text-[#D02126] block leading-tight">
+                  COMUNIDADES OS
+                </span>
+                <span className="text-[10px] text-gray-400 font-medium leading-none">
+                  Ley de Copropiedad 21.442
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Section Navigation Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-            <button
-              onClick={() => setActiveSection('console')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                activeSection === 'console'
-                  ? 'bg-[#D02126] text-white shadow-md shadow-red-900/30'
-                  : 'bg-gray-900 text-gray-300 hover:bg-gray-800'
-              }`}
-            >
-              <Laptop className="w-3.5 h-3.5" />
-              <span>Consola Operativa</span>
-            </button>
+          {/* Center Navigation Links (Presentation Mode) */}
+          {activeView === 'presentation' && (
+            <div className="hidden xl:flex items-center gap-5 text-xs font-semibold text-gray-700">
+              <a href="#soluciones" className="hover:text-[#D02126] transition-colors">Soluciones</a>
+              <a href="#comparativa-cf" className="hover:text-[#D02126] transition-colors flex items-center gap-1">
+                <span>vs ComunidadFeliz</span>
+                <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">-65%</span>
+              </a>
+              <a href="#calculadora-ahorro" className="hover:text-[#D02126] transition-colors">Calculadora Ahorro</a>
+              <a href="#mantenimiento-sec" className="hover:text-[#D02126] transition-colors">Red Mantención SEC</a>
+            </div>
+          )}
 
-            <button
-              onClick={() => setActiveSection('concierge-tablet')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                activeSection === 'concierge-tablet'
-                  ? 'bg-amber-600 text-white shadow-md shadow-amber-900/30'
-                  : 'bg-gray-900 text-gray-300 hover:bg-gray-800'
-              }`}
-            >
-              <Tablet className="w-3.5 h-3.5" />
-              <span>Terminal Conserjería</span>
-            </button>
+          {/* Right Action Buttons */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            {communityUser ? (
+              /* User is logged in to a Community */
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-2xl text-xs">
+                  <div className="w-6 h-6 rounded-lg bg-[#D02126]/10 text-[#D02126] flex items-center justify-center font-bold">
+                    <Building2 className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="font-extrabold text-[#0F1115] block leading-tight text-[11px]">
+                      {communityUser.communityName}
+                    </span>
+                    <span className="text-[10px] text-gray-500">
+                      {communityUser.name.split(' ')[0]} ({communityUser.role === 'admin_edificio' ? 'Administrador' : communityUser.role === 'conserje' ? 'Conserjería' : 'Residente'})
+                    </span>
+                  </div>
+                </div>
 
-            <button
-              onClick={() => setActiveSection('resident-app')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                activeSection === 'resident-app'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30'
-                  : 'bg-gray-900 text-gray-300 hover:bg-gray-800'
-              }`}
-            >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>App Copropietario</span>
-            </button>
+                <button
+                  onClick={() => setActiveView(activeView === 'console' ? 'presentation' : 'console')}
+                  className="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 cursor-pointer"
+                >
+                  {activeView === 'console' ? 'Ver Portada' : 'Ir a Consola'}
+                </button>
 
-            <button
-              onClick={() => setActiveSection('comparison')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                activeSection === 'comparison'
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/30'
-                  : 'bg-gray-900 text-gray-300 hover:bg-gray-800'
-              }`}
-            >
-              <TrendingDown className="w-3.5 h-3.5" />
-              <span>vs ComunidadFeliz (-65%)</span>
-            </button>
+                <button
+                  onClick={handleLogoutCommunity}
+                  title="Cerrar Sesión del Edificio"
+                  className="p-2 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              /* User is anonymous / guest */
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleOpenAuth('login')}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-gray-700 hover:text-[#0F1115] hover:bg-gray-100 transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <Lock className="w-3.5 h-3.5 text-gray-400" />
+                  <span>Iniciar Sesión Edificio</span>
+                </button>
 
-            <button
-              onClick={() => setActiveSection('calculator')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                activeSection === 'calculator'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-900/30'
-                  : 'bg-gray-900 text-gray-300 hover:bg-gray-800'
-              }`}
-            >
-              <Receipt className="w-3.5 h-3.5" />
-              <span>Calculadora de Ahorro</span>
-            </button>
-          </div>
-
-          {/* Quick Contact & Action */}
-          <div className="hidden lg:flex items-center gap-3">
-            <a
-              href="https://wa.me/56976652425?text=Hola,%20solicito%20cotizaci%C3%B3n%20de%20MELSA%20Comunidades%20OS%20para%20nuestro%20edificio."
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shadow-md shadow-emerald-950/40"
-            >
-              <Phone className="w-3.5 h-3.5" />
-              <span>Cotizar Edificio</span>
-            </a>
+                <button
+                  onClick={() => handleOpenAuth('register')}
+                  className="px-4 py-2 rounded-xl bg-[#D02126] hover:bg-[#B81B1F] text-white text-xs font-extrabold shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>Crear Cuenta de Edificio</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       {/* ============================================================== */}
-      {/* HERO BANNER: STANDALONE PRESENTATION & VALUE PROP             */}
+      {/* VIEW A: LANDING INSTITUCIONAL (PERSONALIDAD MELSA IMPECABLE)  */}
       {/* ============================================================== */}
-      <section className="relative overflow-hidden border-b border-gray-800 bg-gradient-to-b from-[#13171F] to-[#0B0D11] px-4 sm:px-8 py-10">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#D02126]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
-            <div className="space-y-4 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-[#FF474D] text-xs font-extrabold">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Alternativa Oficial de Alta Eficiencia a ComunidadFeliz</span>
-              </div>
-              <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight">
-                El Software para Edificios & Condominios <span className="text-[#D02126]">más Completo y Accesible</span> de Chile.
-              </h1>
-              <p className="text-sm sm:text-base text-gray-400 leading-relaxed">
-                Prorrateo de gastos comunes al milímetro, avisos automáticos por WhatsApp, libro de visitas digital y la 
-                <strong className="text-white font-bold"> única red de técnicos certificados SEC</strong> (gasfitería, electricidad, calderas y ascensores) integrada nativamente.
-              </p>
+      {activeView === 'presentation' && (
+        <div className="space-y-24 animate-in fade-in duration-200">
+          
+          {/* HERO SECTION */}
+          <section className="relative overflow-hidden bg-gradient-to-b from-white via-[#FAF9F8] to-white pt-16 pb-20 border-b border-gray-100">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+              <div className="text-center max-w-4xl mx-auto space-y-6">
+                
+                {/* Badge Tag */}
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#D02126]/10 text-[#D02126] text-xs font-black uppercase tracking-wider">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Nuevo • MELSA Comunidades OS • Ley de Copropiedad 21.442</span>
+                </div>
 
-              {/* Badges / Differentiators */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                <div className="p-3 rounded-2xl bg-gray-900/80 border border-gray-800">
-                  <span className="text-lg font-black text-emerald-400">0,8 UF</span>
-                  <p className="text-[11px] text-gray-400">Desde por edificio (vs 3-8 UF CF)</p>
+                {/* Main Headline */}
+                <h1 className="text-4xl sm:text-6xl font-extrabold text-[#0F1115] tracking-tight font-serif-title leading-[1.12]">
+                  La Administración de Edificios & Condominios, <span className="text-[#D02126]">Reinventada</span>.
+                </h1>
+
+                {/* Subtitle */}
+                <p className="text-base sm:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
+                  Prorrateo de gastos comunes al milímetro, conciliación bancaria automática, sueldos de conserjería con Previred, conserjería QR y la <strong>única red de técnicos certificados SEC</strong> con hasta un <strong>65% de ahorro real</strong> frente a ComunidadFeliz.
+                </p>
+
+                {/* Action CTA Buttons */}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4">
+                  <button
+                    onClick={() => handleOpenAuth('register')}
+                    className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-[#D02126] hover:bg-[#B81B1F] text-white text-sm font-black shadow-lg shadow-red-900/25 transition-all cursor-pointer flex items-center justify-center gap-2 group"
+                  >
+                    <span>Crear Cuenta de Edificio (30 Días Gratis)</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </button>
+
+                  <button
+                    onClick={() => setActiveView('console')}
+                    className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-white hover:bg-gray-50 text-[#0F1115] border border-gray-200 text-sm font-bold shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Laptop className="w-4 h-4 text-gray-500" />
+                    <span>Explorar Demostración en Vivo</span>
+                  </button>
                 </div>
-                <div className="p-3 rounded-2xl bg-gray-900/80 border border-gray-800">
-                  <span className="text-lg font-black text-amber-400">100% WhatsApp</span>
-                  <p className="text-[11px] text-gray-400">Avisos de encomiendas y cobros</p>
-                </div>
-                <div className="p-3 rounded-2xl bg-gray-900/80 border border-gray-800">
-                  <span className="text-lg font-black text-blue-400">SEC Chile</span>
-                  <p className="text-[11px] text-gray-400">Red técnica propia para mantención</p>
-                </div>
-                <div className="p-3 rounded-2xl bg-gray-900/80 border border-gray-800">
-                  <span className="text-lg font-black text-purple-400">Ley 21.442</span>
-                  <p className="text-[11px] text-gray-400">Minvu, alícuotas y cortes Art. 20</p>
+
+                {/* 4 Feature Trust Bullets */}
+                <div className="pt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-left max-w-3xl mx-auto">
+                  <div className="p-3.5 bg-white rounded-2xl border border-gray-100 shadow-xs">
+                    <span className="text-base font-black text-[#D02126] block">0,8 a 1,2 UF</span>
+                    <span className="text-[11px] text-gray-500 font-semibold">Costo plano por edificio</span>
+                  </div>
+                  <div className="p-3.5 bg-white rounded-2xl border border-gray-100 shadow-xs">
+                    <span className="text-base font-black text-emerald-600 block">Previred & Banco</span>
+                    <span className="text-[11px] text-gray-500 font-semibold">100% Incluidos sin costo extra</span>
+                  </div>
+                  <div className="p-3.5 bg-white rounded-2xl border border-gray-100 shadow-xs">
+                    <span className="text-base font-black text-blue-600 block">Red SEC Melsa</span>
+                    <span className="text-[11px] text-gray-500 font-semibold">Calderas, ascensores y bombas</span>
+                  </div>
+                  <div className="p-3.5 bg-white rounded-2xl border border-gray-100 shadow-xs">
+                    <span className="text-base font-black text-purple-600 block">Ley 21.442</span>
+                    <span className="text-[11px] text-gray-500 font-semibold">Corte Art. 20 y quórum legal</span>
+                  </div>
                 </div>
               </div>
             </div>
+          </section>
 
-            {/* Quick Interactive Savings Card */}
-            <div className="w-full lg:w-96 bg-gray-900/90 border border-gray-800 rounded-3xl p-6 shadow-2xl relative">
-              <div className="flex items-center justify-between pb-3 border-b border-gray-800">
-                <div className="flex items-center gap-2">
-                  <TrendingDown className="w-5 h-5 text-emerald-400" />
-                  <span className="text-sm font-black text-white">Simulador de Ahorro Real</span>
+          {/* 6 CORE PILLARS SECTION */}
+          <section id="soluciones" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+            <div className="text-center max-w-2xl mx-auto space-y-2">
+              <span className="text-xs font-black text-[#D02126] uppercase tracking-wider">Ecosistema Integral</span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0F1115] font-serif-title">
+                Todo lo que tu edificio necesita, en una sola plataforma.
+              </h2>
+              <p className="text-sm text-gray-600">
+                Diseñado para Administradores Minvu, Comités de Administración, Conserjes y Copropietarios.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              
+              {/* Card 1 */}
+              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-xs hover:shadow-md transition-shadow space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-red-50 text-[#D02126] flex items-center justify-center font-bold">
+                  <Receipt className="w-6 h-6" />
                 </div>
-                <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                  -62% Costo
-                </span>
+                <h3 className="text-lg font-bold text-[#0F1115]">Gastos Comunes & Prorrateo Justo</h3>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Cálculo automático de alícuotas fiscales, consumos individuales de remarcadores (agua caliente, gas), fondo de reserva obligatorio del 5% y envío de boletas desglosadas por WhatsApp.
+                </p>
               </div>
 
-              <div className="py-4 space-y-4">
+              {/* Card 2 */}
+              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-xs hover:shadow-md transition-shadow space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                  <CreditCard className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-[#0F1115]">Conciliación Bancaria Automática</h3>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Cruce inteligente de transferencias bancarias (BancoEstado, Banco de Chile, Santander, BCI). Identifica el depto por monto y glosa y concilia todo masivamente en 1 clic (CF cobra 2 UF extra).
+                </p>
+              </div>
+
+              {/* Card 3 */}
+              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-xs hover:shadow-md transition-shadow space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+                  <Briefcase className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-[#0F1115]">Remuneraciones & Previred (.txt)</h3>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Liquidaciones de sueldo oficiales para conserjes en turnos 4x4 o 6x1 con gratificación legal Art. 50, horas extras al 50% y exportación del archivo plano de Previred para pagar imposiciones al día.
+                </p>
+              </div>
+
+              {/* Card 4 */}
+              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-xs hover:shadow-md transition-shadow space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                  <QrCode className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-[#0F1115]">Conserjería Digital & Pases QR</h3>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Adiós a los libros de papel. Pases QR de invitados válidos por 4 horas, recepción de encomiendas con aviso automático al celular del vecino y control de estacionamientos de visitas.
+                </p>
+              </div>
+
+              {/* Card 5 */}
+              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-xs hover:shadow-md transition-shadow space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                  <Wrench className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-[#0F1115]">Red de Técnicos Certificados SEC</h3>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  La gran ventaja Melsa: supervisión de calderas (Sello Verde SEC), ascensores (Minvu Ley 20.296) y bombas de agua con botón de cotización directa e inspectores certificados con garantía.
+                </p>
+              </div>
+
+              {/* Card 6 */}
+              <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-xs hover:shadow-md transition-shadow space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+                  <Zap className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-[#0F1115]">Cumplimiento Ley 21.442 & Art. 20</h3>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Generador del oficio legal de corte de suministro eléctrico para unidades morosas (+3 meses) listo para notificar a la compañía distribuidora, y quórums de asambleas por porcentaje de copropiedad.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* SIMULATOR SECTION */}
+          <section id="calculadora-ahorro" className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-gradient-to-br from-white via-gray-50 to-white rounded-3xl border border-gray-200 p-8 sm:p-10 shadow-sm space-y-8">
+              <div className="text-center max-w-xl mx-auto space-y-2">
+                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Ahorro Comprobado</span>
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-[#0F1115] font-serif-title">
+                  Simulador de Ahorro para tu Condominio
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Comprueba cuánto dinero recupera tu comunidad al año sustituyendo software tradicional por MELSA Comunidades OS.
+                </p>
+              </div>
+
+              <div className="space-y-6">
                 <div>
-                  <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="text-gray-400">Número de Unidades:</span>
-                    <span className="font-extrabold text-white text-sm">{calculatorUnits} dptos / casas</span>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-gray-700">Cantidad de Departamentos / Casas:</span>
+                    <span className="text-xl font-black text-[#D02126]">{calculatorUnits} unidades</span>
                   </div>
                   <input
                     type="range"
@@ -229,435 +374,201 @@ export const MelsaCommunitiesPortalPage: React.FC<MelsaCommunitiesPortalPageProp
                   />
                 </div>
 
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between py-1 border-b border-gray-800/60">
-                    <span className="text-gray-400">ComunidadFeliz estimado:</span>
-                    <span className="font-bold text-red-400 line-through">${cfPriceMonthlyCLP.toLocaleString('es-CL')}/mes</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-white border border-gray-200">
+                    <span className="text-xs text-gray-500 block">ComunidadFeliz estimado:</span>
+                    <span className="text-lg font-extrabold text-red-500 line-through">
+                      ${cfPriceMonthlyCLP.toLocaleString('es-CL')} CLP / mes
+                    </span>
+                    <span className="text-[10px] text-gray-400 block mt-1">(Plan base + conciliación + remuneraciones)</span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-gray-800/60">
-                    <span className="text-gray-400">MELSA Comunidades OS:</span>
-                    <span className="font-extrabold text-emerald-400">${melsaPriceMonthlyCLP.toLocaleString('es-CL')}/mes</span>
-                  </div>
-                  <div className="pt-2 flex justify-between items-baseline">
-                    <span className="text-xs font-bold text-gray-300">Ahorro Anual Edificio:</span>
-                    <span className="text-lg font-black text-emerald-400">${annualSavingsCLP.toLocaleString('es-CL')} CLP</span>
-                  </div>
-                  <p className="text-[10px] text-gray-400 text-right">Dinero directo que va a tu Fondo de Reserva</p>
-                </div>
 
-                <a
-                  href={`https://wa.me/56976652425?text=Hola,%20mi%20edificio%20tiene%20${calculatorUnits}%20unidades%20y%20quiero%20ahorrar%20con%20MELSA%20Comunidades.`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#D02126] to-[#A0181C] hover:from-[#E0262B] hover:to-[#B51C20] text-white text-xs font-black text-center block transition-all shadow-lg shadow-red-950/40 cursor-pointer"
-                >
-                  Solicitar Activación para {calculatorUnits} Unidades →
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ============================================================== */}
-      {/* MAIN VIEW CONTENT CONTAINER                                   */}
-      {/* ============================================================== */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-8 mt-8">
-        {/* ========================================================== */}
-        {/* VIEW 1: FULL OPERATIONAL CONSOLE (BuildingManagementHub)   */}
-        {/* ========================================================== */}
-        {activeSection === 'console' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-800">
-              <div>
-                <h2 className="text-xl font-black text-white">Consola de Operaciones en Vivo</h2>
-                <p className="text-xs text-gray-400">Edificio de Demostración Activo: Parque Almagro 1450 (64 Unidades)</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  Servidor Conectado 24/7
-                </span>
-              </div>
-            </div>
-
-            {/* Embedded Core Operating Hub */}
-            <BuildingManagementHub />
-          </div>
-        )}
-
-        {/* ========================================================== */}
-        {/* VIEW 2: TERMINAL CONSERJERÍA (TABLET KIOSK MODE)           */}
-        {/* ========================================================== */}
-        {activeSection === 'concierge-tablet' && (
-          <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-200">
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Tablet className="w-6 h-6 text-amber-400" />
-                <div>
-                  <h3 className="text-sm font-extrabold text-white">Modo Terminal de Portería / Tablet</h3>
-                  <p className="text-xs text-amber-200/80">Diseño táctil de alto contraste pensado para el conserje o guardia en portería.</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setActiveSection('console')}
-                className="px-3 py-1.5 rounded-xl bg-gray-900 text-xs font-bold text-gray-300 hover:text-white"
-              >
-                Volver a Consola
-              </button>
-            </div>
-
-            {/* Simulated Tablet Frame */}
-            <div className="bg-[#12151B] border-4 border-gray-800 rounded-3xl p-6 shadow-2xl space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-gray-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black">
-                    <ShieldCheck className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-black text-white">Conserjería - Edificio Parque Almagro</h2>
-                    <p className="text-xs text-gray-400">Turno Día: Don Jorge Morales (Conserje Titular)</p>
+                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200">
+                    <span className="text-xs text-emerald-800 font-bold block">MELSA Comunidades OS:</span>
+                    <span className="text-xl font-black text-emerald-700">
+                      ${melsaPriceMonthlyCLP.toLocaleString('es-CL')} CLP / mes
+                    </span>
+                    <span className="text-[10px] text-emerald-600 font-semibold block mt-1">Todo incluido sin add-ons</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-xl font-mono font-black text-emerald-400">14:32:08</span>
-                  <p className="text-[10px] text-gray-400">Lun 09 Nov 2026</p>
-                </div>
-              </div>
 
-              {/* 3 Large Action Cards for Tablet */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-5 rounded-2xl bg-gray-900 border border-gray-800 hover:border-amber-500/50 transition-all">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center mb-3">
-                    <Users className="w-5 h-5" />
+                <div className="p-6 rounded-2xl bg-[#0F1115] text-white text-center space-y-1">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ahorro Anual que va a tu Fondo de Reserva:</span>
+                  <div className="text-3xl sm:text-4xl font-black text-emerald-400">
+                    ${annualSavingsCLP.toLocaleString('es-CL')} CLP
                   </div>
-                  <h4 className="font-bold text-white text-base">Registrar Visita</h4>
-                  <p className="text-xs text-gray-400 mt-1">Ingreso con RUT, patente vehicular y autorización del depto.</p>
-                  <button 
-                    onClick={() => setActiveSection('console')}
-                    className="mt-4 w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                  <p className="text-[11px] text-gray-400">Suficiente para financiar certificaciones de calderas y mantenciones de ascensores del edificio.</p>
+                </div>
+
+                <div className="text-center">
+                  <button
+                    onClick={() => handleOpenAuth('register')}
+                    className="px-8 py-3.5 rounded-2xl bg-[#D02126] hover:bg-[#B81B1F] text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
                   >
-                    Abrir Registro Visitas →
-                  </button>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-gray-900 border border-gray-800 hover:border-amber-500/50 transition-all">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-3">
-                    <Package className="w-5 h-5" />
-                  </div>
-                  <h4 className="font-bold text-white text-base">Recepción de Paquete</h4>
-                  <p className="text-xs text-gray-400 mt-1">Dispara aviso instantáneo por WhatsApp al celular del residente.</p>
-                  <button 
-                    onClick={() => setActiveSection('console')}
-                    className="mt-4 w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold"
-                  >
-                    Registrar Encomienda →
-                  </button>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-gray-900 border border-gray-800 hover:border-amber-500/50 transition-all">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-3">
-                    <Car className="w-5 h-5" />
-                  </div>
-                  <h4 className="font-bold text-white text-base">Estacionamiento Visitas</h4>
-                  <p className="text-xs text-gray-400 mt-1">3 de 8 libres. Alarma automática al superar 4 horas de estadía.</p>
-                  <button 
-                    onClick={() => setActiveSection('console')}
-                    className="mt-4 w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
-                  >
-                    Ver Estacionamientos →
+                    Activar este Ahorro para {calculatorUnits} Unidades →
                   </button>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          </section>
 
-        {/* ========================================================== */}
-        {/* VIEW 3: RESIDENT PORTAL (MOBILE PREVIEW)                   */}
-        {/* ========================================================== */}
-        {activeSection === 'resident-app' && (
-          <div className="max-w-md mx-auto space-y-6 animate-in fade-in duration-200">
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Smartphone className="w-6 h-6 text-blue-400" />
-                <div>
-                  <h3 className="text-sm font-extrabold text-white">App Móvil del Copropietario</h3>
-                  <p className="text-xs text-blue-200/80">Vista que recibe el dueño o arrendatario en su smartphone.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Simulated Phone Shell */}
-            <div className="bg-[#12151B] border-4 border-gray-800 rounded-[2.5rem] p-5 shadow-2xl space-y-5">
-              {/* Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-gray-800">
-                <div>
-                  <span className="text-[10px] text-gray-400">Edificio Parque Almagro</span>
-                  <h3 className="text-base font-black text-white">Departamento 502</h3>
-                </div>
-                <div className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-extrabold border border-emerald-500/30">
-                  Al Día
-                </div>
-              </div>
-
-              {/* Bill Card */}
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-gray-900 to-[#181D26] border border-gray-700/80 space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-[11px] text-gray-400">Gasto Común Noviembre 2026</span>
-                    <p className="text-2xl font-black text-white">$88.920</p>
-                  </div>
-                  <span className="text-[10px] text-gray-400">Vence: 15 Nov</span>
-                </div>
-
-                <div className="space-y-1.5 pt-2 border-t border-gray-800 text-[11px] text-gray-300">
-                  <div className="flex justify-between">
-                    <span>Base Prorrateo (2,15%):</span>
-                    <span className="font-bold">$75.250</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Remarcador Agua Caliente:</span>
-                    <span className="font-bold">$9.900</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Fondo Reserva Ley 21.442 (5%):</span>
-                    <span className="font-bold">$3.770</span>
-                  </div>
-                </div>
-
-                <button className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-950/40 cursor-pointer">
-                  Pagar en Línea con Webpay / Fintoc →
-                </button>
-              </div>
-
-              {/* Quick Resident Tools */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl bg-gray-900 border border-gray-800 text-center">
-                  <Package className="w-5 h-5 text-amber-400 mx-auto mb-1" />
-                  <span className="text-xs font-bold text-white block">1 Encomienda</span>
-                  <span className="text-[10px] text-gray-400">En portería (MercadoLibre)</span>
-                </div>
-                <div className="p-3 rounded-xl bg-gray-900 border border-gray-800 text-center">
-                  <Vote className="w-5 h-5 text-purple-400 mx-auto mb-1" />
-                  <span className="text-xs font-bold text-white block">Votación Activa</span>
-                  <span className="text-[10px] text-gray-400">Pintura Fachada 2026</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================== */}
-        {/* VIEW 4: COMPARISON MATRIX VS COMUNIDADFELIZ                */}
-        {/* ========================================================== */}
-        {activeSection === 'comparison' && (
-          <div className="space-y-8 animate-in fade-in duration-200">
+          {/* DETAILED COMPARISON TABLE SECTION */}
+          <section id="comparativa-cf" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             <div className="text-center max-w-2xl mx-auto space-y-2">
-              <h2 className="text-2xl sm:text-3xl font-black text-white">¿Por qué cambiar a MELSA Comunidades OS?</h2>
-              <p className="text-sm text-gray-400">Comparativa técnica, financiera y operativa frente al líder del mercado tradicional.</p>
+              <span className="text-xs font-bold text-[#D02126] uppercase tracking-wider">Transparencia Total</span>
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-[#0F1115] font-serif-title">
+                ¿Por qué los comités se cambian a MELSA?
+              </h3>
             </div>
 
-            {/* Table */}
-            <div className="bg-[#12151B] border border-gray-800 rounded-3xl overflow-hidden shadow-2xl">
-              <div className="grid grid-cols-12 bg-gray-900/90 p-4 border-b border-gray-800 text-xs font-black uppercase text-gray-400">
+            <div className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
+              <div className="grid grid-cols-12 bg-gray-50 p-4 border-b border-gray-200 text-xs font-black uppercase text-gray-500">
                 <div className="col-span-5">Característica / Capacidad</div>
-                <div className="col-span-3 text-center text-red-400">ComunidadFeliz</div>
-                <div className="col-span-4 text-center text-emerald-400 font-extrabold">MELSA Comunidades OS</div>
+                <div className="col-span-3 text-center text-red-500">ComunidadFeliz</div>
+                <div className="col-span-4 text-center text-emerald-700 font-black">MELSA Comunidades OS</div>
               </div>
 
-              <div className="divide-y divide-gray-800 text-xs">
-                {/* Row 1 */}
+              <div className="divide-y divide-gray-100 text-xs">
                 <div className="grid grid-cols-12 p-4 items-center">
                   <div className="col-span-5">
-                    <strong className="text-white block font-bold">Costo Mensual del Software</strong>
-                    <span className="text-gray-400 text-[11px]">Tarifa fija por edificio de 60-100 dptos</span>
+                    <strong className="text-gray-900 block font-bold">Costo del Software</strong>
+                    <span className="text-gray-500 text-[11px]">Para edificios de 50 a 100 departamentos</span>
                   </div>
-                  <div className="col-span-3 text-center text-red-400 font-bold">
-                    2 a 8 UF ($80.000 - $320.000)
+                  <div className="col-span-3 text-center text-red-600 font-bold">
+                    2 a 5 UF ($80.000 - $200.000)
                   </div>
-                  <div className="col-span-4 text-center text-emerald-400 font-black text-sm bg-emerald-500/10 py-1.5 rounded-xl border border-emerald-500/30">
-                    0,8 a 1,2 UF ($33.000 - $49.000) <br />
-                    <span className="text-[10px] text-emerald-300 font-bold">Ahorro de hasta 65%</span>
+                  <div className="col-span-4 text-center text-emerald-700 font-black bg-emerald-50 py-1.5 rounded-xl border border-emerald-200">
+                    0,8 a 1,2 UF ($33.000 - $49.000)
                   </div>
                 </div>
 
-                {/* Row 2: Conciliación Bancaria Automática */}
-                <div className="grid grid-cols-12 p-4 items-center bg-gray-900/30">
+                <div className="grid grid-cols-12 p-4 items-center">
                   <div className="col-span-5">
-                    <strong className="text-white block font-bold">Conciliación Bancaria Automática</strong>
-                    <span className="text-gray-400 text-[11px]">Cruce inteligente de transferencias bancarias</span>
+                    <strong className="text-gray-900 block font-bold">Conciliación Bancaria Automática</strong>
+                    <span className="text-gray-500 text-[11px]">Cruce de transferencias y cartolas</span>
                   </div>
-                  <div className="col-span-3 text-center text-red-400 font-bold">
-                    Cobran +2 UF extra/mes <br />
-                    <span className="text-[10px] text-gray-500">(~$78.000 CLP adicionales)</span>
+                  <div className="col-span-3 text-center text-red-600 font-bold">
+                    +2 UF extra (~$78.000 CLP)
                   </div>
-                  <div className="col-span-4 text-center text-emerald-400 font-bold">
-                    <span className="text-emerald-300 font-extrabold">100% INCLUIDO</span> <br />
-                    <span className="text-[10px] text-gray-400">Auto-match por monto y glosa en 1 clic</span>
+                  <div className="col-span-4 text-center text-emerald-700 font-black">
+                    ✓ 100% Incluido ($0)
                   </div>
                 </div>
 
-                {/* Row 3: Remuneraciones & Previred */}
                 <div className="grid grid-cols-12 p-4 items-center">
                   <div className="col-span-5">
-                    <strong className="text-white block font-bold">Sueldos Conserjería & Previred (.txt)</strong>
-                    <span className="text-gray-400 text-[11px]">Turnos 4x4, horas extras y liquidaciones DT</span>
+                    <strong className="text-gray-900 block font-bold">Remuneraciones & Previred (.txt)</strong>
+                    <span className="text-gray-500 text-[11px]">Sueldos de conserjes y turnos 4x4</span>
                   </div>
-                  <div className="col-span-3 text-center text-red-400 font-bold">
-                    Cobran +1 UF extra/mes <br />
-                    <span className="text-[10px] text-gray-500">(~$39.000 CLP adicionales)</span>
+                  <div className="col-span-3 text-center text-red-600 font-bold">
+                    +1 UF extra (~$39.000 CLP)
                   </div>
-                  <div className="col-span-4 text-center text-emerald-400 font-bold">
-                    <span className="text-emerald-300 font-extrabold">100% INCLUIDO</span> <br />
-                    <span className="text-[10px] text-gray-400">Exporta archivo Previred oficial</span>
+                  <div className="col-span-4 text-center text-emerald-700 font-black">
+                    ✓ 100% Incluido ($0)
                   </div>
                 </div>
 
-                {/* Row 4: Red de Técnicos SEC */}
                 <div className="grid grid-cols-12 p-4 items-center">
                   <div className="col-span-5">
-                    <strong className="text-white block font-bold">Red de Técnicos de Mantención SEC</strong>
-                    <span className="text-gray-400 text-[11px]">Gasfitería, calderas, bombas, ascensores</span>
+                    <strong className="text-gray-900 block font-bold">Red Técnica Propia SEC</strong>
+                    <span className="text-gray-500 text-[11px]">Calderas, ascensores, bombas de agua</span>
                   </div>
-                  <div className="col-span-3 text-center text-gray-500">
-                    <span className="text-red-400 font-bold">NO TIENE</span> <br />
-                    <span className="text-[10px]">El admin debe buscar solo</span>
+                  <div className="col-span-3 text-center text-gray-400 font-bold">
+                    NO TIENE
                   </div>
-                  <div className="col-span-4 text-center text-emerald-400 font-bold">
-                    <span className="text-white font-extrabold">RED PROPIA CERTIFICADA</span> <br />
-                    <span className="text-[10px] text-gray-400">Técnicos SEC con seguro de garantía Melsa</span>
+                  <div className="col-span-4 text-center text-emerald-700 font-black">
+                    ✓ Red Certificada Melsa con Garantía
                   </div>
                 </div>
 
-                {/* Row 3 */}
                 <div className="grid grid-cols-12 p-4 items-center">
                   <div className="col-span-5">
-                    <strong className="text-white block font-bold">Avisos de Paquetería por WhatsApp</strong>
-                    <span className="text-gray-400 text-[11px]">Notificación instantánea al residente</span>
+                    <strong className="text-gray-900 block font-bold">Pases QR y Avisos por WhatsApp</strong>
+                    <span className="text-gray-500 text-[11px]">Notificación directa de encomiendas</span>
                   </div>
                   <div className="col-span-3 text-center text-gray-400">
-                    Costo adicional o plan superior
+                    Costo adicional o hardware extra
                   </div>
-                  <div className="col-span-4 text-center text-emerald-400 font-bold">
-                    100% Incluido sin costo extra
-                  </div>
-                </div>
-
-                {/* Row 4 */}
-                <div className="grid grid-cols-12 p-4 items-center">
-                  <div className="col-span-5">
-                    <strong className="text-white block font-bold">Cumplimiento Ley de Copropiedad 21.442</strong>
-                    <span className="text-gray-400 text-[11px]">Cortes de luz Art. 20 y quórums fiscales</span>
-                  </div>
-                  <div className="col-span-3 text-center text-gray-300">
-                    Cumplimiento estándar
-                  </div>
-                  <div className="col-span-4 text-center text-emerald-400 font-bold">
-                    Automatizado con dictamen legal
-                  </div>
-                </div>
-
-                {/* Row 5 */}
-                <div className="grid grid-cols-12 p-4 items-center">
-                  <div className="col-span-5">
-                    <strong className="text-white block font-bold">Soporte Técnico en Terreno</strong>
-                    <span className="text-gray-400 text-[11px]">Urgencias nocturnas o filtraciones graves</span>
-                  </div>
-                  <div className="col-span-3 text-center text-gray-500">
-                    100% Remoto (Helpdesk)
-                  </div>
-                  <div className="col-span-4 text-center text-emerald-400 font-bold">
-                    Mesa 24/7 y visita en terreno en RM y V Región
+                  <div className="col-span-4 text-center text-emerald-700 font-black">
+                    ✓ 100% Incluido ($0)
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          </section>
 
-        {/* ========================================================== */}
-        {/* VIEW 5: CALCULATOR DETAILED BREAKDOWN                     */}
-        {/* ========================================================== */}
-        {activeSection === 'calculator' && (
-          <div className="max-w-2xl mx-auto bg-[#12151B] border border-gray-800 rounded-3xl p-8 space-y-6">
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-black text-white">Calculadora de Ahorro para tu Comunidad</h2>
-              <p className="text-xs text-gray-400">Comprueba cuánto dinero recupera tu edificio cambiando a MELSA Comunidades OS.</p>
-            </div>
-
-            <div className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-300 font-bold">Total de Departamentos / Unidades:</span>
-                  <span className="text-xl font-black text-[#D02126]">{calculatorUnits}</span>
-                </div>
-                <input
-                  type="range"
-                  min="20"
-                  max="300"
-                  step="5"
-                  value={calculatorUnits}
-                  onChange={(e) => setCalculatorUnits(Number(e.target.value))}
-                  className="w-full accent-[#D02126] cursor-pointer"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-4">
-                <div className="p-4 rounded-2xl bg-gray-900 border border-gray-800">
-                  <span className="text-[11px] text-gray-400 block">ComunidadFeliz al año:</span>
-                  <span className="text-lg font-black text-red-400 line-through">
-                    ${(cfPriceMonthlyCLP * 12).toLocaleString('es-CL')} CLP
-                  </span>
-                </div>
-                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
-                  <span className="text-[11px] text-emerald-300 block font-bold">MELSA Comunidades al año:</span>
-                  <span className="text-lg font-black text-emerald-400">
-                    ${(melsaPriceMonthlyCLP * 12).toLocaleString('es-CL')} CLP
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-950/40 to-emerald-900/20 border border-emerald-500/40 text-center space-y-1">
-                <span className="text-xs font-bold text-gray-300">Ahorro Neto Anual para la Comunidad:</span>
-                <p className="text-3xl font-black text-emerald-400">
-                  ${annualSavingsCLP.toLocaleString('es-CL')} CLP
+          {/* FINAL CTA BANNER */}
+          <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-gradient-to-r from-[#0F1115] to-[#1F2430] rounded-3xl p-8 sm:p-12 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+              <div className="space-y-2 max-w-xl">
+                <span className="text-xs font-bold text-[#D02126] uppercase">Comienza Hoy Mismo</span>
+                <h4 className="text-2xl sm:text-3xl font-extrabold font-serif-title">
+                  ¿Listo para modernizar tu edificio y ahorrar más de $2.000.000 al año?
+                </h4>
+                <p className="text-xs sm:text-sm text-gray-400">
+                  Activamos tu comunidad en menos de 24 horas y migramos tus datos desde Excel o ComunidadFeliz sin costo.
                 </p>
-                <p className="text-[11px] text-gray-400">Suficiente para financiar la mantención de calderas o bombas de agua completas.</p>
               </div>
 
-              <a
-                href={`https://wa.me/56976652425?text=Hola,%20calcule%20un%20ahorro%20de%20${annualSavingsCLP}%20CLP%20para%20mi%20edificio%20de%20${calculatorUnits}%20unidades.%20Quiero%20activarlo.`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3.5 rounded-xl bg-[#D02126] hover:bg-[#B51C20] text-white font-black text-sm text-center block transition-all shadow-xl shadow-red-950/50 cursor-pointer"
+              <button
+                onClick={() => handleOpenAuth('register')}
+                className="shrink-0 px-8 py-4 rounded-2xl bg-[#D02126] hover:bg-[#B81B1F] text-white font-black text-sm shadow-lg shadow-red-900/40 cursor-pointer transition-all"
               >
-                Solicitar Demostración y Migración Gratuita desde ComunidadFeliz →
-              </a>
+                Crear Cuenta de Edificio Gratis →
+              </button>
             </div>
-          </div>
-        )}
-      </main>
+          </section>
+
+        </div>
+      )}
 
       {/* ============================================================== */}
-      {/* FOOTER                                                         */}
+      {/* VIEW B: CONSOLA OPERATIVA INDEPENDIENTE DE LA COMUNIDAD       */}
       {/* ============================================================== */}
-      <footer className="max-w-7xl mx-auto px-4 sm:px-8 mt-20 pt-8 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
-        <div className="flex items-center gap-2">
-          <Building2 className="w-4 h-4 text-[#D02126]" />
-          <span className="text-gray-300 font-bold">MELSA Comunidades OS</span>
-          <span>• Cumplimiento Certificado Ley 21.442 de Copropiedad Inmobiliaria</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <button onClick={onBackToHome} className="hover:text-white transition-colors cursor-pointer">
-            Portal Melsa Inmobiliaria
-          </button>
-          <span>•</span>
-          <a href="https://wa.me/56976652425" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">
-            Soporte & Urgencias SEC: +56 9 7665 2425
-          </a>
-        </div>
-      </footer>
+      {activeView === 'console' && (
+        <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-gray-200">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Sesión Activa
+                </span>
+                <span className="text-xs text-gray-500">
+                  Comunidad: <strong>{communityUser?.communityName || 'Edificio Parque Almagro 1450'}</strong>
+                </span>
+              </div>
+              <h2 className="text-2xl font-black text-[#0F1115]">Centro de Control de Edificio</h2>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setActiveView('presentation')}
+                className="px-3.5 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                Volver a la Presentación
+              </button>
+              <button
+                onClick={() => handleOpenAuth('register')}
+                className="px-3.5 py-1.5 rounded-xl bg-[#D02126] text-white text-xs font-bold hover:bg-[#B81B1F] transition-colors cursor-pointer"
+              >
+                + Registrar Nuevo Edificio
+              </button>
+            </div>
+          </div>
+
+          {/* Embedded Full-Power Operating Hub */}
+          <BuildingManagementHub />
+        </main>
+      )}
+
+      {/* Independent Authentication Modal */}
+      <CommunityAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+        initialMode={authModalInitialMode}
+      />
+
     </div>
   );
 };

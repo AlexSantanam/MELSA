@@ -215,3 +215,32 @@ export interface AgencySalePipeline {
   buyerCandidate: string;
   agentName: string;
 }
+
+export interface AgencyOnboardingData {
+  companyName: string;
+  companyRut: string;
+  legalAddress: string;
+  legalRepresentative: string;
+  contactEmail: string;
+  contactPhone: string;
+  bankAccountHolder: string;
+  bankAccountHolderRut: string;
+  bankName: string;
+  bankAccountType: string;
+  bankAccountNumber: string;
+  receiptEmail: string;
+  importedCount: number;
+  propertiesLimit: number;
+  portalName: string;
+  portalPrimaryColor: string;
+  portalAccentColor: string;
+  portalLogoUrl?: string;
+  monthlyFeePercent: number;
+  placementFeePercent: number;
+  salesCommissionPercent: number;
+  reminderDaysBefore: number;
+  enableWhatsAppReminders: boolean;
+  enableEmailReminders: boolean;
+  isCompleted: boolean;
+}
+

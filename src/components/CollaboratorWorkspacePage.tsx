@@ -31,6 +31,7 @@ import {
   Zap
 } from 'lucide-react';
 import { AgencyWorkspaceView } from './AgencyWorkspaceView';
+import { AgencyOnboardingWizard } from './AgencyOnboardingWizard';
 
 interface CollaboratorWorkspacePageProps {
   currentUser: AuthUser;
@@ -207,6 +208,13 @@ export const CollaboratorWorkspacePage: React.FC<CollaboratorWorkspacePageProps>
 }) => {
   const isAdmin = currentUser.role === 'admin';
   const [adminViewMode, setAdminViewMode] = useState<'agency' | 'admin'>('agency');
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('melsa_agency_onboarding_completed') !== 'true';
+    } catch {
+      return false;
+    }
+  });
   const userCategory = currentUser.category || 'Remodelación & Pintura';
   const categoryConfig = CATEGORY_DEFAULTS[userCategory] || CATEGORY_DEFAULTS['Remodelación & Pintura'];
 
@@ -291,6 +299,16 @@ export const CollaboratorWorkspacePage: React.FC<CollaboratorWorkspacePageProps>
 
   // Dedicated SaaS OS Layout for Real Estate Agencies
   if (currentUser.role === 'agency' || (isAdmin && adminViewMode === 'agency')) {
+    if (showOnboarding) {
+      return (
+        <AgencyOnboardingWizard
+          currentUser={currentUser}
+          onComplete={() => setShowOnboarding(false)}
+          onSkip={() => setShowOnboarding(false)}
+        />
+      );
+    }
+
     return (
       <div className="min-h-screen bg-[#F8F9FA] text-[#0F1115] font-sans flex flex-col">
         {/* Top Corporate Bar */}
@@ -321,6 +339,14 @@ export const CollaboratorWorkspacePage: React.FC<CollaboratorWorkspacePageProps>
             </div>
 
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowOnboarding(true)}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 border border-white/20 text-xs font-semibold transition-all cursor-pointer"
+                title="Reabrir Asistente de Configuración Inicial (8 pasos)"
+              >
+                <span>⚙️ Asistente Corredora (8 Pasos)</span>
+              </button>
+
               {isAdmin && (
                 <button
                   onClick={() => setAdminViewMode('admin')}

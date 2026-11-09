@@ -96,19 +96,26 @@ export const SellPropertySection: React.FC = () => {
     setTimeout(() => setAnalysisStep(3), 1000);
     setTimeout(() => setAnalysisStep(4), 1500);
 
-    // Cálculo cuantitativo NCh 3658
+    // Cálculo cuantitativo NCh 3658 (100% en cliente, sin consumir tokens de IA en landing pública)
     const baseCalc = calculateValuationAVM(inputData);
 
-    // Llamada a Groq AI para redactar el informe comparativo CMA
-    setTimeout(async () => {
-      const cmaText = await generateValuationReportWithAI(inputData, baseCalc);
+    setTimeout(() => {
+      const executiveSummary = `INFORME PRELIMINAR DE MERCADO — MELSA GESTIÓN INMOBILIARIA
+Propiedad analizada en ${baseCalc.communeFormatted} (${baseCalc.regionName}).
+• Rango de Valor Comercial: ${baseCalc.baseMarketUF.toLocaleString('es-CL')} UF ($${baseCalc.baseMarketCLP.toLocaleString('es-CL')} CLP).
+• Liquidez Rápida (< 45 días): ${baseCalc.liquidityUF.toLocaleString('es-CL')} UF.
+• Promedio zonal homogenizado: ${baseCalc.averageUfM2} UF/m² útil.
+• Canon de arriendo mensual estimado: $${baseCalc.estimatedRentCLP.toLocaleString('es-CL')} CLP (Cap Rate ${baseCalc.capRateGrossPct}%).
+
+Nota pericial: Para acceder a la tasación oficial certificada con levantamiento en terreno, verificación de deslindes y validación en el Conservador de Bienes Raíces (CBR), ingresa tus datos a continuación para coordinar con nuestro perito tasador.`;
+
       setValuationResult({
         ...baseCalc,
-        executiveReportCMA: cmaText
+        executiveReportCMA: executiveSummary
       });
       setIsAnalyzing(false);
       setAnalysisStep(0);
-    }, 2000);
+    }, 1600);
   };
 
   // Enviar tasación al WhatsApp del Perito Tasador de Melsa
@@ -678,6 +685,25 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                       </div>
                     ))}
                   </div>
+                </div>
+
+                {/* Banner para Corredores / Agencias */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-gray-900 to-[#0F1115] text-white border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-[#D02126]/20 text-[#D02126] flex items-center justify-center shrink-0">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-extrabold text-white block">¿Eres Corredor Inmobiliario o Desarrollador?</span>
+                      <span className="text-[11px] text-gray-300">El motor pericial AVM con Inteligencia Artificial, Stacking Plan y redacción CMA ejecutiva está integrado en Melsa Agency OS.</span>
+                    </div>
+                  </div>
+                  <a
+                    href="#software-agencias"
+                    className="shrink-0 px-3.5 py-1.5 rounded-xl bg-white text-[#0F1115] font-bold text-xs hover:bg-gray-100 transition-colors cursor-pointer"
+                  >
+                    Acceder a Agency OS →
+                  </a>
                 </div>
 
                 {/* Lead Capture Form & WhatsApp Dispatch */}

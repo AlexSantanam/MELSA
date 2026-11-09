@@ -83,6 +83,8 @@ import {
 import { MelsaLogo } from './MelsaLogo';
 import { PropertyPhotoUploader } from './PropertyPhotoUploader';
 import { extractPropertyWithGroq, ExtractedPropertyData } from '../services/propertyAiExtractor';
+import { AgencyDevelopmentsHub } from './AgencyDevelopmentsHub';
+import { AgencyValuationHub } from './AgencyValuationHub';
 
 interface AgencyWorkspaceViewProps {
   currentUser: AuthUser;
@@ -130,9 +132,9 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
 }) => {
   // Navigation Vertical Tabs (Exact 13 modules from Altenda sidebar + Integraciones + Configuración + Superpoderes Proptech)
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'properties' | 'sales' | 'agenda' | 'clients' | 'contracts' | 
+    'dashboard' | 'properties' | 'developments' | 'sales' | 'agenda' | 'clients' | 'contracts' | 
     'collections' | 'payments' | 'settlement' | 'portals' | 'maintenance' | 'users' | 'plans' |
-    'settings' | 'integrations' | 'inbox' | 'matching'
+    'settings' | 'integrations' | 'inbox' | 'matching' | 'valuation'
   >('dashboard');
 
   // Superpoder 1: Inbox Omnicanal & Triage IA State
@@ -707,7 +709,8 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                 {[
                   { id: 'dashboard', label: 'Panel General', icon: LayoutDashboard },
                   { id: 'inbox', label: 'Inbox Omnicanal (IA)', icon: MessageCircle, badge: '3 leads', badgeStyle: 'bg-[#D02126] text-white' },
-                  { id: 'matching', label: 'Smart Matching (IA)', icon: Sparkles, badge: 'Auto', badgeStyle: 'bg-white/10 text-amber-300' }
+                  { id: 'matching', label: 'Smart Matching (IA)', icon: Sparkles, badge: 'Auto', badgeStyle: 'bg-white/10 text-amber-300' },
+                  { id: 'valuation', label: 'Tasación AVM & CMA (IA)', icon: Compass, badge: 'Pro', badgeStyle: 'bg-rose-500/20 text-[#ff6b6e]' }
                 ].map((item) => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
@@ -744,7 +747,8 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
               <div className="space-y-0.5 pt-1">
                 {[
                   { id: 'properties', label: 'Propiedades', icon: Home },
-                  { id: 'sales', label: 'Cartera de Ventas', icon: Building2 },
+                  { id: 'developments', label: 'Proyectos & Masterplan', icon: Building2, badge: 'Hub', badgeStyle: 'bg-emerald-500/20 text-emerald-300' },
+                  { id: 'sales', label: 'Cartera de Ventas', icon: Layers },
                   { id: 'agenda', label: 'Agenda & Visitas', icon: Calendar },
                   { id: 'clients', label: 'Clientes & Inversionistas', icon: Users }
                 ].map((item) => {
@@ -896,23 +900,12 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     </button>
 
                     <button
-                      onClick={() => {
-                        if (onBackToHome) {
-                          onBackToHome();
-                          setTimeout(() => {
-                            const el = document.getElementById('vender');
-                            if (el) el.scrollIntoView({ behavior: 'smooth' });
-                          }, 150);
-                        } else {
-                          const el = document.getElementById('vender');
-                          if (el) el.scrollIntoView({ behavior: 'smooth' });
-                        }
-                      }}
+                      onClick={() => setActiveTab('valuation')}
                       className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 hover:border-[#D02126] text-[#0F1115] text-xs font-bold transition-all shadow-2xs cursor-pointer"
-                      title="Motor de Tasación Inmobiliaria AVM (NCh 3658)"
+                      title="Motor de Tasación Inmobiliaria AVM con IA (NCh 3658)"
                     >
                       <Compass className="w-3.5 h-3.5 text-[#D02126]" />
-                      <span>Tasador AVM / CMA</span>
+                      <span>Tasador AVM / CMA (IA)</span>
                     </button>
 
                     <button
@@ -1750,6 +1743,34 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                 </div>
               </div>
             )}
+
+            {/* ========================================================== */}
+            {/* TASACIÓN AVM & INFORMES CMA CON IA (EXCLUSIVO CLIENTES)     */}
+            {/* ========================================================== */}
+            {activeTab === 'valuation' && (
+              <div className="animate-in fade-in duration-150">
+                <AgencyValuationHub
+                  onAddPropertyToPortfolio={(newP) => {
+                    const newItem: AgencyPropertyItem = {
+                      id: 'prop-' + Date.now(),
+                      title: `Propiedad en ${newP.address}`,
+                      address: newP.address,
+                      commune: newP.commune,
+                      type: 'Casa',
+                      bedrooms: newP.bedrooms,
+                      bathrooms: newP.bathrooms,
+                      surfaceM2: newP.surfaceM2,
+                      rentCLP: newP.rentCLP,
+                      ownerName: 'Tasación Pericial Melsa',
+                      status: 'disponible',
+                      coverPhoto: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=800'
+                    };
+                    setProperties(prev => [newItem, ...prev]);
+                  }}
+                />
+              </div>
+            )}
+
             {activeTab === 'properties' && (
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2029,6 +2050,15 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* ========================================================== */}
+            {/* TAB: HUB DE PROYECTOS & MASTERPLAN (EDIFICIOS & DESARROLLOS) */}
+            {/* ========================================================== */}
+            {activeTab === 'developments' && (
+              <div className="animate-in fade-in duration-150">
+                <AgencyDevelopmentsHub />
               </div>
             )}
 

@@ -158,7 +158,7 @@ export const AgencyOnboardingWizard: React.FC<AgencyOnboardingWizardProps> = ({
         <div className="flex items-center gap-3">
           <MelsaLogo isLight={false} className="h-8" />
           <div className="hidden sm:block border-l border-gray-200 pl-3">
-            <span className="text-xs font-serif font-bold text-[#0F1115] block">Centro de Activación</span>
+            <span className="text-xs font-extrabold tracking-tight text-[#0F1115] block">Centro de Activación</span>
             <span className="text-[10px] text-gray-400 block">Workspace OS para Corredoras</span>
           </div>
         </div>
@@ -194,7 +194,7 @@ export const AgencyOnboardingWizard: React.FC<AgencyOnboardingWizardProps> = ({
               </span>
               <span className="text-xs text-rose-300 font-medium">Configuración de un solo vistazo</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Configura tu Ecosistema Inmobiliario
             </h1>
             <p className="text-xs text-gray-300 leading-relaxed">
@@ -270,7 +270,7 @@ export const AgencyOnboardingWizard: React.FC<AgencyOnboardingWizardProps> = ({
         {activeSection === 'identity' && (
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200 shadow-2xs space-y-6 animate-in fade-in duration-150">
             <div>
-              <h3 className="text-base font-serif font-bold text-[#0F1115]">
+              <h3 className="text-base font-bold text-[#0F1115]">
                 Información Legal y Comercial de tu Corredora
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -365,7 +365,7 @@ export const AgencyOnboardingWizard: React.FC<AgencyOnboardingWizardProps> = ({
         {activeSection === 'banking' && (
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200 shadow-2xs space-y-6 animate-in fade-in duration-150">
             <div>
-              <h3 className="text-base font-serif font-bold text-[#0F1115]">
+              <h3 className="text-base font-bold text-[#0F1115]">
                 Canales de Recaudación y Cuenta de Abonos
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -507,7 +507,7 @@ export const AgencyOnboardingWizard: React.FC<AgencyOnboardingWizardProps> = ({
         {activeSection === 'portals' && (
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200 shadow-2xs space-y-6 animate-in fade-in duration-150">
             <div>
-              <h3 className="text-base font-serif font-bold text-[#0F1115]">
+              <h3 className="text-base font-bold text-[#0F1115]">
                 Portales Públicos, Equipo y Firma Electrónica
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">

@@ -868,7 +868,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                 {/* Header Welcome + Quick Tools CTA */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115]">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
                       Hola, {representativeName.split(' ')[0]}!
                     </h1>
                     <p className="text-xs text-gray-500 mt-0.5">
@@ -1080,7 +1080,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     </div>
                     <div className="my-4">
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Propiedades Activas</span>
-                      <span className="text-3xl font-serif font-bold text-[#0F1115] block mt-0.5">{properties.length}</span>
+                      <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0F1115] tabular-nums block mt-1">{properties.length}</span>
                     </div>
                     <span className="text-xs font-bold text-[#D02126] group-hover:underline flex items-center gap-1">
                       Ver cartera →
@@ -1100,14 +1100,14 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     </div>
                     <div className="my-4">
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Contratos Vigentes</span>
-                      <span className="text-3xl font-serif font-bold text-[#0F1115] block mt-0.5">{contracts.length}</span>
+                      <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0F1115] tabular-nums block mt-1">{contracts.length}</span>
                     </div>
                     <span className="text-xs font-bold text-[#0F1115] group-hover:underline flex items-center gap-1">
                       Ver contratos →
                     </span>
                   </div>
 
-                  {/* Card 3: Cobranza del mes (NO MORE NaN!) */}
+                  {/* Card 3: Cobranza del mes */}
                   <div 
                     onClick={() => setActiveTab('collections')}
                     className="bg-white p-5 rounded-3xl flex flex-col justify-between transition-all hover:shadow-md cursor-pointer border border-gray-200/80 hover:border-[#D02126]/40 group"
@@ -1120,7 +1120,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     </div>
                     <div className="my-4">
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Cobranza Proyectada</span>
-                      <span className="text-3xl font-serif font-bold text-[#D02126] block mt-0.5">
+                      <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#D02126] tabular-nums block mt-1">
                         {formatCLP(contracts.reduce((acc, c) => acc + (c.rentAmountCLP || (c as any).rentCLP || 0), 0) || 3280000)}
                       </span>
                     </div>
@@ -1142,7 +1142,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     </div>
                     <div className="my-4">
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Pagos Conciliados</span>
-                      <span className="text-3xl font-serif font-bold text-[#0F1115] block mt-0.5">$0</span>
+                      <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0F1115] tabular-nums block mt-1">$0</span>
                     </div>
                     <span className="text-xs font-bold text-amber-800 group-hover:underline flex items-center gap-1">
                       Ver conciliación →
@@ -1350,7 +1350,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115] flex items-center gap-2">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115] flex items-center gap-2">
                       <MessageCircle className="w-6 h-6 text-[#D02126]" />
                       <span>Inbox Omnicanal & Triage con IA</span>
                     </h1>
@@ -1615,7 +1615,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115] flex items-center gap-2">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115] flex items-center gap-2">
                       <Sparkles className="w-6 h-6 text-[#D02126]" />
                       <span>Smart Matching (Cruce Automático de Demandas)</span>
                     </h1>
@@ -1734,7 +1734,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115]">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
                       Propiedades
                     </h1>
                     <div className="flex items-center gap-4 text-xs font-semibold text-gray-500 mt-1">
@@ -2019,7 +2019,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115]">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
                       Cartera de ventas
                     </h1>
                     <div className="flex items-center gap-4 text-xs font-semibold text-gray-500 mt-1">
@@ -2169,7 +2169,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115]">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
                       Agenda
                     </h1>
                     <p className="text-xs text-gray-500 mt-1">
@@ -2270,7 +2270,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115]">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
                       Clientes
                     </h1>
                     <p className="text-xs text-gray-500 mt-0.5">
@@ -2415,7 +2415,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             {activeTab === 'contracts' && (
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115]">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
                     Contratos
                   </h1>
                   <button
@@ -2577,7 +2577,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             {activeTab === 'collections' && (
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between">
-                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115]">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
                     Cobranzas
                   </h1>
                   <button
@@ -2649,7 +2649,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             {activeTab === 'payments' && (
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between">
-                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115]">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
                     Pagos
                   </h1>
                   <button
@@ -2790,7 +2790,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             {activeTab === 'settlement' && (
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between">
-                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115]">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
                     Liquidaciones
                   </h1>
                   <div className="flex items-center gap-2">
@@ -2884,7 +2884,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             {activeTab === 'portals' && (
               <div className="space-y-8 animate-in fade-in duration-150">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115]">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
                     Portales
                   </h1>
                   <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1.5 self-start sm:self-auto">
@@ -2916,22 +2916,22 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-white p-4 rounded-2xl border border-gray-200/90 shadow-2xs space-y-1">
                       <span className="text-[10px] uppercase font-bold text-gray-400 block">Visualizaciones Web</span>
-                      <span className="text-2xl font-serif font-bold text-[#0F1115] block">1.420</span>
+                      <span className="text-2xl font-extrabold tracking-tight text-[#0F1115] tabular-nums block">1.420</span>
                       <span className="text-[10px] text-emerald-600 font-bold block">↑ +18% esta semana</span>
                     </div>
                     <div className="bg-white p-4 rounded-2xl border border-gray-200/90 shadow-2xs space-y-1">
                       <span className="text-[10px] uppercase font-bold text-gray-400 block">Leads Calificados</span>
-                      <span className="text-2xl font-serif font-bold text-[#D02126] block">14</span>
+                      <span className="text-2xl font-extrabold tracking-tight text-[#D02126] tabular-nums block">14</span>
                       <span className="text-[10px] text-gray-500 block">Filtrados con IA</span>
                     </div>
                     <div className="bg-white p-4 rounded-2xl border border-gray-200/90 shadow-2xs space-y-1">
                       <span className="text-[10px] uppercase font-bold text-gray-400 block">Visitas Físicas</span>
-                      <span className="text-2xl font-serif font-bold text-[#0F1115] block">5</span>
+                      <span className="text-2xl font-extrabold tracking-tight text-[#0F1115] tabular-nums block">5</span>
                       <span className="text-[10px] text-purple-600 font-bold block">1 programada mañana</span>
                     </div>
                     <div className="bg-white p-4 rounded-2xl border border-gray-200/90 shadow-2xs space-y-1">
                       <span className="text-[10px] uppercase font-bold text-gray-400 block">Ofertas Formales</span>
-                      <span className="text-2xl font-serif font-bold text-amber-600 block">2</span>
+                      <span className="text-2xl font-extrabold tracking-tight text-amber-600 tabular-nums block">2</span>
                       <span className="text-[10px] text-amber-600 font-bold block">En evaluación</span>
                     </div>
                   </div>
@@ -3276,7 +3276,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             {activeTab === 'maintenance' && (
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between">
-                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115]">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
                     Gastos y servicios
                   </h1>
                   <div className="flex items-center gap-2">
@@ -3342,7 +3342,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             {activeTab === 'users' && (
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between">
-                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115]">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
                     Usuarios
                   </h1>
                 </div>
@@ -3394,7 +3394,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             {/* ========================================================== */}
             {activeTab === 'plans' && (
               <div className="space-y-8 animate-in fade-in duration-150">
-                <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115]">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
                   Mi plan
                 </h1>
 
@@ -3411,7 +3411,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     <span className="text-xs text-gray-300 font-semibold block tracking-wider">
                       Tu plan actual
                     </span>
-                    <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white font-serif">
+                    <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
                       Inicial
                     </h2>
                     <p className="text-xs text-gray-300 font-light leading-relaxed">
@@ -3551,7 +3551,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             {activeTab === 'integrations' && (
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div>
-                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115]">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
                     Integraciones
                   </h1>
                   <p className="text-xs text-gray-500 mt-1">
@@ -3725,7 +3725,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             {activeTab === 'settings' && (
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div>
-                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#0F1115]">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
                     Configuración
                   </h1>
                   <p className="text-xs text-gray-500 mt-1">

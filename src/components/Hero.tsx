@@ -58,12 +58,6 @@ export const Hero: React.FC<HeroProps> = ({
         
         {/* Contenido Principal Limpio: Sin tarjetas duplicadas */}
         <div className="max-w-2xl">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#D02126]/15 border border-[#D02126]/40 text-red-200 text-xs font-semibold uppercase tracking-wider mb-6 backdrop-blur-md">
-            <span className="w-2 h-2 rounded-full bg-[#D02126] animate-pulse" />
-            Melsa • Gestión Inmobiliaria
-          </div>
-
           {/* Headline */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-normal text-white leading-[1.15] mb-6 tracking-tight drop-shadow-sm">
             Tu próximo hogar e inversión <span className="melsa-text-red-gradient font-semibold italic">comienza aquí</span>

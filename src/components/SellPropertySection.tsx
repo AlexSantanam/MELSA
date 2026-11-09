@@ -14,6 +14,7 @@ import {
   ShieldCheck, 
   Award 
 } from 'lucide-react';
+import { PropertyPhotoUploader } from './PropertyPhotoUploader';
 
 export const SellPropertySection: React.FC = () => {
   const [propertyType, setPropertyType] = useState('Departamento');
@@ -24,6 +25,7 @@ export const SellPropertySection: React.FC = () => {
   const [ownerName, setOwnerName] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
+  const [propertyPhotos, setPropertyPhotos] = useState<string[]>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -32,7 +34,8 @@ export const SellPropertySection: React.FC = () => {
   };
 
   const handleSendToWhatsApp = () => {
-    const text = `Hola Melsa, deseo consignar mi propiedad para venta:\n• Tipo: ${propertyType}\n• Comuna: ${location}\n• Superficie: ${surfaceM2} m² (${bedrooms} dorms)\n• Expectativa: $${Number(estimatedPrice).toLocaleString('en-US')} USD\n• Nombre: ${ownerName}\n• Teléfono: ${ownerPhone}`;
+    const photosNote = propertyPhotos.length > 0 ? `\n• Fotos adjuntas en sistema: ${propertyPhotos.length} fotos` : '';
+    const text = `Hola Melsa, deseo consignar mi propiedad para venta:\n• Tipo: ${propertyType}\n• Comuna: ${location}\n• Superficie: ${surfaceM2} m² (${bedrooms} dorms)\n• Expectativa: $${Number(estimatedPrice).toLocaleString('en-US')} USD\n• Nombre: ${ownerName}\n• Teléfono: ${ownerPhone}${photosNote}`;
     window.open(`https://wa.me/56999899421?text=${encodeURIComponent(text)}`, '_blank');
   };
 

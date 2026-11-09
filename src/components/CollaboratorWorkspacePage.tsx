@@ -206,6 +206,7 @@ export const CollaboratorWorkspacePage: React.FC<CollaboratorWorkspacePageProps>
   onRejectApplication
 }) => {
   const isAdmin = currentUser.role === 'admin';
+  const [adminViewMode, setAdminViewMode] = useState<'agency' | 'admin'>('agency');
   const userCategory = currentUser.category || 'Remodelación & Pintura';
   const categoryConfig = CATEGORY_DEFAULTS[userCategory] || CATEGORY_DEFAULTS['Remodelación & Pintura'];
 
@@ -289,7 +290,7 @@ export const CollaboratorWorkspacePage: React.FC<CollaboratorWorkspacePageProps>
   };
 
   // Dedicated SaaS OS Layout for Real Estate Agencies
-  if (currentUser.role === 'agency') {
+  if (currentUser.role === 'agency' || (isAdmin && adminViewMode === 'agency')) {
     return (
       <div className="min-h-screen bg-[#F8F9FA] text-[#0F1115] font-sans flex flex-col">
         {/* Top Corporate Bar */}
@@ -320,6 +321,17 @@ export const CollaboratorWorkspacePage: React.FC<CollaboratorWorkspacePageProps>
             </div>
 
             <div className="flex items-center gap-3">
+              {isAdmin && (
+                <button
+                  onClick={() => setAdminViewMode('admin')}
+                  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold transition-all cursor-pointer"
+                  title="Cambiar a vista de Auditoría Nacional Sello Melsa"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Panel Auditoría Sello Melsa</span>
+                </button>
+              )}
+
               <span className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/10 text-[#D02126] border border-[#D02126]/30">
                 <Zap className="w-3.5 h-3.5" />
                 <span>Agencia Conectada</span>
@@ -389,6 +401,17 @@ export const CollaboratorWorkspacePage: React.FC<CollaboratorWorkspacePageProps>
 
           {/* User Session Status & Logout */}
           <div className="flex items-center gap-3">
+            {isAdmin && (
+              <button
+                onClick={() => setAdminViewMode('agency')}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D02126]/20 hover:bg-[#D02126]/30 text-white border border-[#D02126]/40 text-xs font-semibold transition-all cursor-pointer"
+                title="Cambiar a la plataforma SaaS MELSA Agency OS"
+              >
+                <Building2 className="w-3.5 h-3.5 text-[#D02126]" />
+                <span>Ver Agency OS (SaaS)</span>
+              </button>
+            )}
+
             {!isAdmin && (
               <span className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                 <ShieldCheck className="w-3.5 h-3.5" />

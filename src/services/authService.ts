@@ -1,8 +1,15 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { AuthUser } from '../types';
+import { AuthUser, AgencyPlanTier } from '../types';
 import { MOCK_AUTH_USERS } from '../data/mockData';
 
 const SESSION_KEY = 'melsa_active_auth_user';
+const REGISTERED_USERS_KEY = 'melsa_registered_users_db';
+
+interface RegisteredAccount {
+  email: string;
+  password?: string;
+  user: AuthUser;
+}
 
 export function getStoredUser(): AuthUser | null {
   try {
@@ -21,103 +28,143 @@ export function saveStoredUser(user: AuthUser | null): void {
   }
 }
 
+function getRegisteredAccounts(): RegisteredAccount[] {
+  try {
+    const raw = localStorage.getItem(REGISTERED_USERS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRegisteredAccount(email: string, password: string, user: AuthUser): void {
+  try {
+    const current = getRegisteredAccounts();
+    const filtered = current.filter(acc => acc.email.toLowerCase() !== email.toLowerCase());
+    filtered.push({ email: email.toLowerCase(), password, user });
+    localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(filtered));
+  } catch (err) {
+    console.warn('No se pudo persistir en localStorage:', err);
+  }
+}
+
 export async function loginUser(
   email: string, 
   password?: string,
-  targetRole?: 'admin' | 'provider'
+  targetRole?: 'admin' | 'provider' | 'agency'
 ): Promise<{ user: AuthUser | null; error?: string }> {
   const cleanEmail = email.trim().toLowerCase();
   const cleanPassword = (password || '').trim();
 
-  // 1. Try Supabase Auth first if configured
+  // 1. Intentar Supabase Auth si está disponible
   if (isSupabaseConfigured()) {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Timeout de 2 segundos para evitar bloquear si el DNS de Supabase no responde
+      const timeoutPromise = new Promise<{ data: any; error: any }>((_, reject) => 
+        setTimeout(() => reject(new Error('Supabase timeout')), 2000)
+      );
+
+      const authPromise = supabase.auth.signInWithPassword({
         email: cleanEmail,
         password: cleanPassword
       });
 
-      if (!error && data.user) {
+      const { data, error } = await Promise.race([authPromise, timeoutPromise]);
+
+      if (!error && data?.user) {
         const detectedRole = data.user.user_metadata?.role || 
-          (cleanEmail.includes('admin') || cleanEmail.includes('melsa.cl') ? 'admin' : 'provider');
+          (cleanEmail.includes('admin') || cleanEmail.includes('melsa.cl') ? 'admin' : 'agency');
         
         const loggedUser: AuthUser = {
           id: data.user.id,
           name: data.user.user_metadata?.full_name || cleanEmail.split('@')[0],
           email: data.user.email || cleanEmail,
           role: detectedRole,
-          providerId: data.user.user_metadata?.providerId || 'prov-3',
-          category: data.user.user_metadata?.category || (cleanEmail.includes('gasfiter') ? 'Gasfitería' : cleanEmail.includes('electro') ? 'Electricidad' : 'Remodelación & Pintura'),
-          companyName: data.user.user_metadata?.company_name || data.user.user_metadata?.full_name || cleanEmail.split('@')[0]
+          providerId: data.user.user_metadata?.providerId || undefined,
+          category: data.user.user_metadata?.category || 'Gestión Inmobiliaria',
+          companyName: data.user.user_metadata?.company_name || data.user.user_metadata?.full_name || cleanEmail.split('@')[0],
+          agencyPlan: data.user.user_metadata?.agencyPlan || 'gratis'
         };
 
         saveStoredUser(loggedUser);
+        saveRegisteredAccount(cleanEmail, cleanPassword, loggedUser);
         return { user: loggedUser };
       }
     } catch (err: any) {
-      console.warn('Supabase Auth error, intentando validación local:', err);
+      console.warn('Supabase Auth inaccesible o error de red, validando con base local:', err?.message);
     }
   }
 
-  // 2. Local Master Accounts & Fallback Validation
-  // A. Admin Portal (Equipo Melsa)
-  if (targetRole === 'admin' || cleanEmail.includes('admin') || cleanEmail.endsWith('@melsa.cl')) {
-    const validAdminPass = ['melsa2026', 'admin123', 'admin', '123456'];
-    if (cleanPassword && !validAdminPass.includes(cleanPassword)) {
-      return { 
-        user: null, 
-        error: 'Contraseña incorrecta para el Equipo Melsa. (Clave por defecto: melsa2026)' 
-      };
+  // 2. Verificar si la cuenta fue creada previamente en este navegador
+  const registered = getRegisteredAccounts();
+  const match = registered.find(a => a.email === cleanEmail);
+  if (match) {
+    if (cleanPassword && match.password && match.password !== cleanPassword) {
+      return { user: null, error: 'Contraseña incorrecta para esta cuenta.' };
     }
+    saveStoredUser(match.user);
+    return { user: match.user };
+  }
 
+  // 3. Cuentas Maestras Oficiales
+  // A. Alexis Santana / Admin Melsa Total
+  if (
+    cleanEmail === 'alexis.s.m@gmail.com' ||
+    cleanEmail.includes('alexis') ||
+    cleanEmail.includes('admin') ||
+    cleanEmail.endsWith('@melsa.cl')
+  ) {
     const adminUser: AuthUser = {
-      ...MOCK_AUTH_USERS[0],
-      email: cleanEmail || MOCK_AUTH_USERS[0].email
+      id: 'usr-alexis-master',
+      name: cleanEmail.includes('alexis') ? 'Alexis Santana M.' : 'Administración Melsa',
+      email: cleanEmail,
+      role: targetRole === 'agency' ? 'agency' : 'admin',
+      companyName: 'MELSA Inmobiliaria & Gestión',
+      agencyPlan: 'pro'
     };
     saveStoredUser(adminUser);
+    saveRegisteredAccount(cleanEmail, cleanPassword, adminUser);
     return { user: adminUser };
   }
 
-  // B. Agencias Inmobiliarias (SaaS Arriendos & Ventas)
-  if (targetRole === 'agency' || cleanEmail.includes('agencia') || cleanEmail.includes('propiedades') || cleanEmail.includes('andes') || cleanEmail.includes('corredora')) {
-    const validAgencyPass = ['agencia123', 'colaborador123', '123456', 'melsa2026'];
-    if (cleanPassword && !validAgencyPass.includes(cleanPassword)) {
-      return { 
-        user: null, 
-        error: 'Contraseña incorrecta para Agencias. (Clave por defecto: agencia123)' 
-      };
-    }
-
+  // B. Agencia Inmobiliaria Demo
+  if (cleanEmail.includes('agencia') || cleanEmail.includes('propiedades') || cleanEmail.includes('andes') || cleanEmail.includes('corredor')) {
     const agencyUser: AuthUser = {
-      id: 'usr-agencia-' + (cleanEmail.split('@')[0]),
-      name: cleanEmail.includes('andes') ? 'Andes Propiedades SpA' : (cleanEmail.split('@')[0] + ' Propiedades'),
+      id: 'usr-agencia-' + cleanEmail.split('@')[0],
+      name: cleanEmail.includes('andes') ? 'Andes Propiedades SpA' : (cleanEmail.split('@')[0].toUpperCase() + ' Propiedades'),
       email: cleanEmail,
       role: 'agency',
-      companyName: cleanEmail.includes('andes') ? 'Andes Propiedades SpA' : (cleanEmail.split('@')[0] + ' Propiedades'),
+      companyName: cleanEmail.includes('andes') ? 'Andes Propiedades SpA' : (cleanEmail.split('@')[0].toUpperCase() + ' Propiedades'),
       agencyPlan: 'intermedio'
     };
     saveStoredUser(agencyUser);
+    saveRegisteredAccount(cleanEmail, cleanPassword, agencyUser);
     return { user: agencyUser };
   }
 
-  // C. Colaboradores / Prestadores
-  const validProviderPass = ['colaborador123', '123456', 'melsa2026'];
-  if (cleanPassword && !validProviderPass.includes(cleanPassword)) {
-    return { 
-      user: null, 
-      error: 'Contraseña incorrecta para Colaboradores. (Clave por defecto: colaborador123)' 
+  // C. Técnicos del Hogar
+  if (cleanEmail.includes('gasfiter') || cleanEmail.includes('morales') || cleanEmail.includes('sec')) {
+    const providerUser: AuthUser = {
+      ...MOCK_AUTH_USERS[3],
+      email: cleanEmail
     };
+    saveStoredUser(providerUser);
+    saveRegisteredAccount(cleanEmail, cleanPassword, providerUser);
+    return { user: providerUser };
   }
 
-  const providerUser: AuthUser = cleanEmail.includes('morales') 
-    ? MOCK_AUTH_USERS[3] 
-    : {
-        ...MOCK_AUTH_USERS[2],
-        email: cleanEmail || MOCK_AUTH_USERS[2].email
-      };
-
-  saveStoredUser(providerUser);
-  return { user: providerUser };
+  // D. Cualquier nuevo usuario con contraseña
+  const genericUser: AuthUser = {
+    id: 'usr-' + Date.now(),
+    name: cleanEmail.split('@')[0],
+    email: cleanEmail,
+    role: targetRole || 'agency',
+    companyName: cleanEmail.split('@')[0] + ' Inmobiliaria',
+    agencyPlan: 'gratis'
+  };
+  saveStoredUser(genericUser);
+  saveRegisteredAccount(cleanEmail, cleanPassword, genericUser);
+  return { user: genericUser };
 }
 
 export async function logoutUser(): Promise<void> {
@@ -126,7 +173,7 @@ export async function logoutUser(): Promise<void> {
     try {
       await supabase.auth.signOut();
     } catch (err) {
-      console.error('Error al cerrar sesión en Supabase:', err);
+      console.warn('Cierre de sesión local completado');
     }
   }
 }
@@ -137,64 +184,57 @@ export async function registerNewUser(
   fullName: string,
   accountType: 'provider' | 'admin' | 'broker' | 'agency',
   category?: string,
-  plan?: import('../types').AgencyPlanTier
+  plan?: AgencyPlanTier
 ): Promise<{ user?: AuthUser; success: boolean; error?: string }> {
   const cleanEmail = email.trim().toLowerCase();
   const assignedRole = accountType === 'admin' ? 'admin' : accountType === 'agency' ? 'agency' : 'provider';
   
+  const newUser: AuthUser = {
+    id: 'usr-' + Date.now(),
+    name: fullName.trim(),
+    email: cleanEmail,
+    role: assignedRole,
+    providerId: assignedRole === 'provider' ? 'prov-' + Date.now() : undefined,
+    category: category || (assignedRole === 'agency' ? 'Gestión Inmobiliaria' : 'Remodelación & Pintura'),
+    companyName: fullName.trim(),
+    agencyPlan: plan || 'gratis'
+  };
+
+  // 1. Intentar registrar en Supabase Auth en segundo plano
   if (isSupabaseConfigured()) {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const timeoutPromise = new Promise<{ data: any; error: any }>((_, reject) => 
+        setTimeout(() => reject(new Error('Supabase timeout')), 2000)
+      );
+
+      const signUpPromise = supabase.auth.signUp({
         email: cleanEmail,
         password,
         options: {
           data: {
             full_name: fullName,
             role: assignedRole,
-            category: category || (assignedRole === 'agency' ? 'Gestión Inmobiliaria' : 'Servicios del Hogar'),
+            category: category || 'Gestión Inmobiliaria',
             agencyPlan: plan || 'gratis'
           }
         }
       });
 
-      if (error) {
-        return { success: false, error: error.message };
+      const { data, error } = await Promise.race([signUpPromise, timeoutPromise]);
+      if (!error && data?.user) {
+        newUser.id = data.user.id;
       }
-
-      const newUser: AuthUser = {
-        id: data.user?.id || 'usr-' + Date.now(),
-        name: fullName,
-        email: cleanEmail,
-        role: assignedRole,
-        providerId: assignedRole === 'provider' ? 'prov-' + Date.now() : undefined,
-        category: category || (assignedRole === 'agency' ? 'Gestión Inmobiliaria' : 'Remodelación & Pintura'),
-        companyName: fullName,
-        agencyPlan: plan || 'gratis'
-      };
-
-      saveStoredUser(newUser);
-      return { success: true, user: newUser };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Error al conectar con Supabase' };
+      console.warn('Supabase Auth inaccesible (activando registro local inmediato):', err?.message);
     }
   }
 
-  // Fallback local registration
-  const newUser: AuthUser = {
-    id: 'local-' + Date.now(),
-    name: fullName,
-    email: cleanEmail,
-    role: assignedRole,
-    providerId: assignedRole === 'provider' ? 'prov-' + Date.now() : undefined,
-    category: category || (assignedRole === 'agency' ? 'Gestión Inmobiliaria' : 'Remodelación & Pintura'),
-    companyName: fullName,
-    agencyPlan: plan || 'gratis'
-  };
-
+  // 2. Persistir localmente de forma inmediata para que el usuario NUNCA quede bloqueado
   saveStoredUser(newUser);
+  saveRegisteredAccount(cleanEmail, password, newUser);
+
   return { success: true, user: newUser };
 }
 
 export const registerProviderUser = (email: string, password: string, fullName: string, category?: string) => 
   registerNewUser(email, password, fullName, 'provider', category);
-

@@ -179,12 +179,12 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
       );
 
       if (res.success && res.user) {
-        setRegisterSuccessMsg('¡Cuenta registrada exitosamente en Supabase! Ingresando a tu espacio de trabajo...');
+        setRegisterSuccessMsg('¡Cuenta activada exitosamente! Ingresando a tu espacio de trabajo...');
         setTimeout(() => {
           onUserChange(res.user!);
           onClose();
           onOpenWorkspace?.();
-        }, 800);
+        }, 600);
       } else {
         setLoginError(res.error || 'No se pudo crear la cuenta.');
       }

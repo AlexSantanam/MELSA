@@ -36,7 +36,12 @@ import {
   Search,
   X,
   Zap,
-  ArrowLeft
+  ArrowLeft,
+  Inbox,
+  ArrowUpDown,
+  Landmark,
+  FileCode,
+  FolderOpen
 } from 'lucide-react';
 import { 
   AuthUser, 
@@ -215,6 +220,32 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
 
   // Tickets (Gastos y servicios Sello Melsa)
   const [tickets, setTickets] = useState<AgencyMaintenanceTicket[]>(MOCK_AGENCY_TICKETS);
+
+  // View toggle: Clean Initial State (matches Altenda fresh account) vs Demo Populated State
+  const [showDemoData, setShowDemoData] = useState(false);
+
+  // Contracts module state (Altenda screenshot 2)
+  const [contractsSearch, setContractsSearch] = useState('');
+  const [contractsStatusFilter, setContractsStatusFilter] = useState('Todos');
+  const [isNewContractModalOpen, setIsNewContractModalOpen] = useState(false);
+  const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
+  const [newContractProperty, setNewContractProperty] = useState('');
+  const [newContractTenant, setNewContractTenant] = useState('');
+  const [newContractRent, setNewContractRent] = useState(750000);
+  const [newContractIndex, setNewContractIndex] = useState('IPC Semestral');
+
+  // Payments module state (Altenda screenshot 4)
+  const [paymentsTab, setPaymentsTab] = useState<'saldos_abonos' | 'online' | 'transfers'>('saldos_abonos');
+  const [paymentsSubTab, setPaymentsSubTab] = useState<'saldos' | 'historial'>('saldos');
+
+  // Liquidaciones state (Altenda screenshot 5)
+  const [showSettlementCalculator, setShowSettlementCalculator] = useState(false);
+
+  // Clientes state (Altenda screenshot 1)
+  const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientEmail, setNewClientEmail] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('');
 
   const formatCLP = (val: number) => '$' + Math.round(val).toLocaleString('es-CL');
 
@@ -1017,205 +1048,530 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             )}
 
             {/* ========================================================== */}
-            {/* TAB 5: CLIENTES                                            */}
+            {/* TAB 5: CLIENTES (SCREENSHOT 1 EXACT MATCH)                */}
             {/* ========================================================== */}
             {activeTab === 'clients' && (
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between">
                   <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
-                    Cartera de Clientes
+                    Clientes
                   </h1>
-                </div>
-                <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-2xs space-y-4">
-                  <div className="divide-y divide-gray-100">
-                    {contracts.map((cnt) => (
-                      <div key={cnt.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                        <div>
-                          <span className="font-bold text-[#153B50] block text-sm">{cnt.tenantName} (Arrendatario)</span>
-                          <span className="text-gray-400 block">RUT: {cnt.tenantRut} · Propiedad: {cnt.propertyAddress}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <a
-                            href={`https://wa.me/56999899421?text=Hola%20${encodeURIComponent(cnt.tenantName)}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-bold flex items-center gap-1.5 transition-colors"
-                          >
-                            <Phone className="w-3.5 h-3.5" />
-                            <span>WhatsApp</span>
-                          </a>
-                          <span className="font-mono text-gray-600 font-bold">{formatCLP(cnt.rentCLP)}/mes</span>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowDemoData(!showDemoData)}
+                      className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      {showDemoData ? '👁️ Ver limpio inicial' : '📊 Ver datos de ejemplo'}
+                    </button>
+                    <button
+                      onClick={() => setIsNewClientModalOpen(true)}
+                      className="px-3.5 py-1.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Nuevo cliente</span>
+                    </button>
                   </div>
+                </div>
+
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/90 shadow-2xs space-y-6 min-h-[360px]">
+                  <p className="text-xs text-gray-500 font-normal">
+                    Propietarios registrados en tus propiedades. Consulta su cartera, ingresos y relación comercial.
+                  </p>
+
+                  {/* Altenda Exact Table Header */}
+                  <div className="grid grid-cols-12 text-xs font-semibold text-gray-400 border-b border-gray-100 pb-3">
+                    <div className="col-span-4 flex items-center gap-1 cursor-pointer hover:text-gray-600 select-none">
+                      <span>Cliente</span>
+                      <ArrowUpDown className="w-3 h-3 text-gray-300" />
+                    </div>
+                    <div className="col-span-2 flex items-center gap-1 cursor-pointer hover:text-gray-600 select-none">
+                      <span>Propiedades</span>
+                      <ArrowUpDown className="w-3 h-3 text-gray-300" />
+                    </div>
+                    <div className="col-span-3 flex items-center gap-1 cursor-pointer hover:text-gray-600 select-none">
+                      <span>Correo</span>
+                      <ArrowUpDown className="w-3 h-3 text-gray-300" />
+                    </div>
+                    <div className="col-span-3 flex items-center gap-1 cursor-pointer hover:text-gray-600 select-none">
+                      <span>Teléfono</span>
+                      <ArrowUpDown className="w-3 h-3 text-gray-300" />
+                    </div>
+                  </div>
+
+                  {/* Body: Empty State matching Screenshot or Demo Records */}
+                  {!showDemoData ? (
+                    <div className="py-20 text-center text-xs text-gray-400 font-normal">
+                      Completa los datos del propietario en una propiedad para que aparezca aquí.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100 text-xs">
+                      {[
+                        { name: 'Gonzalo Vial Echenique', props: '1 propiedad', email: 'gvial@inversionesvial.cl', phone: '+56 9 9123 4567' },
+                        { name: 'Inversiones Los Andes SpA', props: '2 propiedades', email: 'contacto@losandes.cl', phone: '+56 9 8234 5678' },
+                        { name: 'Rodrigo Matte Larraín', props: '1 propiedad', email: 'rmatte@larrain.cl', phone: '+56 9 7345 6789' }
+                      ].map((cli, idx) => (
+                        <div key={idx} className="grid grid-cols-12 py-3.5 items-center text-gray-700 hover:bg-gray-50/60 rounded-xl px-2 transition-colors">
+                          <div className="col-span-4 font-bold text-[#153B50] flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-[#E6F4EA] text-[#008E88] font-bold flex items-center justify-center text-xs">
+                              {cli.name.charAt(0)}
+                            </div>
+                            <span>{cli.name}</span>
+                          </div>
+                          <div className="col-span-2 text-gray-500 font-medium">{cli.props}</div>
+                          <div className="col-span-3 text-gray-600 font-mono text-[11px]">{cli.email}</div>
+                          <div className="col-span-3 flex items-center justify-between">
+                            <span className="text-gray-600 font-mono text-[11px]">{cli.phone}</span>
+                            <a
+                              href={`https://wa.me/${cli.phone.replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-[10px] flex items-center gap-1"
+                            >
+                              <Phone className="w-3 h-3" />
+                              <span>WhatsApp</span>
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
             {/* ========================================================== */}
-            {/* TAB 6: CONTRATOS                                           */}
+            {/* TAB 6: CONTRATOS (SCREENSHOT 2 EXACT MATCH)               */}
             {/* ========================================================== */}
             {activeTab === 'contracts' && (
               <div className="space-y-6 animate-in fade-in duration-150">
-                <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
-                  Contratos Vigentes
-                </h1>
-                <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-2xs space-y-4">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="border-b border-gray-200 text-gray-400 uppercase font-bold text-[10px]">
-                          <th className="pb-3">Inmueble</th>
-                          <th className="pb-3">Arrendatario</th>
-                          <th className="pb-3">Canon CLP</th>
-                          <th className="pb-3">Reajuste</th>
-                          <th className="pb-3">Estado</th>
-                          <th className="pb-3 text-right">Acción</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {contracts.map((c) => (
-                          <tr key={c.id}>
-                            <td className="py-3 font-semibold text-[#153B50]">{c.propertyAddress}</td>
-                            <td className="py-3 text-gray-600">{c.tenantName}</td>
-                            <td className="py-3 font-mono font-bold text-[#008E88]">{formatCLP(c.rentCLP)}</td>
-                            <td className="py-3 text-gray-500">{c.readjustmentIndex}</td>
-                            <td className="py-3">
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                                Al Día
-                              </span>
-                            </td>
-                            <td className="py-3 text-right">
-                              <button 
-                                onClick={() => {
-                                  setSelectedContractId(c.id);
-                                  setActiveTab('settlement');
-                                }}
-                                className="text-[#008E88] font-bold hover:underline cursor-pointer"
-                              >
-                                Liquidar →
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
+                    Contratos
+                  </h1>
+                  <button
+                    onClick={() => setShowDemoData(!showDemoData)}
+                    className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer self-start sm:self-auto transition-colors"
+                  >
+                    {showDemoData ? '👁️ Ver limpio inicial' : '📊 Ver contratos de ejemplo'}
+                  </button>
+                </div>
+
+                {/* Filter and Action Bar matching Screenshot 2 */}
+                <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 max-w-2xl">
+                    <div className="flex-1">
+                      <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                        Buscar contratos
+                      </label>
+                      <input
+                        type="text"
+                        value={contractsSearch}
+                        onChange={(e) => setContractsSearch(e.target.value)}
+                        placeholder="Propiedad, título o código"
+                        className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#008E88] shadow-2xs transition-colors"
+                      />
+                    </div>
+
+                    <div className="w-full sm:w-48">
+                      <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                        Estado
+                      </label>
+                      <select
+                        value={contractsStatusFilter}
+                        onChange={(e) => setContractsStatusFilter(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-700 focus:outline-none focus:border-[#008E88] shadow-2xs transition-colors cursor-pointer"
+                      >
+                        <option value="Todos">Todos</option>
+                        <option value="Vigente">Vigente</option>
+                        <option value="Por vencer">Por vencer</option>
+                        <option value="Finalizado">Finalizado</option>
+                      </select>
+                    </div>
                   </div>
+
+                  <div className="flex items-center gap-2 self-start lg:self-end">
+                    <button
+                      onClick={() => setIsNewContractModalOpen(true)}
+                      className="px-4 py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Nuevo contrato</span>
+                    </button>
+                    <button
+                      onClick={() => setIsTemplatesModalOpen(true)}
+                      className="px-3.5 py-2.5 rounded-xl bg-[#F0F7F6] text-[#008E88] hover:bg-[#E2F1EF] text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 border border-[#CDEAE6]"
+                    >
+                      <FileCode className="w-3.5 h-3.5" />
+                      <span>Plantillas y variables</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Content Box with Empty State or Filtered Table */}
+                <div className="bg-white rounded-3xl p-6 sm:p-12 border border-gray-200/90 shadow-2xs min-h-[300px] flex flex-col justify-center">
+                  {!showDemoData && contractsSearch === '' ? (
+                    <div className="flex items-center justify-center gap-2.5 text-xs text-gray-400 py-16">
+                      <Inbox className="w-5 h-5 text-gray-400 shrink-0" />
+                      <span>Aún no hay contratos registrados.</span>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto w-full">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-gray-200 text-gray-400 uppercase font-bold text-[10px]">
+                            <th className="pb-3">Inmueble</th>
+                            <th className="pb-3">Arrendatario</th>
+                            <th className="pb-3">Canon CLP</th>
+                            <th className="pb-3">Reajuste</th>
+                            <th className="pb-3">Estado</th>
+                            <th className="pb-3 text-right">Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {contracts
+                            .filter(c => {
+                              if (contractsStatusFilter !== 'Todos' && contractsStatusFilter !== 'Vigente') return false;
+                              if (contractsSearch.trim()) {
+                                return c.propertyAddress.toLowerCase().includes(contractsSearch.toLowerCase()) ||
+                                       c.tenantName.toLowerCase().includes(contractsSearch.toLowerCase());
+                              }
+                              return true;
+                            })
+                            .map((c) => (
+                              <tr key={c.id} className="hover:bg-gray-50/60 transition-colors">
+                                <td className="py-3 font-semibold text-[#153B50]">{c.propertyAddress}</td>
+                                <td className="py-3 text-gray-600">{c.tenantName}</td>
+                                <td className="py-3 font-mono font-bold text-[#008E88]">{formatCLP(c.rentCLP)}</td>
+                                <td className="py-3 text-gray-500">{c.readjustmentIndex}</td>
+                                <td className="py-3">
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                    Vigente
+                                  </span>
+                                </td>
+                                <td className="py-3 text-right">
+                                  <button 
+                                    onClick={() => {
+                                      setSelectedContractId(c.id);
+                                      setActiveTab('settlement');
+                                    }}
+                                    className="text-[#008E88] font-bold hover:underline cursor-pointer"
+                                  >
+                                    Liquidar →
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
             {/* ========================================================== */}
-            {/* TAB 7: COBRANZAS                                           */}
+            {/* TAB 7: COBRANZAS (SCREENSHOT 3 EXACT MATCH)               */}
             {/* ========================================================== */}
             {activeTab === 'collections' && (
               <div className="space-y-6 animate-in fade-in duration-150">
-                <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
-                  Control de Cobranzas Automáticas
-                </h1>
-                <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-2xs space-y-4 text-xs">
-                  <p className="text-gray-500">
-                    Recordatorios automáticos sincronizados por WhatsApp y Correo para el día 5 de cada mes.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                    <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200">
-                      <span className="text-[10px] uppercase font-bold text-emerald-700 block">Al Día</span>
-                      <span className="text-2xl font-bold text-emerald-900 block mt-1">3 Arriendos</span>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200">
-                      <span className="text-[10px] uppercase font-bold text-amber-700 block">Por Vencer</span>
-                      <span className="text-2xl font-bold text-amber-900 block mt-1">0 Arriendos</span>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-red-50 border border-red-200">
-                      <span className="text-[10px] uppercase font-bold text-red-700 block">Morosos</span>
-                      <span className="text-2xl font-bold text-red-900 block mt-1">0 Arriendos</span>
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
+                    Cobranzas
+                  </h1>
+                  <button
+                    onClick={() => setShowDemoData(!showDemoData)}
+                    className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors"
+                  >
+                    {showDemoData ? '👁️ Ver limpio inicial' : '📊 Ver cobranzas de ejemplo'}
+                  </button>
                 </div>
-              </div>
-            )}
 
-            {/* ========================================================== */}
-            {/* TAB 8: PAGOS                                               */}
-            {/* ========================================================== */}
-            {activeTab === 'payments' && (
-              <div className="space-y-6 animate-in fade-in duration-150">
-                <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
-                  Historial de Pagos & Transferencias
-                </h1>
-                <div className="bg-white rounded-3xl p-8 text-center border border-gray-200 shadow-2xs space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#E6F4EA] text-[#008E88] mx-auto flex items-center justify-center">
-                    <CreditCard className="w-6 h-6" />
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/90 shadow-2xs flex flex-col justify-between min-h-[360px]">
+                  <div>
+                    <p className="text-xs text-gray-500 font-normal">
+                      Obligaciones programadas; no representan pagos recibidos.
+                    </p>
                   </div>
-                  <h4 className="text-base font-bold text-[#153B50]">Sin pagos registrados este mes</h4>
-                  <p className="text-xs text-gray-400 max-w-sm mx-auto">
-                    Cuando los arrendatarios paguen por Webpay, Khipu o transferencia bancaria, se reflejarán aquí automáticamente.
-                  </p>
-                </div>
-              </div>
-            )}
 
-            {/* ========================================================== */}
-            {/* TAB 9: LIQUIDACIONES                                       */}
-            {/* ========================================================== */}
-            {activeTab === 'settlement' && (
-              <div className="space-y-6 animate-in fade-in duration-150">
-                <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
-                  Liquidaciones a Propietarios
-                </h1>
-                
-                <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-2xs space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
-                    <div>
-                      <h3 className="text-base font-bold text-[#153B50]">{activeSettlementContract.propertyAddress}</h3>
-                      <p className="text-xs text-gray-500">Propietario: {activeSettlementContract.ownerName} ({activeSettlementContract.ownerBank})</p>
+                  {!showDemoData ? (
+                    <div className="py-20 text-center flex items-center justify-center gap-2.5 text-xs text-gray-400">
+                      <Inbox className="w-5 h-5 text-gray-400 shrink-0" />
+                      <span>Todavía no hay movimientos para mostrar.</span>
                     </div>
+                  ) : (
+                    <div className="py-6 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200">
+                          <span className="text-[10px] uppercase font-bold text-emerald-700 block">Al Día</span>
+                          <span className="text-2xl font-bold text-emerald-900 block mt-1">3 Arriendos</span>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200">
+                          <span className="text-[10px] uppercase font-bold text-amber-700 block">Por Vencer (Día 5)</span>
+                          <span className="text-2xl font-bold text-amber-900 block mt-1">0 Arriendos</span>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-red-50 border border-red-200">
+                          <span className="text-[10px] uppercase font-bold text-red-700 block">Morosos</span>
+                          <span className="text-2xl font-bold text-red-900 block mt-1">0 Arriendos</span>
+                        </div>
+                      </div>
 
-                    <button
-                      onClick={() => {
-                        setSettlementSuccessMsg(true);
-                        setTimeout(() => setSettlementSuccessMsg(false), 3000);
-                      }}
-                      className="px-4 py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Emitir Liquidación Oficial PDF</span>
-                    </button>
-                  </div>
-
-                  {settlementSuccessMsg && (
-                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>¡Liquidación emitida con éxito! Se ha descargado el comprobante para el propietario.</span>
+                      <div className="divide-y divide-gray-100 pt-2 text-xs">
+                        {contracts.map(c => (
+                          <div key={c.id} className="py-3 flex items-center justify-between">
+                            <div>
+                              <span className="font-bold text-[#153B50] block">{c.propertyAddress}</span>
+                              <span className="text-gray-400 text-[11px]">{c.tenantName} · Vence el 05 de cada mes</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-mono font-bold text-[#008E88]">{formatCLP(c.rentCLP)}</span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                Programado
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  {/* Calculator Breakdown */}
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
-                    <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200">
-                      <span className="text-gray-400 block font-bold text-[10px] uppercase">Renta Recibida</span>
-                      <span className="text-xl font-bold text-[#153B50] block mt-1">{formatCLP(activeSettlementContract.rentCLP)}</span>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200">
-                      <span className="text-gray-400 block font-bold text-[10px] uppercase">Comisión Agencia (7%)</span>
-                      <span className="text-xl font-bold text-red-600 block mt-1">
-                        -{formatCLP(activeSettlementContract.rentCLP * 0.07)}
-                      </span>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200">
-                      <span className="text-gray-400 block font-bold text-[10px] uppercase">Mantenciones / Reparaciones</span>
-                      <span className="text-xl font-bold text-red-600 block mt-1">
-                        -{formatCLP(settlementMaintenanceDeduction)}
-                      </span>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-[#E6F4EA] border border-[#008E88]/30">
-                      <span className="text-[#008E88] block font-bold text-[10px] uppercase">Total Líquido Propietario</span>
-                      <span className="text-xl font-bold text-[#008E88] block mt-1">
-                        {formatCLP(activeSettlementContract.rentCLP * 0.93 - settlementMaintenanceDeduction)}
-                      </span>
-                    </div>
+                  <div className="pt-4 border-t border-gray-100 text-xs text-gray-500">
+                    Primero registra un contrato para programar sus cobros.
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================== */}
+            {/* TAB 8: PAGOS (SCREENSHOT 4 EXACT MATCH)                   */}
+            {/* ========================================================== */}
+            {activeTab === 'payments' && (
+              <div className="space-y-6 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between">
+                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
+                    Pagos
+                  </h1>
+                  <button
+                    onClick={() => setShowDemoData(!showDemoData)}
+                    className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors"
+                  >
+                    {showDemoData ? '👁️ Ver limpio inicial' : '📊 Ver pagos de ejemplo'}
+                  </button>
+                </div>
+
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/90 shadow-2xs space-y-6 min-h-[420px]">
+                  <p className="text-xs text-gray-500 font-normal">
+                    Revisa saldos, abonos y el estado de los pagos recibidos.
+                  </p>
+
+                  {/* Altenda Exact Sub Tabs with Icons */}
+                  <div className="flex items-center gap-8 border-b border-gray-100 pb-3 text-xs">
+                    <button
+                      onClick={() => setPaymentsTab('saldos_abonos')}
+                      className={`flex items-center gap-2 font-bold pb-2 -mb-3 transition-colors cursor-pointer ${
+                        paymentsTab === 'saldos_abonos' ? 'text-[#008E88] border-b-2 border-[#008E88]' : 'text-gray-500 hover:text-gray-900'
+                      }`}
+                    >
+                      <Receipt className="w-4 h-4" />
+                      <span>Saldos y abonos</span>
+                    </button>
+
+                    <button
+                      onClick={() => setPaymentsTab('online')}
+                      className={`flex items-center gap-2 font-bold pb-2 -mb-3 transition-colors cursor-pointer ${
+                        paymentsTab === 'online' ? 'text-[#008E88] border-b-2 border-[#008E88]' : 'text-gray-500 hover:text-gray-900'
+                      }`}
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      <span>Pagos en línea</span>
+                    </button>
+
+                    <button
+                      onClick={() => setPaymentsTab('transfers')}
+                      className={`flex items-center gap-2 font-bold pb-2 -mb-3 transition-colors cursor-pointer ${
+                        paymentsTab === 'transfers' ? 'text-[#008E88] border-b-2 border-[#008E88]' : 'text-gray-500 hover:text-gray-900'
+                      }`}
+                    >
+                      <Landmark className="w-4 h-4" />
+                      <span>Transferencias</span>
+                    </button>
+                  </div>
+
+                  {/* Sub-tab 1: Saldos y abonos (Exact Altenda View) */}
+                  {paymentsTab === 'saldos_abonos' && (
+                    <div className="space-y-6 pt-2">
+                      {/* Secondary Sublinks: -> Saldos  -> Historial de abonos */}
+                      <div className="flex items-center gap-6 text-xs">
+                        <button
+                          onClick={() => setPaymentsSubTab('saldos')}
+                          className={`flex items-center gap-1.5 font-bold cursor-pointer ${
+                            paymentsSubTab === 'saldos' ? 'text-[#008E88]' : 'text-gray-400 hover:text-gray-600'
+                          }`}
+                        >
+                          <span>→ Saldos</span>
+                        </button>
+                        <button
+                          onClick={() => setPaymentsSubTab('historial')}
+                          className={`flex items-center gap-1.5 font-bold cursor-pointer ${
+                            paymentsSubTab === 'historial' ? 'text-[#008E88]' : 'text-gray-400 hover:text-gray-600'
+                          }`}
+                        >
+                          <span>→ Historial de abonos</span>
+                        </button>
+                      </div>
+
+                      <div className="space-y-1">
+                        <h3 className="text-base font-bold text-[#153B50]">
+                          Saldos por obligación
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          Registros ingresados por usuarios; no constituyen confirmación bancaria.
+                        </p>
+                      </div>
+
+                      {!showDemoData ? (
+                        <div className="py-20 text-center flex items-center justify-center gap-2.5 text-xs text-gray-400">
+                          <Inbox className="w-5 h-5 text-gray-400 shrink-0" />
+                          <span>Todavía no hay movimientos para mostrar.</span>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-gray-100 text-xs">
+                          {contracts.map(c => (
+                            <div key={c.id} className="py-3 flex items-center justify-between">
+                              <div>
+                                <span className="font-bold text-[#153B50] block">{c.propertyAddress}</span>
+                                <span className="text-gray-400">{c.tenantName} · Arriendo Mensual</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-mono font-bold text-[#008E88] block">{formatCLP(c.rentCLP)}</span>
+                                <span className="text-[10px] text-emerald-600 font-bold">✓ Saldo al día</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Sub-tab 2: Pagos en línea (Webpay / Khipu) */}
+                  {paymentsTab === 'online' && (
+                    <div className="space-y-4 pt-2 text-xs">
+                      <div className="p-5 rounded-2xl bg-[#F0F7F6] border border-[#CDEAE6] space-y-2">
+                        <h4 className="font-bold text-[#153B50]">Integración Pasarela Webpay Plus & Khipu</h4>
+                        <p className="text-gray-600 leading-relaxed">
+                          Tus arrendatarios pagan directamente con tarjeta de débito, crédito o transferencia directa. Comisión estándar 1,49% + IVA. Los fondos se depositan automáticamente en la cuenta bancaria de tu corredora configurada en el Asistente.
+                        </p>
+                        <span className="inline-block mt-2 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                          ✓ Enlace de pago activo
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sub-tab 3: Transferencias bancarias */}
+                  {paymentsTab === 'transfers' && (
+                    <div className="space-y-4 pt-2 text-xs">
+                      <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
+                        <h4 className="font-bold text-[#153B50]">Conciliación Bancaria Automática</h4>
+                        <p className="text-gray-600 leading-relaxed">
+                          Sincroniza comprobantes de transferencia electrónica por correo o lectura de cartolas bancarias chilenas (Banco de Chile, Santander, BCI, BancoEstado).
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================== */}
+            {/* TAB 9: LIQUIDACIONES (SCREENSHOT 5 EXACT MATCH)           */}
+            {/* ========================================================== */}
+            {activeTab === 'settlement' && (
+              <div className="space-y-6 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between">
+                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
+                    Liquidaciones
+                  </h1>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowDemoData(!showDemoData)}
+                      className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      {showDemoData ? '👁️ Ver limpio inicial' : '📊 Ver liquidaciones de ejemplo'}
+                    </button>
+                    <button
+                      onClick={() => setShowSettlementCalculator(true)}
+                      className="px-3.5 py-1.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Emitir Liquidación</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/90 shadow-2xs space-y-6 min-h-[360px]">
+                  <p className="text-xs text-gray-500 font-normal">
+                    Resumen de abonos registrados. Cerrar una liquidación no transfiere fondos al propietario.
+                  </p>
+
+                  {!showDemoData && !showSettlementCalculator ? (
+                    <div className="py-24 text-center flex items-center justify-center gap-2.5 text-xs text-gray-400">
+                      <Inbox className="w-5 h-5 text-gray-400 shrink-0" />
+                      <span>Todavía no hay movimientos para mostrar.</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-6 animate-in fade-in">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+                        <div>
+                          <h3 className="text-base font-bold text-[#153B50]">{activeSettlementContract.propertyAddress}</h3>
+                          <p className="text-xs text-gray-500">Propietario: {activeSettlementContract.ownerName} ({activeSettlementContract.ownerBank})</p>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            setSettlementSuccessMsg(true);
+                            setTimeout(() => setSettlementSuccessMsg(false), 3000);
+                          }}
+                          className="px-4 py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Descargar Liquidación Oficial PDF</span>
+                        </button>
+                      </div>
+
+                      {settlementSuccessMsg && (
+                        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span>¡Liquidación emitida con éxito! Se ha descargado el comprobante para el propietario.</span>
+                        </div>
+                      )}
+
+                      {/* Chilean Calculator Breakdown */}
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
+                        <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200">
+                          <span className="text-gray-400 block font-bold text-[10px] uppercase">Renta Recibida</span>
+                          <span className="text-xl font-bold text-[#153B50] block mt-1">{formatCLP(activeSettlementContract.rentCLP)}</span>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200">
+                          <span className="text-gray-400 block font-bold text-[10px] uppercase">Comisión Agencia (7%)</span>
+                          <span className="text-xl font-bold text-red-600 block mt-1">
+                            -{formatCLP(activeSettlementContract.rentCLP * 0.07)}
+                          </span>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200">
+                          <span className="text-gray-400 block font-bold text-[10px] uppercase">Mantenciones</span>
+                          <span className="text-xl font-bold text-red-600 block mt-1">
+                            -{formatCLP(settlementMaintenanceDeduction)}
+                          </span>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-[#E6F4EA] border border-[#008E88]/30">
+                          <span className="text-[#008E88] block font-bold text-[10px] uppercase">Total Líquido Propietario</span>
+                          <span className="text-xl font-bold text-[#008E88] block mt-1">
+                            {formatCLP(activeSettlementContract.rentCLP * 0.93 - settlementMaintenanceDeduction)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1678,6 +2034,243 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                 className="w-full py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer mt-2"
               >
                 Agregar a Captación
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL: NUEVO CONTRATO (ALTENDA SCREENSHOT 2)                    */}
+      {/* ============================================================== */}
+      {isNewContractModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-200 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <h3 className="text-base font-bold text-[#153B50]">Crear Nuevo Contrato de Arriendo</h3>
+              <button 
+                onClick={() => setIsNewContractModalOpen(false)}
+                className="text-gray-400 hover:text-gray-700 cursor-pointer p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newContractTenant.trim()) return;
+                const newC: AgencyRentalContract = {
+                  id: 'cnt-' + Date.now(),
+                  propertyAddress: newContractProperty || (properties[0]?.address || 'Av. Las Condes 10450'),
+                  tenantName: newContractTenant,
+                  tenantRut: '18.456.789-K',
+                  rentCLP: newContractRent,
+                  readjustmentIndex: newContractIndex,
+                  paymentDay: 5,
+                  ownerName: companyDisplayName,
+                  ownerBank: 'Banco de Chile'
+                };
+                setContracts(prev => [newC, ...prev]);
+                setShowDemoData(true);
+                setIsNewContractModalOpen(false);
+                setNewContractTenant('');
+              }}
+              className="space-y-3.5 text-xs"
+            >
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Propiedad Asociada *</label>
+                <select
+                  value={newContractProperty}
+                  onChange={(e) => setNewContractProperty(e.target.value)}
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#153B50] outline-none"
+                >
+                  {properties.map(p => (
+                    <option key={p.id} value={p.address}>{p.address} ({p.commune})</option>
+                  ))}
+                  <option value="Nueva propiedad en Las Condes">Nueva propiedad en Las Condes</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Nombre Completo Arrendatario *</label>
+                <input
+                  type="text"
+                  required
+                  value={newContractTenant}
+                  onChange={(e) => setNewContractTenant(e.target.value)}
+                  placeholder="ej. Sebastián Valenzuela"
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-[#153B50] outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">Canon Mensual CLP *</label>
+                  <input
+                    type="number"
+                    value={newContractRent}
+                    onChange={(e) => setNewContractRent(Number(e.target.value))}
+                    className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs text-[#153B50] font-bold outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">Reajuste Periódico</label>
+                  <select
+                    value={newContractIndex}
+                    onChange={(e) => setNewContractIndex(e.target.value)}
+                    className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs text-[#153B50] outline-none"
+                  >
+                    <option value="IPC Semestral">IPC Semestral</option>
+                    <option value="UF Mensual">UF Mensual</option>
+                    <option value="IPC Anual">IPC Anual</option>
+                    <option value="Fijo sin reajuste">Fijo</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer mt-2"
+              >
+                Activar y Programar Cobranzas
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL: PLANTILLAS Y VARIABLES (ALTENDA SCREENSHOT 2)            */}
+      {/* ============================================================== */}
+      {isTemplatesModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 space-y-4 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <FileCode className="w-5 h-5 text-[#008E88]" />
+                <h3 className="text-base font-bold text-[#153B50]">Plantillas y Variables Dinámicas</h3>
+              </div>
+              <button 
+                onClick={() => setIsTemplatesModalOpen(false)}
+                className="text-gray-400 hover:text-gray-700 cursor-pointer p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500">
+              Utiliza estas variables en tus contratos tipo para que se completen de manera 100% automática al emitir documentos a tus clientes.
+            </p>
+
+            <div className="space-y-2.5 text-xs">
+              {[
+                { tag: '{{arrendatario_nombre}}', desc: 'Nombre completo o razón social del arrendatario' },
+                { tag: '{{arrendatario_rut}}', desc: 'RUT chileno validado del arrendatario' },
+                { tag: '{{propiedad_direccion}}', desc: 'Dirección completa, depto y comuna del inmueble' },
+                { tag: '{{canon_pesos}}', desc: 'Monto mensual en CLP formateado ($)' },
+                { tag: '{{reajuste_tipo}}', desc: 'Cláusula de reajuste (IPC Semestral / UF)' },
+                { tag: '{{cuenta_banco}}', desc: 'Datos bancarios para transferencia de arriendos' },
+                { tag: '{{representante_legal}}', desc: 'Nombre del representante legal de la corredora' }
+              ].map((v, i) => (
+                <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                  <div>
+                    <code className="text-[#008E88] font-mono font-bold text-xs">{v.tag}</code>
+                    <p className="text-gray-500 text-[11px] mt-0.5">{v.desc}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard?.writeText(v.tag);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-[#008E88] text-[10px] font-bold cursor-pointer"
+                  >
+                    Copiar
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => setIsTemplatesModalOpen(false)}
+                className="w-full py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white font-bold text-xs cursor-pointer"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL: NUEVO CLIENTE (ALTENDA SCREENSHOT 1)                     */}
+      {/* ============================================================== */}
+      {isNewClientModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-gray-200 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <h3 className="text-base font-bold text-[#153B50]">Agregar Nuevo Cliente</h3>
+              <button 
+                onClick={() => setIsNewClientModalOpen(false)}
+                className="text-gray-400 hover:text-gray-700 cursor-pointer p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newClientName.trim()) return;
+                setShowDemoData(true);
+                setIsNewClientModalOpen(false);
+                setNewClientName('');
+                setNewClientEmail('');
+                setNewClientPhone('');
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Nombre Completo o Razón Social *</label>
+                <input
+                  type="text"
+                  required
+                  value={newClientName}
+                  onChange={(e) => setNewClientName(e.target.value)}
+                  placeholder="ej. Gonzalo Vial"
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs text-[#153B50] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Correo Electrónico *</label>
+                <input
+                  type="email"
+                  required
+                  value={newClientEmail}
+                  onChange={(e) => setNewClientEmail(e.target.value)}
+                  placeholder="ej. cliente@correo.cl"
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs text-[#153B50] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Teléfono Móvil (WhatsApp) *</label>
+                <input
+                  type="tel"
+                  required
+                  value={newClientPhone}
+                  onChange={(e) => setNewClientPhone(e.target.value)}
+                  placeholder="+56 9 9123 4567"
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs text-[#153B50] outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer mt-2"
+              >
+                Guardar Cliente
               </button>
             </form>
           </div>

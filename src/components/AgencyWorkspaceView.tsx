@@ -13,6 +13,7 @@ import {
   Wrench, 
   UserPlus, 
   Sparkles,
+  Compass,
   Plus, 
   ArrowUpRight, 
   ArrowRight, 
@@ -892,6 +893,26 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                       <span>Pitch Generator</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (onBackToHome) {
+                          onBackToHome();
+                          setTimeout(() => {
+                            const el = document.getElementById('vender');
+                            if (el) el.scrollIntoView({ behavior: 'smooth' });
+                          }, 150);
+                        } else {
+                          const el = document.getElementById('vender');
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 hover:border-[#D02126] text-[#0F1115] text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                      title="Motor de Tasación Inmobiliaria AVM (NCh 3658)"
+                    >
+                      <Compass className="w-3.5 h-3.5 text-[#D02126]" />
+                      <span>Tasador AVM / CMA</span>
                     </button>
 
                     <button

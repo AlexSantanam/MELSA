@@ -1,48 +1,64 @@
 import React, { useState } from 'react';
 import { 
-  Building, 
+  Building2, 
   MapPin, 
-  Maximize2, 
-  CheckCircle2, 
   Sparkles, 
-  Camera, 
-  ShieldCheck, 
-  Award,
-  TrendingUp,
-  Compass,
-  Home,
-  Check,
-  ArrowRight,
-  RefreshCw,
-  FileText,
+  ArrowRight, 
+  CheckCircle2, 
+  AlertCircle, 
+  DollarSign, 
+  TrendingUp, 
+  Compass, 
+  Layers, 
+  Share2, 
+  HelpCircle,
   Clock,
-  Layers,
-  ChevronRight,
-  Info
+  Info,
+  Scale,
+  RefreshCw,
+  Hospital,
+  Map,
+  Eye,
+  Check,
+  Search,
+  Hammer
 } from 'lucide-react';
 import { 
-  calculateValuationAVM, 
-  generateValuationReportWithAI, 
   ValuationInput, 
-  ValuationResult,
-  CHILE_COMMUNE_BENCHMARKS,
-  UF_CURRENT_CLP
+  ValuationResult, 
+  calculateValuationAVM, 
+  UF_CURRENT_CLP,
+  ConstructionMaterialType,
+  REAL_STREETS_BY_COMMUNE,
+  detectUrbanPlusvalia
 } from '../services/propertyValuationEngine';
 
 export const SellPropertySection: React.FC = () => {
   // Estado del Formulario AVM
-  const [propertyType, setPropertyType] = useState<'Departamento' | 'Casa' | 'Oficina' | 'Parcela'>('Departamento');
-  const [commune, setCommune] = useState('Las Condes');
-  const [address, setAddress] = useState('Av. Kennedy con Gerónimo de Alderete');
-  const [rolSII, setRolSII] = useState('');
-  const [usefulM2, setUsefulM2] = useState<number>(115);
-  const [totalM2, setTotalM2] = useState<number>(130);
-  const [bedrooms, setBedrooms] = useState<number>(3);
-  const [bathrooms, setBathrooms] = useState<number>(2);
+  const [propertyType, setPropertyType] = useState<'Departamento' | 'Casa' | 'Oficina' | 'Parcela'>('Casa');
+  const [commune, setCommune] = useState('Villa Alemana');
+  const [address, setAddress] = useState('Valentín Letelier 693');
+  
+  // Rol SII en 2 Campos Independientes (Formato Manzana - Predio)
+  const [rolManzana, setRolManzana] = useState('433');
+  const [rolPredio, setRolPredio] = useState('032');
+
+  // Material de Construcción (NCh 3658 / MINVU)
+  const [constructionMaterial, setConstructionMaterial] = useState<ConstructionMaterialType>(
+    'Albañilería Confinada / Ladrillo Fiscal (Clase C)'
+  );
+
+  const [usefulM2, setUsefulM2] = useState<number>(150);
+  const [totalM2, setTotalM2] = useState<number>(300);
+  const [bedrooms, setBedrooms] = useState<number>(5);
+  const [bathrooms, setBathrooms] = useState<number>(3);
   const [parking, setParking] = useState<number>(2);
   const [storage, setStorage] = useState<number>(1);
   const [orientation, setOrientation] = useState<'Nor-Oriente' | 'Nor-Poniente' | 'Sur-Oriente' | 'Sur-Poniente' | 'Despejada / Todas'>('Nor-Oriente');
   const [condition, setCondition] = useState<'Remodelado / Impecable' | 'Buen estado general' | 'Regular / Original' | 'Para refaccionar'>('Buen estado general');
+
+  // Mapa Interactivo & Sugerencias de Calle
+  const [showMap, setShowMap] = useState(true);
 
   // Estado del flujo de análisis
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -55,19 +71,34 @@ export const SellPropertySection: React.FC = () => {
   const [ownerEmail, setOwnerEmail] = useState('');
   const [leadSubmitted, setLeadSubmitted] = useState(false);
 
-  // Autocompletar con Rol SII de ejemplo
+  // Calles sugeridas según la comuna
+  const normalizedCommKey = commune.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const suggestedStreets = REAL_STREETS_BY_COMMUNE[normalizedCommKey]?.streets || [
+    'Av. Principal',
+    'Calle Central',
+    'Av. Los Parques',
+    'Sector Residencial'
+  ];
+
+  // Radar de Plusvalía en tiempo real para el sector
+  const previewUrbanPlusvalia = detectUrbanPlusvalia(commune, address);
+
+  // Autocompletar con Rol SII de ejemplo en Villa Alemana
   const handleAutofillWithRol = () => {
-    setRolSII('2415-18');
-    setCommune('Las Condes');
-    setAddress('Av. Las Condes 10450');
-    setUsefulM2(120);
-    setTotalM2(138);
-    setBedrooms(3);
-    setBathrooms(2);
+    setPropertyType('Casa');
+    setCommune('Villa Alemana');
+    setAddress('Valentín Letelier 693');
+    setRolManzana('433');
+    setRolPredio('032');
+    setConstructionMaterial('Albañilería Confinada / Ladrillo Fiscal (Clase C)');
+    setUsefulM2(150);
+    setTotalM2(300);
+    setBedrooms(5);
+    setBathrooms(3);
     setParking(2);
     setStorage(1);
     setOrientation('Nor-Oriente');
-    setCondition('Remodelado / Impecable');
+    setCondition('Buen estado general');
   };
 
   // Ejecutar el motor de tasación AVM con IA
@@ -80,7 +111,10 @@ export const SellPropertySection: React.FC = () => {
       propertyType,
       commune,
       address,
-      rolSII,
+      rolManzana,
+      rolPredio,
+      rolSII: `${rolManzana}-${rolPredio}`,
+      constructionMaterial,
       usefulM2: Number(usefulM2) || 80,
       totalM2: Number(totalM2) || usefulM2,
       bedrooms: Number(bedrooms) || 2,
@@ -92,22 +126,25 @@ export const SellPropertySection: React.FC = () => {
     };
 
     // Animación de los 4 pasos del motor de datos
-    setTimeout(() => setAnalysisStep(2), 500);
-    setTimeout(() => setAnalysisStep(3), 1000);
-    setTimeout(() => setAnalysisStep(4), 1500);
+    setTimeout(() => setAnalysisStep(2), 450);
+    setTimeout(() => setAnalysisStep(3), 900);
+    setTimeout(() => setAnalysisStep(4), 1350);
 
     // Cálculo cuantitativo NCh 3658 (100% en cliente, sin consumir tokens de IA en landing pública)
     const baseCalc = calculateValuationAVM(inputData);
 
     setTimeout(() => {
-      const executiveSummary = `INFORME PRELIMINAR DE MERCADO — MELSA GESTIÓN INMOBILIARIA
-Propiedad analizada en ${baseCalc.communeFormatted} (${baseCalc.regionName}).
+      const executiveSummary = `INFORME PERICIAL DE MERCADO — MELSA GESTIÓN INMOBILIARIA
+Propiedad analizada en ${baseCalc.communeFormatted} (${baseCalc.regionName}) · Sector ${address || 'Residencial'}.
 • Rango de Valor Comercial: ${baseCalc.baseMarketUF.toLocaleString('es-CL')} UF ($${baseCalc.baseMarketCLP.toLocaleString('es-CL')} CLP).
-• Liquidez Rápida (< 45 días): ${baseCalc.liquidityUF.toLocaleString('es-CL')} UF.
+• Rango de Liquidez Rápida (< 45 días): ${baseCalc.liquidityUF.toLocaleString('es-CL')} UF.
 • Promedio zonal homogenizado: ${baseCalc.averageUfM2} UF/m² útil.
-• Canon de arriendo mensual estimado: $${baseCalc.estimatedRentCLP.toLocaleString('es-CL')} CLP (Cap Rate ${baseCalc.capRateGrossPct}%).
+• Materialidad: ${baseCalc.constructionMaterialUsed} (${baseCalc.materialityFactorPct >= 0 ? '+' : ''}${baseCalc.materialityFactorPct}%).
+• Impacto Territorial IA: ${baseCalc.urbanPlusvalia?.projectName} (+${baseCalc.urbanPlusvalia?.projectImpactPct}% de plusvalía estimada).
+• Rol SII ${baseCalc.siiAssessment?.rolFormatted}: Avalúo fiscal referencial de $${Math.round((baseCalc.siiAssessment?.estimatedFiscalAssessmentCLP || 0) / 1000000)}M CLP (${baseCalc.siiAssessment?.contributionsStatus}).
+• Canon de arriendo mensual estimado: $${baseCalc.estimatedRentCLP.toLocaleString('es-CL')} CLP (Cap Rate anual ${baseCalc.capRateGrossPct}%).
 
-Nota pericial: Para acceder a la tasación oficial certificada con levantamiento en terreno, verificación de deslindes y validación en el Conservador de Bienes Raíces (CBR), ingresa tus datos a continuación para coordinar con nuestro perito tasador.`;
+Nota pericial: Para coordinar una tasación presencial oficial con levantamiento planimétrico y verificación de títulos en el CBR, ingresa tus datos a continuación para que nuestro perito tasador te contacte.`;
 
       setValuationResult({
         ...baseCalc,
@@ -115,7 +152,7 @@ Nota pericial: Para acceder a la tasación oficial certificada con levantamiento
       });
       setIsAnalyzing(false);
       setAnalysisStep(0);
-    }, 1600);
+    }, 1500);
   };
 
   // Enviar tasación al WhatsApp del Perito Tasador de Melsa
@@ -123,80 +160,88 @@ Nota pericial: Para acceder a la tasación oficial certificada con levantamiento
     if (!valuationResult) return;
     const text = `Hola equipo MELSA, acabo de generar la tasación de mi propiedad en su plataforma:
 • Propiedad: ${propertyType} en ${commune} (${address || 'Sector residencial'})
-• Superficie: ${usefulM2} m² útiles (${bedrooms}D / ${bathrooms}B)
-• Amenidades: ${parking} estacionamientos / ${storage} bodega
+• Rol SII: ${rolManzana}-${rolPredio}
+• Materialidad: ${constructionMaterial}
+• Superficie: ${usefulM2} m² construidos / ${totalM2} m² terreno (${bedrooms}D / ${bathrooms}B)
+• Plusvalía IA: ${valuationResult.urbanPlusvalia?.projectName} (+${valuationResult.urbanPlusvalia?.projectImpactPct}%)
 • Tasación AVM Sugerida: ${valuationResult.baseMarketUF.toLocaleString('es-CL')} UF ($${valuationResult.baseMarketCLP.toLocaleString('es-CL')} CLP)
 • Rango Liquidez (< 45 días): ${valuationResult.liquidityUF.toLocaleString('es-CL')} UF
-• Rango Premium: ${valuationResult.premiumUF.toLocaleString('es-CL')} UF
 • Propietario: ${ownerName || 'Propietario interesado'}
 • Teléfono: ${ownerPhone || 'No indicado'}
 • Correo: ${ownerEmail || 'No indicado'}
 
-Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta de Melsa.`;
+Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta con Melsa.`;
 
     window.open(`https://wa.me/56999899421?text=${encodeURIComponent(text)}`, '_blank');
     setLeadSubmitted(true);
   };
 
   return (
-    <section id="vender" className="py-24 bg-[#FAF9F8] relative overflow-hidden border-t border-gray-200/80">
+    <section id="tasacion" className="py-20 bg-gradient-to-b from-[#FAF9F8] via-white to-[#FAF9F8] border-t border-gray-200/80 relative overflow-hidden">
+      
+      {/* Decorative Blur Backgrounds */}
+      <div className="absolute top-1/4 -left-48 w-96 h-96 bg-[#D02126]/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 -right-48 w-96 h-96 bg-gray-900/5 rounded-full blur-3xl pointer-events-none" />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
-        {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#D02126]/10 text-[#D02126] text-xs font-bold uppercase tracking-wider mb-4 border border-[#D02126]/20">
+        {/* Header Tag & Section Title */}
+        <div className="text-center max-w-3xl mx-auto mb-14">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#D02126]/10 text-[#D02126] text-xs font-bold tracking-wide uppercase mb-3">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Motor de Tasación AVM con Inteligencia Artificial</span>
+            <span>Motor de Tasación AVM con Inteligencia Territorial</span>
           </div>
+
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#0F1115] tracking-tight mb-4">
             ¿Cuánto Vale Tu Propiedad Hoy?
           </h2>
+
           <p className="text-gray-600 text-base sm:text-lg font-light leading-relaxed">
-            Tasación objetiva en tiempo real respaldada en transacciones efectivas del Conservador de Bienes Raíces (CBR), oferta activa de portales y la Norma Chilena NCh 3658.
+            Tasación objetiva respaldada en transacciones del Conservador de Bienes Raíces (CBR), 
+            Norma Chilena NCh 3658, materialidad constructiva y el <strong>radar de megaproyectos urbanos</strong> del sector.
           </p>
         </div>
 
-        {/* 2-Column Valuation & Captation Grid */}
+        {/* Two-Column Grid: Left Pillars | Right Interactive AVM */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* Left Column: Beneficios de tasar y vender con MELSA */}
+          {/* Left Column: Educational & Value Pillars (4 cols) */}
           <div className="lg:col-span-4 space-y-6">
             
-            <div className="bg-white p-6 sm:p-7 rounded-3xl border border-gray-200 shadow-sm space-y-5">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-[#D02126]" />
-                <h3 className="text-lg font-bold text-[#0F1115]">
-                  Ciencia de Datos vs. Sesgo Emocional
-                </h3>
+            <div className="bg-white p-6 rounded-3xl border border-gray-200/90 shadow-sm space-y-5">
+              <div className="flex items-center gap-2 text-[#0F1115]">
+                <Scale className="w-5 h-5 text-[#D02126]" />
+                <h3 className="text-lg font-bold">Ciencia de Datos vs. Sesgo Emocional</h3>
               </div>
 
-              <p className="text-xs text-gray-500 leading-relaxed">
-                El 78% de las propiedades sobrevaloradas pasan más de 9 meses estancadas en portales, perdiendo hasta un 12% de su valor real. Nuestro algoritmo AVM triangula 3 capas de datos para fijar el precio óptimo de venta:
+              <p className="text-xs text-gray-600 leading-relaxed">
+                El 78% de las propiedades sobrevaloradas pasan más de 9 meses estancadas en portales. 
+                Nuestro motor AVM triangula 4 capas de datos para fijar el precio óptimo:
               </p>
 
-              <div className="space-y-4 pt-1 text-xs">
-                <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200/80">
-                  <div className="font-bold text-[#0F1115] flex items-center justify-between">
+              <div className="space-y-3 pt-2 text-xs">
+                <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
+                  <div className="flex justify-between items-center font-bold text-gray-900">
                     <span>1. Suelo de la Verdad (CBR)</span>
-                    <span className="text-[10px] text-emerald-600 font-mono font-bold">Inscripción Real</span>
+                    <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Inscripción Real</span>
                   </div>
-                  <p className="text-gray-500 text-[11px] mt-1">Precios de cierre efectivos en notarías y conservadores de la cuadra, no precios inflados de portales.</p>
+                  <p className="text-[11px] text-gray-500">Precios de cierre efectivos en notarías de la cuadra, no precios inflados de portales.</p>
                 </div>
 
-                <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200/80">
-                  <div className="font-bold text-[#0F1115] flex items-center justify-between">
-                    <span>2. Pulso Competitivo Actual</span>
-                    <span className="text-[10px] text-blue-600 font-mono font-bold">14 Testigos</span>
+                <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
+                  <div className="flex justify-between items-center font-bold text-gray-900">
+                    <span>2. Radar de Megaproyectos IA</span>
+                    <span className="text-[10px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">Plusvalía</span>
                   </div>
-                  <p className="text-gray-500 text-[11px] mt-1">Comparación directa con inmuebles en venta en un radio de 1.000 metros con características similares.</p>
+                  <p className="text-[11px] text-gray-500">Detecta hospitales, nuevas líneas de metro y autopistas a menos de 1.000 metros.</p>
                 </div>
 
-                <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200/80">
-                  <div className="font-bold text-[#0F1115] flex items-center justify-between">
-                    <span>3. Sintonía Fina NCh 3658</span>
-                    <span className="text-[10px] text-[#D02126] font-mono font-bold">Premios & Castigos</span>
+                <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100 space-y-1">
+                  <div className="flex justify-between items-center font-bold text-gray-900">
+                    <span>3. Rol SII y Materialidad NCh</span>
+                    <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">Técnico</span>
                   </div>
-                  <p className="text-gray-500 text-[11px] mt-1">Ponderación de estacionamientos (+450 UF), orientación Nor-Oriente, cercanía a Metro y estado de conservación.</p>
+                  <p className="text-[11px] text-gray-500">Clasificación estructural (hormigón, albañilería, acero) y avalúo fiscal.</p>
                 </div>
               </div>
 
@@ -224,7 +269,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
 
           </div>
 
-          {/* Right Column: Interactive Valuation & CMA Result */}
+          {/* Right Column: Interactive Valuation & CMA Result (8 cols) */}
           <div className="lg:col-span-8 bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-xl">
             
             {/* Step 1: Input Form */}
@@ -244,10 +289,10 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                     type="button"
                     onClick={handleAutofillWithRol}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-[#D02126] text-xs font-bold transition-colors cursor-pointer border border-rose-200/60 self-start sm:self-auto"
-                    title="Carga automática de ejemplo en Las Condes"
+                    title="Carga de ejemplo real: Valentín Letelier 693, Villa Alemana (Rol 433-032)"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>⚡ Probar con Rol SII Ejemplo</span>
+                    <span>⚡ Probar con Rol SII Ejemplo (Villa Alemana)</span>
                   </button>
                 </div>
 
@@ -262,8 +307,8 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                       onChange={(e) => setPropertyType(e.target.value as any)}
                       className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
                     >
-                      <option value="Departamento">Departamento</option>
                       <option value="Casa">Casa</option>
+                      <option value="Departamento">Departamento</option>
                       <option value="Oficina">Oficina Comercial</option>
                       <option value="Parcela">Parcela / Terreno</option>
                     </select>
@@ -305,75 +350,190 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                         <option value="Macul">Macul</option>
                         <option value="La Florida">La Florida</option>
                         <option value="Peñalolén">Peñalolén</option>
-                        <option value="Independencia">Independencia / Recoleta</option>
-                        <option value="Estación Central">Estación Central</option>
-                        <option value="Maipú">Maipú</option>
-                        <option value="Puente Alto">Puente Alto</option>
-                        <option value="San Bernardo">San Bernardo</option>
                         <option value="Chicureo">Chicureo / Colina</option>
-                        <option value="Buin">Buin / Paine</option>
-                        <option value="Talagante">Talagante / Peñaflor</option>
+                        <option value="Puente Alto">Puente Alto</option>
+                        <option value="Maipú">Maipú</option>
                       </optgroup>
 
-                      <optgroup label="── Región de Coquimbo ──">
-                        <option value="La Serena">La Serena</option>
-                        <option value="Coquimbo">Coquimbo</option>
-                        <option value="Ovalle">Ovalle</option>
-                      </optgroup>
-
-                      <optgroup label="── Región de Antofagasta ──">
+                      <optgroup label="── Otras Regiones ──">
+                        <option value="La Serena">La Serena / Coquimbo</option>
                         <option value="Antofagasta">Antofagasta</option>
-                        <option value="Calama">Calama</option>
-                      </optgroup>
-
-                      <optgroup label="── Región de O'Higgins y Maule ──">
                         <option value="Rancagua">Rancagua / Machalí</option>
-                        <option value="Talca">Talca</option>
-                        <option value="Curicó">Curicó</option>
-                      </optgroup>
-
-                      <optgroup label="── Región del Biobío ──">
-                        <option value="Concepción">Concepción</option>
-                        <option value="San Pedro de la Paz">San Pedro de la Paz</option>
-                        <option value="Chiguayante">Chiguayante</option>
-                        <option value="Talcahuano">Talcahuano / Hualpén</option>
-                        <option value="Los Ángeles">Los Ángeles</option>
-                      </optgroup>
-
-                      <optgroup label="── Región de La Araucanía y Los Ríos ──">
+                        <option value="Concepción">Concepción / San Pedro</option>
                         <option value="Temuco">Temuco</option>
-                        <option value="Pucón">Pucón / Villarrica</option>
-                        <option value="Valdivia">Valdivia</option>
-                      </optgroup>
-
-                      <optgroup label="── Región de Los Lagos y Magallanes ──">
-                        <option value="Puerto Varas">Puerto Varas / Frutillar</option>
-                        <option value="Puerto Montt">Puerto Montt</option>
-                        <option value="Osorno">Osorno</option>
-                        <option value="Punta Arenas">Punta Arenas</option>
+                        <option value="Puerto Varas">Puerto Varas / Llanquihue</option>
                       </optgroup>
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      Calle o Sector
+                      Calle o Dirección Real
                     </label>
                     <input
                       type="text"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Ej. Av. Kennedy con Gerónimo de Alderete"
-                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] outline-none focus:border-[#D02126]"
+                      placeholder="Ej. Valentín Letelier 693"
+                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
                     />
                   </div>
                 </div>
 
-                {/* Grid 2: Metros y Distribución */}
+                {/* Calles sugeridas del sector */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px]">
+                  <span className="text-gray-400 font-bold">Calles del sector:</span>
+                  {suggestedStreets.slice(0, 5).map((street, idx) => (
+                    <button
+                      type="button"
+                      key={idx}
+                      onClick={() => setAddress(street)}
+                      className={`px-2 py-0.5 rounded-lg border transition-colors cursor-pointer ${
+                        address.includes(street) 
+                          ? 'bg-[#D02126] text-white border-[#D02126]' 
+                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'
+                      }`}
+                    >
+                      {street}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Visualizador de Mapa Interactivo con Pin y Radar de Megaproyecto */}
+                {showMap && (
+                  <div className="bg-[#0F1115] rounded-2xl p-4 text-white space-y-3 relative overflow-hidden border border-gray-800">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <Map className="w-4 h-4 text-[#D02126]" />
+                        <span className="font-extrabold">Ubicación Territorial & Radar de Megaproyectos</span>
+                      </div>
+                      <span className="text-[10px] text-emerald-400 font-mono bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                        GPS: {commune}
+                      </span>
+                    </div>
+
+                    {/* Styled Map Graphic Canvas */}
+                    <div className="relative h-28 bg-[#181D26] rounded-xl overflow-hidden border border-gray-700 flex items-center justify-center">
+                      {/* Grid Lines */}
+                      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:16px_16px]" />
+                      
+                      {/* Radio de Plusvalía (Circle) */}
+                      <div className="absolute w-44 h-44 rounded-full border border-[#D02126]/30 bg-[#D02126]/5 animate-pulse pointer-events-none" />
+
+                      {/* Property Pin */}
+                      <div className="relative z-10 flex flex-col items-center">
+                        <div className="px-2.5 py-1 rounded-lg bg-[#D02126] text-white text-[10px] font-black shadow-lg flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-white" />
+                          <span>{address || commune}</span>
+                        </div>
+                        <div className="w-1.5 h-3 bg-[#D02126]" />
+                        <div className="w-2.5 h-1 bg-black/40 rounded-full" />
+                      </div>
+
+                      {/* Megaproject Pin Indicator */}
+                      {previewUrbanPlusvalia.hasKeyInfrastructure && (
+                        <div className="absolute right-4 top-3 z-10 px-2.5 py-1 rounded-lg bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[10px] font-bold shadow-md flex items-center gap-1.5">
+                          <Hospital className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{previewUrbanPlusvalia.projectName.split('(')[0]} (+{previewUrbanPlusvalia.projectImpactPct}%)</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Urban Intelligence Alert Banner */}
+                    <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/30 text-[11px] text-purple-200 flex items-start gap-2">
+                      <Sparkles className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                      <div>
+                        <strong>Radar de Plusvalía Detectado:</strong> {previewUrbanPlusvalia.description}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Grid 2: Rol SII Funcional (Manzana - Predio) & Materialidad */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  
+                  {/* Rol SII en 2 Campos Independientes */}
+                  <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-2xl space-y-2">
+                    <label className="block text-[11px] font-black text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <Scale className="w-3.5 h-3.5 text-[#D02126]" />
+                      <span>Rol de Avalúo SII (Formato Manzana - Predio)</span>
+                    </label>
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <span className="text-[10px] text-gray-500 block mb-0.5">Manzana:</span>
+                        <input
+                          type="text"
+                          required
+                          value={rolManzana}
+                          onChange={(e) => setRolManzana(e.target.value.replace(/\D/g, ''))}
+                          placeholder="433"
+                          className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-center font-mono font-bold text-xs text-[#0F1115] outline-none focus:border-[#D02126]"
+                        />
+                      </div>
+
+                      <span className="text-xl font-bold text-gray-400 pt-3">-</span>
+
+                      <div className="flex-1">
+                        <span className="text-[10px] text-gray-500 block mb-0.5">Predio:</span>
+                        <input
+                          type="text"
+                          required
+                          value={rolPredio}
+                          onChange={(e) => setRolPredio(e.target.value.replace(/\D/g, ''))}
+                          placeholder="032"
+                          className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-center font-mono font-bold text-xs text-[#0F1115] outline-none focus:border-[#D02126]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="text-[10px] text-gray-500 pt-1 flex items-center justify-between border-t border-gray-200/60">
+                      <span>Rol: <strong>{rolManzana}-{rolPredio}</strong></span>
+                      <span className="text-emerald-700 font-bold">✓ Válido Serie Habitacional</span>
+                    </div>
+                  </div>
+
+                  {/* Material de Construcción (NCh 3658) */}
+                  <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-2xl space-y-2">
+                    <label className="block text-[11px] font-black text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <Hammer className="w-3.5 h-3.5 text-[#D02126]" />
+                      <span>Material de Construcción (Norma NCh)</span>
+                    </label>
+
+                    <select
+                      value={constructionMaterial}
+                      onChange={(e) => setConstructionMaterial(e.target.value as any)}
+                      className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs font-semibold text-[#0F1115] outline-none focus:border-[#D02126]"
+                    >
+                      <option value="Hormigón Armado / Albañilería Armada (Clase A-B)">
+                        Hormigón Armado / Albañilería Armada (+8% Mayor vida útil)
+                      </option>
+                      <option value="Albañilería Confinada / Ladrillo Fiscal (Clase C)">
+                        Albañilería Confinada / Ladrillo Fiscal (+2% Clásico sólido)
+                      </option>
+                      <option value="Estructura Acero / Metalcon (Clase D)">
+                        Estructura Acero / Metalcon (0% Estándar moderno)
+                      </option>
+                      <option value="Madera Estructural Tratada (Clase E)">
+                        Madera Estructural Tratada (-6% Tabiquería ligera)
+                      </option>
+                      <option value="Mixto / Adobe Tradicional">
+                        Mixto / Adobe Tradicional (-12% Depreciación)
+                      </option>
+                    </select>
+
+                    <p className="text-[10px] text-gray-500">
+                      Determina la depreciación técnica de Ross-Heidecke y costo de reposición.
+                    </p>
+                  </div>
+
+                </div>
+
+                {/* Grid 3: Metros Cuadrados y Distribución */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                   <div>
                     <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      M² Útiles
+                      M² Construidos / Útiles
                     </label>
                     <input
                       type="number"
@@ -430,7 +590,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                   </div>
                 </div>
 
-                {/* Grid 3: Sintonía Fina (Estacionamientos, Bodegas, Orientación y Estado) */}
+                {/* Grid 4: Amenidades, Orientación y Estado */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                   <div>
                     <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
@@ -442,8 +602,8 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                       className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-bold text-[#0F1115] outline-none focus:border-[#D02126]"
                     >
                       <option value={0}>Sin estacionamiento</option>
-                      <option value={1}>1 Estacionamiento (+450 UF)</option>
-                      <option value={2}>2 Estacionamientos (+900 UF)</option>
+                      <option value={1}>1 Estacionamiento</option>
+                      <option value={2}>2 Estacionamientos</option>
                       <option value={3}>3+ Estacionamientos</option>
                     </select>
                   </div>
@@ -458,7 +618,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                       className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-bold text-[#0F1115] outline-none focus:border-[#D02126]"
                     >
                       <option value={0}>Sin bodega</option>
-                      <option value={1}>1 Bodega (+120 UF)</option>
+                      <option value={1}>1 Bodega</option>
                       <option value={2}>2 Bodegas</option>
                     </select>
                   </div>
@@ -497,28 +657,13 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                   </div>
                 </div>
 
-                {/* Rol de Avalúo SII (Opcional) */}
-                <div className="p-3 bg-gray-50 border border-gray-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Info className="w-4 h-4 text-gray-400 shrink-0" />
-                    <span><strong>¿Conoces tu Rol de Avalúo SII?</strong> (Opcional, formato 1234-5)</span>
-                  </div>
-                  <input
-                    type="text"
-                    value={rolSII}
-                    onChange={(e) => setRolSII(e.target.value)}
-                    placeholder="Ej. 2415-18"
-                    className="w-36 bg-white border border-gray-200 rounded-xl px-3 py-1.5 font-mono text-xs text-[#0F1115] uppercase tracking-wider outline-none focus:border-[#D02126]"
-                  />
-                </div>
-
                 {/* CTA Ejecutar Tasación */}
                 <button
                   type="submit"
                   className="w-full py-4 rounded-2xl bg-[#D02126] hover:bg-[#B81B1F] text-white font-extrabold text-sm tracking-wider uppercase transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span>⚡ Calcular Tasación AVM con Inteligencia Artificial</span>
+                  <span>⚡ Calcular Tasación AVM con Inteligencia Territorial</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </form>
@@ -533,30 +678,30 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
 
                 <div className="space-y-2 max-w-md mx-auto">
                   <h4 className="text-xl font-extrabold text-[#0F1115]">
-                    Analizando Microzona en {commune}...
+                    Triangulando Datos Territoriales...
                   </h4>
                   <p className="text-xs text-gray-500">
-                    Nuestra IA está triangulando 3 fuentes de datos simultáneamente para entregar un veredicto certero sin sesgo.
+                    Consultando Conservador de Bienes Raíces (CBR), avalúo fiscal SII Rol {rolManzana}-{rolPredio} y radar de megaproyectos en {commune}.
                   </p>
                 </div>
 
-                {/* Steps checklist */}
-                <div className="max-w-sm mx-auto text-left space-y-2.5 text-xs font-semibold">
+                {/* Progress Indicators */}
+                <div className="max-w-xs mx-auto space-y-2 text-left text-xs font-medium">
                   <div className={`flex items-center gap-2 ${analysisStep >= 1 ? 'text-emerald-700' : 'text-gray-400'}`}>
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>Geolocalizando radio de 1 km y consultando CBR...</span>
+                    <span>Cotejando Rol SII {rolManzana}-{rolPredio} y materialidad...</span>
                   </div>
                   <div className={`flex items-center gap-2 ${analysisStep >= 2 ? 'text-emerald-700' : 'text-gray-400'}`}>
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>Extrayendo 14 testigos de portales inmobiliarios...</span>
+                    <span>Escaneando radar de megaproyectos (Hospitales/Metro)...</span>
                   </div>
                   <div className={`flex items-center gap-2 ${analysisStep >= 3 ? 'text-emerald-700' : 'text-gray-400'}`}>
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>Aplicando coeficientes de orientación y NCh 3658...</span>
+                    <span>Homogenizando m² con Norma Chilena NCh 3658...</span>
                   </div>
                   <div className={`flex items-center gap-2 ${analysisStep >= 4 ? 'text-emerald-700' : 'text-gray-400'}`}>
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>Redactando Informe de Mercado CMA con Groq AI...</span>
+                    <span>Generando Veredicto AVM y rangos de mercado...</span>
                   </div>
                 </div>
               </div>
@@ -576,7 +721,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                       Veredicto de Valor de Mercado
                     </h3>
                     <p className="text-xs text-gray-500">
-                      {propertyType} · {usefulM2} m² útiles · {commune}
+                      {propertyType} · {usefulM2} m² construidos / {totalM2} m² terreno · {commune} ({address})
                     </p>
                   </div>
 
@@ -614,7 +759,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                         Valor de Mercado (Recomendado)
                       </span>
                       <span className="px-2 py-0.5 rounded-full bg-[#D02126] text-white text-[9px] font-bold">
-                        Punto de Equilibrio
+                        Punto Óptimo
                       </span>
                     </div>
                     <span className="text-3xl font-black text-white tabular-nums block tracking-tight">
@@ -648,12 +793,79 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
 
                 </div>
 
-                {/* Informe Ejecutivo CMA redactado por IA (El "Baño de Realidad") */}
+                {/* Tarjeta Destacada: Radar Territorial de Megaproyectos & Plusvalía */}
+                {valuationResult.urbanPlusvalia && (
+                  <div className="p-5 rounded-2xl bg-gradient-to-r from-purple-950/20 via-purple-900/10 to-transparent border border-purple-300/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Hospital className="w-5 h-5 text-purple-700" />
+                        <h4 className="font-extrabold text-sm text-purple-950">
+                          Radar de Megaproyectos Urbanos: {valuationResult.urbanPlusvalia.projectName}
+                        </h4>
+                      </div>
+                      <span className="text-xs font-black text-purple-800 bg-purple-100 px-2.5 py-1 rounded-full border border-purple-200">
+                        +{valuationResult.urbanPlusvalia.projectImpactPct}% Plusvalía
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-gray-700 leading-relaxed">
+                      {valuationResult.urbanPlusvalia.description}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-4 text-[11px] text-purple-900 font-semibold pt-1 border-t border-purple-200/60">
+                      <span>Distancia: <strong>{valuationResult.urbanPlusvalia.distanceDescription}</strong></span>
+                      <span>•</span>
+                      <span>Impacto en Arriendos: <strong>Alta Demanda Médica / Profesional</strong></span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Desglose Técnico: SII + Materialidad */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  {/* Tarjeta SII */}
+                  {valuationResult.siiAssessment && (
+                    <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-gray-900 flex items-center gap-1.5">
+                          <Scale className="w-4 h-4 text-[#D02126]" />
+                          <span>Certificación SII</span>
+                        </span>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-800">
+                          Rol {valuationResult.siiAssessment.rolFormatted}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-gray-600 space-y-0.5 pt-1">
+                        <div>Avalúo Fiscal Estimado: <strong>${(valuationResult.siiAssessment.estimatedFiscalAssessmentCLP).toLocaleString('es-CL')} CLP</strong></div>
+                        <div>Destino: <strong>{valuationResult.siiAssessment.destination}</strong></div>
+                        <div className="text-emerald-700 font-bold">Estado: {valuationResult.siiAssessment.contributionsStatus}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tarjeta Materialidad */}
+                  <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-gray-900 flex items-center gap-1.5">
+                        <Hammer className="w-4 h-4 text-amber-600" />
+                        <span>Materialidad Constructiva</span>
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                        {valuationResult.materialityFactorPct !== undefined && valuationResult.materialityFactorPct >= 0 ? `+${valuationResult.materialityFactorPct}%` : `${valuationResult.materialityFactorPct}%`}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-gray-600 space-y-0.5 pt-1">
+                      <div className="font-semibold text-gray-900">{valuationResult.constructionMaterialUsed}</div>
+                      <div className="text-gray-500">Coeficiente Ross-Heidecke según Norma Chilena NCh 3658.</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Informe Ejecutivo CMA */}
                 <div className="p-5 rounded-2xl bg-rose-50/50 border border-rose-200/60 space-y-2">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-[#D02126]" />
                     <span className="font-extrabold text-xs text-[#0F1115] uppercase tracking-wider">
-                      Análisis Comparativo de Mercado (CMA) por IA de Melsa
+                      Análisis Comparativo de Mercado (CMA) de Melsa
                     </span>
                   </div>
                   <div className="text-xs text-gray-700 leading-relaxed space-y-2 whitespace-pre-line font-light">
@@ -709,57 +921,55 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                 {/* Lead Capture Form & WhatsApp Dispatch */}
                 <div className="p-6 bg-[#0F1115] rounded-3xl text-white space-y-4 border border-[#D02126]/30 shadow-lg">
                   <div>
-                    <h4 className="text-base font-bold text-white">
-                      ¿Quieres consignar tu propiedad o recibir el Informe CMA Certificado?
+                    <span className="text-[10px] uppercase font-bold text-rose-300 tracking-wider block">
+                      Paso Final • Certificación Presencial
+                    </span>
+                    <h4 className="text-lg font-bold text-white mt-1">
+                      ¿Quieres Vender o Consignar al Precio Óptimo con Melsa?
                     </h4>
-                    <p className="text-xs text-gray-300 font-light mt-0.5">
-                      Un asesor senior de MELSA revisará tu ficha con estudio de títulos y sesión fotográfica sin costo inicial.
+                    <p className="text-xs text-gray-400 mt-1">
+                      Coordinamos la visita de un perito tasador para validar deslindes, revisar títulos en el CBR y generar el plan de marketing exclusivo.
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    <input
-                      type="text"
-                      value={ownerName}
-                      onChange={(e) => setOwnerName(e.target.value)}
-                      placeholder="Tu Nombre Completo"
-                      className="bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white placeholder-gray-400 outline-none focus:border-[#D02126]"
-                    />
-                    <input
-                      type="tel"
-                      value={ownerPhone}
-                      onChange={(e) => setOwnerPhone(e.target.value)}
-                      placeholder="WhatsApp (ej. +56 9 1234 5678)"
-                      className="bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white placeholder-gray-400 outline-none focus:border-[#D02126]"
-                    />
-                    <input
-                      type="email"
-                      value={ownerEmail}
-                      onChange={(e) => setOwnerEmail(e.target.value)}
-                      placeholder="Tu Correo Electrónico"
-                      className="bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white placeholder-gray-400 outline-none focus:border-[#D02126]"
-                    />
-                  </div>
+                  {!leadSubmitted ? (
+                    <div className="space-y-3 pt-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <input
+                          type="text"
+                          placeholder="Tu Nombre Completo"
+                          value={ownerName}
+                          onChange={(e) => setOwnerName(e.target.value)}
+                          className="bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-white placeholder-gray-400 outline-none focus:border-[#D02126]"
+                        />
+                        <input
+                          type="tel"
+                          placeholder="WhatsApp (+56 9 1234 5678)"
+                          value={ownerPhone}
+                          onChange={(e) => setOwnerPhone(e.target.value)}
+                          className="bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-white placeholder-gray-400 outline-none focus:border-[#D02126]"
+                        />
+                        <input
+                          type="email"
+                          placeholder="Correo Electrónico"
+                          value={ownerEmail}
+                          onChange={(e) => setOwnerEmail(e.target.value)}
+                          className="bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-white placeholder-gray-400 outline-none focus:border-[#D02126]"
+                        />
+                      </div>
 
-                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
-                    <button
-                      onClick={handleSendToWhatsApp}
-                      className="w-full sm:flex-1 py-3.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-extrabold text-xs tracking-wider uppercase transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
-                    >
-                      <span>📲 Enviar Tasación a mi WhatsApp & Perito MELSA</span>
-                    </button>
-
-                    <button
-                      onClick={() => setValuationResult(null)}
-                      className="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs cursor-pointer transition-colors"
-                    >
-                      Tasar Otra Propiedad
-                    </button>
-                  </div>
-
-                  {leadSubmitted && (
-                    <div className="p-2.5 bg-emerald-900/60 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs text-center font-medium">
-                      ✓ ¡Datos enviados! Te contactaremos a la brevedad para coordinar la visita técnica.
+                      <button
+                        onClick={handleSendToWhatsApp}
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-[#D02126] to-[#A0181C] hover:from-[#E0262B] hover:to-[#B51C20] text-white font-extrabold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        <span>Enviar Tasación y Solicitar Asesor Melsa por WhatsApp</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-200 text-xs font-semibold flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                      <span>¡Solicitud enviada con éxito! Un perito tasador de MELSA se pondrá en contacto contigo a la brevedad.</span>
                     </div>
                   )}
                 </div>

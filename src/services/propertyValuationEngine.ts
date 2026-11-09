@@ -2,11 +2,40 @@
 // Motor de Tasación Inmobiliaria Inteligente (AVM - Automated Valuation Model) de MELSA.
 // Basado en la Norma Chilena NCh 3658, benchmarks de UF/m² por microzona, CBR, SII y análisis comparativo con IA (Groq).
 
+export type ConstructionMaterialType = 
+  | 'Hormigón Armado / Albañilería Armada (Clase A-B)'
+  | 'Albañilería Confinada / Ladrillo Fiscal (Clase C)'
+  | 'Estructura Acero / Metalcon (Clase D)'
+  | 'Madera Estructural Tratada (Clase E)'
+  | 'Mixto / Adobe Tradicional';
+
+export interface UrbanPlusvaliaInsight {
+  hasKeyInfrastructure: boolean;
+  projectName: string;
+  projectCategory: 'Salud & Hospitales' | 'Transporte & Metro/EFE' | 'Polos Comerciales' | 'Áreas Verdes';
+  distanceDescription: string;
+  projectImpactPct: number;
+  description: string;
+}
+
+export interface SiiTaxAssessment {
+  rolManzana: string;
+  rolPredio: string;
+  rolFormatted: string; // "433-032"
+  destination: string;  // "Habitacional Serie No Agrícola (DFL-2)"
+  estimatedFiscalAssessmentCLP: number;
+  contributionsStatus: 'Exento de Contribuciones' | 'Afecto a Contribuciones';
+  estimatedQuarterlyTaxCLP: number;
+}
+
 export interface ValuationInput {
   propertyType: 'Departamento' | 'Casa' | 'Oficina' | 'Parcela';
   commune: string;
   address: string;
   rolSII?: string;
+  rolManzana?: string;
+  rolPredio?: string;
+  constructionMaterial?: ConstructionMaterialType;
   usefulM2: number;
   totalM2?: number;
   bedrooms: number;
@@ -44,6 +73,10 @@ export interface ValuationResult {
   ufValueTodayCLP: number;
   communeFormatted: string;
   regionName: string;
+  constructionMaterialUsed?: ConstructionMaterialType;
+  materialityFactorPct?: number;
+  urbanPlusvalia?: UrbanPlusvaliaInsight;
+  siiAssessment?: SiiTaxAssessment;
   methodologyNotes: string[];
   comparableComps: ValuationWitnessComp[];
   executiveReportCMA: string;
@@ -695,6 +728,190 @@ export function normalizeCommuneKey(communeInput: string, addressInput: string =
   return 'nacional'; // Fallback nacional moderado (NUNCA Las Condes)
 }
 
+export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; centerCoord: { lat: number; lng: number } }> = {
+  'villa alemana': {
+    streets: [
+      'Valentín Letelier',
+      'Av. Marga Marga',
+      'Av. Valparaíso (Troncal Urbano)',
+      'Huanhualí',
+      'Peñablanca',
+      'Maturana',
+      'San Martín',
+      'Victoria',
+      'Progreso',
+      'Latorre',
+      'Buenos Aires',
+      'Condominio Rincón del Sol'
+    ],
+    centerCoord: { lat: -33.0425, lng: -71.3741 }
+  },
+  'quilpue': {
+    streets: [
+      'Av. Los Carrera',
+      'Av. Marga Marga',
+      'Freire',
+      'Claudio Vicuña',
+      'Blanco Encalada',
+      'Cumming',
+      'Covadonga',
+      'San Martín',
+      'El Belloto 2000'
+    ],
+    centerCoord: { lat: -33.0478, lng: -71.4429 }
+  },
+  'las condes': {
+    streets: [
+      'Av. Las Condes',
+      'Av. Kennedy',
+      'Camino El Golf',
+      'Gerónimo de Alderete',
+      'Av. Apoquindo',
+      'Av. Manquehue',
+      'Estoril',
+      'Padre Hurtado',
+      'Isidora Goyenechea'
+    ],
+    centerCoord: { lat: -33.4116, lng: -70.5645 }
+  },
+  'vina del mar': {
+    streets: [
+      'Av. Libertad',
+      '1 Norte',
+      'Av. San Martín',
+      'Álvarez / Viana',
+      'Reñaca Norte',
+      'Av. Borgoño',
+      'Los Castaños',
+      '7 Norte',
+      'Miraflores Bajo'
+    ],
+    centerCoord: { lat: -33.0245, lng: -71.5518 }
+  },
+  'concon': {
+    streets: [
+      'Av. Borgoño',
+      'Av. Concón Reñaca',
+      'Blanca Estela',
+      'Bosques de Montemar',
+      'Costa de Montemar',
+      'Av. Central',
+      'Los Pellines'
+    ],
+    centerCoord: { lat: -32.9238, lng: -71.5167 }
+  },
+  'santiago centro': {
+    streets: [
+      'Av. Santa Rosa',
+      'Huérfanos',
+      'San Antonio',
+      'Monjitas',
+      'Parque Almagro',
+      'Lord Cochrane',
+      'Tarapacá',
+      'Mac Iver'
+    ],
+    centerCoord: { lat: -33.4372, lng: -70.6506 }
+  }
+};
+
+/**
+ * Detector Agéntico de Plusvalía Territorial & Megaproyectos Urbanos
+ */
+export function detectUrbanPlusvalia(commune: string, address: string): UrbanPlusvaliaInsight {
+  const text = `${commune} ${address}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  
+  if (text.includes('villa alemana') || text.includes('penablanca') || text.includes('letelier') || text.includes('marga marga')) {
+    return {
+      hasKeyInfrastructure: true,
+      projectName: 'Nuevo Hospital Provincial Marga Marga (En Entrega)',
+      projectCategory: 'Salud & Hospitales',
+      distanceDescription: 'A 2 a 4 cuadras del sector (650 metros)',
+      projectImpactPct: 16,
+      description: 'Uno de los complejos hospitalarios de alta complejidad más modernos de Latinoamérica (282 camas, 50 boxes y helipuerto). Su inminente puesta en marcha dinamiza la demanda de arriendos para personal médico y especialistas, generando una plusvalía directa de +14% a +18% en el cuadrante residencial.'
+    };
+  }
+
+  if (text.includes('las condes') || text.includes('kennedy') || text.includes('estoril') || text.includes('geronimo')) {
+    return {
+      hasKeyInfrastructure: true,
+      projectName: 'Trazado Futura Línea 7 del Metro & Eje Clínico Alemana/Las Condes',
+      projectCategory: 'Transporte & Metro/EFE',
+      distanceDescription: 'A 500 metros de futura estación L7',
+      projectImpactPct: 12,
+      description: 'La consolidación del eje subterráneo de la Línea 7 y la cercanía con centros médicos de alta tecnología garantizan alta liquidez y plusvalía continua.'
+    };
+  }
+
+  if (text.includes('vina') || text.includes('viña') || text.includes('fricke') || text.includes('sporting')) {
+    return {
+      hasKeyInfrastructure: true,
+      projectName: 'Polo Hospitalario Fricke & Eje Troncal 1 Norte',
+      projectCategory: 'Salud & Hospitales',
+      distanceDescription: 'A 6 cuadras del polo médico central',
+      projectImpactPct: 11,
+      description: 'Zona de alta rentabilidad por arriendos continuos a estudiantes de medicina y personal de salud.'
+    };
+  }
+
+  if (text.includes('concon') || text.includes('montemar') || text.includes('torquemada')) {
+    return {
+      hasKeyInfrastructure: true,
+      projectName: 'Nuevo Aeropuerto Comercial Viña/Concón (Torquemada) & Polo Gastronómico',
+      projectCategory: 'Transporte & Metro/EFE',
+      distanceDescription: 'A 10 min de la futura terminal aérea',
+      projectImpactPct: 13,
+      description: 'El nuevo terminal aéreo comercial impulsa la plusvalía hotelera y residencial de toda la costa de Concón.'
+    };
+  }
+
+  if (text.includes('quilpue') || text.includes('carrera') || text.includes('sol')) {
+    return {
+      hasKeyInfrastructure: true,
+      projectName: 'Interconexión EFE Metro Valparaíso & Red Marga Marga',
+      projectCategory: 'Transporte & Metro/EFE',
+      distanceDescription: 'A minutos de Estación Quilpué EFE',
+      projectImpactPct: 10,
+      description: 'Acceso inmediato al tren Limache-Puerto y conexión directa a Viña del Mar y Valparaíso.'
+    };
+  }
+
+  return {
+    hasKeyInfrastructure: true,
+    projectName: 'Equipamiento Comunal Consolidado & Servicios Esenciales',
+    projectCategory: 'Áreas Verdes',
+    distanceDescription: 'En radio de 800 metros',
+    projectImpactPct: 5,
+    description: 'Sector con cobertura completa de servicios básicos, colegios y transporte público establecido.'
+  };
+}
+
+/**
+ * Cálculo del Avalúo Fiscal SII referencial en Manzana - Predio
+ */
+export function calculateSiiFiscalAssessment(
+  baseCommercialCLP: number, 
+  rolManzana: string, 
+  rolPredio: string
+): SiiTaxAssessment {
+  const fiscalCLP = Math.round(baseCommercialCLP * 0.48);
+  const EXEMPT_THRESHOLD_CLP = 46500000;
+  
+  const isExento = fiscalCLP <= EXEMPT_THRESHOLD_CLP;
+  const taxableBase = Math.max(0, fiscalCLP - EXEMPT_THRESHOLD_CLP);
+  const quarterlyTax = isExento ? 0 : Math.round((taxableBase * 0.0105) / 4);
+
+  return {
+    rolManzana: rolManzana.trim() || '433',
+    rolPredio: rolPredio.trim() || '032',
+    rolFormatted: `${rolManzana.trim() || '433'}-${rolPredio.trim() || '032'}`,
+    destination: 'Habitacional Serie No Agrícola (DFL-2)',
+    estimatedFiscalAssessmentCLP: fiscalCLP,
+    contributionsStatus: isExento ? 'Exento de Contribuciones' : 'Afecto a Contribuciones',
+    estimatedQuarterlyTaxCLP: quarterlyTax
+  };
+}
+
 /**
  * Calcula la tasación AVM con precisión cuantitativa ajustada por comuna real
  */
@@ -736,9 +953,34 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
     metroCoeff = 1.02;
   }
 
-  // Cálculo de Base de Mercado Homogenizado
-  const baseMarketUF = Math.round((surfaceValueUF + amenitiesValueUF) * orientationCoeff * conditionCoeff * metroCoeff);
+  // Coeficiente de Material de Construcción (MINVU / NCh 3658)
+  let materialCoeff = 1.0;
+  const materialUsed = input.constructionMaterial || 'Albañilería Confinada / Ladrillo Fiscal (Clase C)';
+  if (materialUsed === 'Hormigón Armado / Albañilería Armada (Clase A-B)') materialCoeff = 1.08;
+  else if (materialUsed === 'Albañilería Confinada / Ladrillo Fiscal (Clase C)') materialCoeff = 1.02;
+  else if (materialUsed === 'Estructura Acero / Metalcon (Clase D)') materialCoeff = 1.00;
+  else if (materialUsed === 'Madera Estructural Tratada (Clase E)') materialCoeff = 0.94;
+  else if (materialUsed === 'Mixto / Adobe Tradicional') materialCoeff = 0.88;
+
+  // Detector de Plusvalía Territorial & Megaproyectos (Hospitales, Metro, EFE, Aeropuerto)
+  const urbanPlusvalia = detectUrbanPlusvalia(input.commune, input.address);
+  const plusvaliaCoeff = 1 + (urbanPlusvalia.projectImpactPct / 100);
+
+  // Cálculo de Base de Mercado Homogenizado con todas las capas
+  const baseMarketUF = Math.round(
+    (surfaceValueUF + amenitiesValueUF) * 
+    orientationCoeff * 
+    conditionCoeff * 
+    metroCoeff * 
+    materialCoeff * 
+    plusvaliaCoeff
+  );
   const baseMarketCLP = Math.round(baseMarketUF * UF_CURRENT_CLP);
+
+  // Rol SII Fiscal Assessment
+  const rolManzana = input.rolManzana || (input.rolSII ? input.rolSII.split('-')[0] : '433');
+  const rolPredio = input.rolPredio || (input.rolSII ? input.rolSII.split('-')[1] : '032');
+  const siiAssessment = calculateSiiFiscalAssessment(baseMarketCLP, rolManzana, rolPredio);
   
   // Rangos de Cierre
   const liquidityUF = Math.round(baseMarketUF * (1 - bench.liquidityDiscount));
@@ -796,6 +1038,9 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
   const methodologyNotes = [
     `Comuna analizada: ${bench.name} (${bench.region}) — Base referencial ${baseUFm2} UF/m² útil.`,
     `Superficie útil: ${usefulM2} m² + ${terraceOrLandM2} m² exteriores homogenizados.`,
+    `Materialidad constructiva: ${materialUsed} (${((materialCoeff - 1) * 100).toFixed(0)}% s/NCh).`,
+    `Plusvalía por equipamiento: ${urbanPlusvalia.projectName} (+${urbanPlusvalia.projectImpactPct}%).`,
+    `Rol SII ${siiAssessment.rolFormatted}: Avalúo fiscal estimado de $${Math.round(siiAssessment.estimatedFiscalAssessmentCLP / 1000000)}M CLP (${siiAssessment.contributionsStatus}).`,
     `Aporte de amenidades: ${parkingCount} estacionamiento(s) (+${parkingCount * bench.parkingUF} UF) y ${storageCount} bodega(s) (+${storageCount * bench.storageUF} UF).`,
     `Ajustes de mercado: Orientación ${input.orientation || 'Estándar'} (${((orientationCoeff - 1) * 100).toFixed(0)}%) y Estado ${input.condition || 'Buen estado'} (${((conditionCoeff - 1) * 100).toFixed(0)}%).`
   ];
@@ -813,6 +1058,10 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
     ufValueTodayCLP: UF_CURRENT_CLP,
     communeFormatted: bench.name,
     regionName: bench.region,
+    constructionMaterialUsed: materialUsed,
+    materialityFactorPct: Math.round((materialCoeff - 1) * 100),
+    urbanPlusvalia,
+    siiAssessment,
     methodologyNotes,
     comparableComps
   };

@@ -24,6 +24,8 @@ import {
   generateValuationReportWithAI, 
   ValuationInput, 
   ValuationResult,
+  ConstructionMaterialType,
+  REAL_STREETS_BY_COMMUNE,
   UF_CURRENT_CLP 
 } from '../services/propertyValuationEngine';
 
@@ -43,12 +45,14 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
   // Form State
   const [propertyType, setPropertyType] = useState<'Departamento' | 'Casa' | 'Oficina' | 'Parcela'>('Casa');
   const [commune, setCommune] = useState('Villa Alemana');
-  const [address, setAddress] = useState('Calle Baquedano con Victoria');
-  const [rolSII, setRolSII] = useState('1452-33');
-  const [usefulM2, setUsefulM2] = useState<number>(110);
-  const [totalM2, setTotalM2] = useState<number>(140);
-  const [bedrooms, setBedrooms] = useState<number>(3);
-  const [bathrooms, setBathrooms] = useState<number>(2);
+  const [address, setAddress] = useState('Valentín Letelier 693');
+  const [rolManzana, setRolManzana] = useState('433');
+  const [rolPredio, setRolPredio] = useState('032');
+  const [constructionMaterial, setConstructionMaterial] = useState<ConstructionMaterialType>('Albañilería Confinada / Ladrillo Fiscal (Clase C)');
+  const [usefulM2, setUsefulM2] = useState<number>(150);
+  const [totalM2, setTotalM2] = useState<number>(300);
+  const [bedrooms, setBedrooms] = useState<number>(5);
+  const [bathrooms, setBathrooms] = useState<number>(3);
   const [parking, setParking] = useState<number>(2);
   const [storage, setStorage] = useState<number>(1);
   const [orientation, setOrientation] = useState<'Nor-Oriente' | 'Nor-Poniente' | 'Sur-Oriente' | 'Sur-Poniente' | 'Despejada / Todas'>('Nor-Oriente');
@@ -61,6 +65,18 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
   const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [addedToPortfolioSuccess, setAddedToPortfolioSuccess] = useState(false);
 
+  // Quick preset helper
+  const handleLoadPreset = (presetCommune: string, presetAddress: string, manzana: string, predio: string, m2: number, totM2: number, beds: number, baths: number) => {
+    setCommune(presetCommune);
+    setAddress(presetAddress);
+    setRolManzana(manzana);
+    setRolPredio(predio);
+    setUsefulM2(m2);
+    setTotalM2(totM2);
+    setBedrooms(beds);
+    setBathrooms(baths);
+  };
+
   // Run Quantitative + AI Valuation
   const handleExecuteValuation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +87,10 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
       propertyType,
       commune,
       address,
-      rolSII,
+      rolManzana,
+      rolPredio,
+      rolSII: rolManzana && rolPredio ? `${rolManzana}-${rolPredio}` : undefined,
+      constructionMaterial,
       usefulM2: Number(usefulM2) || 100,
       totalM2: Number(totalM2) || usefulM2,
       bedrooms: Number(bedrooms) || 3,
@@ -313,16 +332,109 @@ Generado con tecnología pericial MELSA.`;
 
             {/* Dirección o Sector */}
             <div>
-              <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                Dirección, Calle o Sector
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">
+                  Dirección, Calle o Sector
+                </label>
+                <span className="text-[10px] text-gray-400">Calles reales y radar urbano</span>
+              </div>
               <input
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="Ej. Calle Baquedano con Victoria"
+                placeholder="Ej. Valentín Letelier 693"
                 className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] outline-none focus:border-[#D02126]"
               />
+
+              {/* Sugerencias de calles reales para la comuna */}
+              {REAL_STREETS_BY_COMMUNE[commune] && (
+                <div className="mt-2 flex flex-wrap gap-1.5 items-center">
+                  <span className="text-[10px] text-gray-400 font-medium">Sectores:</span>
+                  {REAL_STREETS_BY_COMMUNE[commune].slice(0, 3).map((st) => (
+                    <button
+                      key={st.name}
+                      type="button"
+                      onClick={() => setAddress(st.name)}
+                      className="text-[10px] px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-red-50 hover:text-[#D02126] text-gray-600 transition-colors border border-gray-200"
+                    >
+                      {st.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Rol de Avalúo SII Funcional (Dos campos independientes: Manzana - Predio) */}
+            <div className="p-3 bg-red-50/50 rounded-2xl border border-red-100 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#D02126]" />
+                  <label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide">
+                    Rol de Avalúo SII (Formato Oficial)
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleLoadPreset('Villa Alemana', 'Valentín Letelier 693', '433', '032', 150, 300, 5, 3)}
+                  className="text-[10px] font-bold text-[#D02126] hover:underline"
+                >
+                  ⚡ Ejemplo Hospital V. Alemana (433-032)
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-[10px] text-gray-500 font-medium block mb-1">Manzana (SII)</span>
+                  <input
+                    type="text"
+                    value={rolManzana}
+                    onChange={(e) => setRolManzana(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                    placeholder="Ej. 433"
+                    className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#0F1115] text-center focus:border-[#D02126] outline-none"
+                  />
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-500 font-medium block mb-1">Predio / Unidad</span>
+                  <input
+                    type="text"
+                    value={rolPredio}
+                    onChange={(e) => setRolPredio(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                    placeholder="Ej. 032"
+                    className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#0F1115] text-center focus:border-[#D02126] outline-none"
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-gray-500 italic">
+                Formato SII: <span className="font-mono font-semibold text-gray-700">{rolManzana || '---'}-{rolPredio || '---'}</span> • Calcula avalúo fiscal y exención DFL-2.
+              </p>
+            </div>
+
+            {/* Material de Construcción (NCh 3658) */}
+            <div>
+              <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
+                Material Estructural Predominante (NCh 3658)
+              </label>
+              <select
+                value={constructionMaterial}
+                onChange={(e) => setConstructionMaterial(e.target.value as ConstructionMaterialType)}
+                className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
+              >
+                <option value="Albañilería Confinada / Ladrillo Fiscal (Clase C)">
+                  Albañilería Confinada / Ladrillo Fiscal (Clase C) • Estándar Chileno
+                </option>
+                <option value="Hormigón Armado / Albañilería Armada (Clase A-B)">
+                  Hormigón Armado / Antisísmico (Clase A-B) • Alta Plusvalía (+8%)
+                </option>
+                <option value="Estructura Acero / Metalcon (Clase D)">
+                  Estructura Acero / Metalcon Galvanizado (Clase D)
+                </option>
+                <option value="Madera Estructural Tratada (Clase E)">
+                  Madera Estructural Tratada (Clase E)
+                </option>
+                <option value="Mixto / Adobe Tradicional">
+                  Adobe Tradicional / Autoconstrucción Mixta (-12%)
+                </option>
+              </select>
             </div>
 
             {/* Superficies */}
@@ -556,6 +668,67 @@ Generado con tecnología pericial MELSA.`;
                   </div>
                 </div>
 
+              </div>
+
+              {/* Card 1.5: Radar de Megaproyectos Urbanos e Impacto en Plusvalía */}
+              {valuationResult.urbanPlusvalia?.hasKeyInfrastructure && (
+                <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-transparent p-5 rounded-3xl border border-amber-300/40 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <TrendingUp className="w-4 h-4 text-[#D02126]" />
+                      <span>Radar de Infraestructura & Megaproyectos IA</span>
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-[#D02126] text-white">
+                      +{valuationResult.urbanPlusvalia.projectImpactPct}% Plusvalía
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-extrabold text-[#0F1115]">
+                    {valuationResult.urbanPlusvalia.projectName} ({valuationResult.urbanPlusvalia.distanceDescription})
+                  </h4>
+                  <p className="text-xs text-gray-700 leading-relaxed">
+                    {valuationResult.urbanPlusvalia.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Card 1.8: Certificación SII y Materialidad NCh 3658 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* SII Assessment */}
+                {valuationResult.siiAssessment && (
+                  <div className="p-4 bg-white rounded-2xl border border-gray-200 shadow-sm space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Certificación SII</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        {valuationResult.siiAssessment.contributionsStatus}
+                      </span>
+                    </div>
+                    <div className="text-xs font-mono font-extrabold text-[#0F1115]">
+                      Rol: {valuationResult.siiAssessment.rolFormatted}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      Avalúo Fiscal Estimado: <strong>${valuationResult.siiAssessment.estimatedFiscalAssessmentCLP.toLocaleString('es-CL')} CLP</strong>
+                    </div>
+                    <div className="text-[10px] text-gray-400">
+                      {valuationResult.siiAssessment.destination}
+                    </div>
+                  </div>
+                )}
+
+                {/* Materialidad Constructiva */}
+                <div className="p-4 bg-white rounded-2xl border border-gray-200 shadow-sm space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Materialidad NCh 3658</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${(valuationResult.materialityFactorPct || 0) >= 0 ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}`}>
+                      {(valuationResult.materialityFactorPct || 0) >= 0 ? `+${valuationResult.materialityFactorPct}%` : `${valuationResult.materialityFactorPct}%`} Factor
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-[#0F1115] truncate">
+                    {valuationResult.constructionMaterialUsed || 'Albañilería Confinada (Clase C)'}
+                  </div>
+                  <div className="text-[11px] text-gray-500">
+                    Depreciación Ross-Heidecke calculada conforme a edad aparente y estándar antisísmico.
+                  </div>
+                </div>
               </div>
 
               {/* Card 2: AI Executive CMA Narrative */}

@@ -2756,7 +2756,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                           <p className="text-[11px] text-gray-500">Marca los medios que deseas utilizar en cada caso.</p>
                         </div>
 
-                        {/* Helper table builder */}
+                        {/* Helper table builder matching exact Altenda Screenshot groups */}
                         {[
                           {
                             sectionTitle: 'Notificaciones de arrendatarios',
@@ -2789,6 +2789,23 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                             items: [
                               'Documento para firmar',
                               'Documento firmado'
+                            ]
+                          },
+                          {
+                            sectionTitle: 'Cartera de ventas',
+                            items: [
+                              'Venta: actividad confirmada',
+                              'Venta: actividad cancelada',
+                              'Venta: cambio de estado'
+                            ]
+                          },
+                          {
+                            sectionTitle: 'Visitas y demostraciones',
+                            items: [
+                              'Visita a propiedad confirmada',
+                              'Reunión o firma agendada',
+                              'Recordatorio de cita',
+                              'Cita cancelada'
                             ]
                           }
                         ].map((group, gIdx) => (
@@ -2843,7 +2860,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                             className="px-5 py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
                           >
                             <Save className="w-4 h-4" />
-                            <span>Guardar configuración de notificaciones</span>
+                            <span>Guardar notificaciones</span>
                           </button>
                         </div>
                       </div>

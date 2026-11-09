@@ -68,7 +68,8 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
-  const [regAccountType, setRegAccountType] = useState<'provider' | 'broker'>('provider');
+  const [regAccountType, setRegAccountType] = useState<'provider' | 'broker' | 'agency'>('agency');
+  const [regPlan, setRegPlan] = useState<'gratis' | 'basico' | 'intermedio' | 'pro'>('intermedio');
   const [regCategory, setRegCategory] = useState('Remodelación & Pintura');
   const [isRegistering, setIsRegistering] = useState(false);
   const [registerSuccessMsg, setRegisterSuccessMsg] = useState<string | null>(null);
@@ -173,7 +174,8 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
         regPassword,
         regName,
         regAccountType,
-        regCategory
+        regCategory,
+        regAccountType === 'agency' ? regPlan : undefined
       );
 
       if (res.success && res.user) {
@@ -381,8 +383,47 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
                     onClick={() => setAuthMode('register')}
                     className="text-xs text-[#D02126] font-bold hover:underline cursor-pointer ml-1"
                   >
-                    Crear Cuenta de Colaborador
+                    Crear Cuenta de Agencia o Colaborador
                   </button>
+                </div>
+
+                {/* Quick Access Demo Accounts */}
+                <div className="pt-3 border-t border-gray-100">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block mb-2 text-center">
+                    Atajos para Pruebas Rápidas:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmailInput('admin@melsainmobiliaria.com');
+                        setPasswordInput('melsa2026');
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg bg-gray-50 hover:bg-red-50 hover:text-[#D02126] border border-gray-200 text-[11px] font-semibold transition-all text-left"
+                    >
+                      🛡️ Admin Melsa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmailInput('contacto@andespropiedades.cl');
+                        setPasswordInput('agencia123');
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg bg-red-50 text-[#D02126] hover:bg-red-100 border border-red-200 text-[11px] font-bold transition-all text-left"
+                    >
+                      🏢 Agencia SaaS
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmailInput('contacto@moralesgasfiter.cl');
+                        setPasswordInput('colaborador123');
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 text-[11px] font-semibold transition-all text-left"
+                    >
+                      🔧 Técnico Hogar
+                    </button>
+                  </div>
                 </div>
 
               </form>
@@ -428,28 +469,47 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
                       onChange={(e) => setRegAccountType(e.target.value as any)}
                       className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none"
                     >
-                      <option value="provider">Técnico / Empresa Hogar</option>
-                      <option value="broker">Corredor Inmobiliario</option>
+                      <option value="agency">Agencia Inmobiliaria (SaaS Arriendos & Ventas)</option>
+                      <option value="provider">Técnico / Empresa del Hogar</option>
+                      <option value="broker">Corredor Independiente</option>
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
-                      Especialidad
-                    </label>
-                    <select
-                      value={regCategory}
-                      onChange={(e) => setRegCategory(e.target.value)}
-                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none"
-                    >
-                      <option value="Gasfitería">Gasfitería</option>
-                      <option value="Electricidad">Electricidad SEC</option>
-                      <option value="Remodelación & Pintura">Remodelación & Pintura</option>
-                      <option value="Climatización">Climatización</option>
-                      <option value="Jardinería">Jardinería & Riego</option>
-                      <option value="Cerrajería">Cerrajería</option>
-                    </select>
-                  </div>
+                  {regAccountType === 'agency' ? (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
+                        Plan Inicial de Software
+                      </label>
+                      <select
+                        value={regPlan}
+                        onChange={(e) => setRegPlan(e.target.value as any)}
+                        className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none font-semibold text-[#D02126]"
+                      >
+                        <option value="gratis">Plan Gratis ($0 / mes - hasta 3 arriendos)</option>
+                        <option value="basico">Plan Básico ($9.900 CLP / mes - hasta 15 arriendos)</option>
+                        <option value="intermedio">Plan Crecimiento ($19.900 CLP / mes - hasta 50 arriendos)</option>
+                        <option value="pro">Pro Empresa ($39.900 CLP / mes - ilimitado)</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
+                        Especialidad
+                      </label>
+                      <select
+                        value={regCategory}
+                        onChange={(e) => setRegCategory(e.target.value)}
+                        className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none"
+                      >
+                        <option value="Gasfitería">Gasfitería</option>
+                        <option value="Electricidad">Electricidad SEC</option>
+                        <option value="Remodelación & Pintura">Remodelación & Pintura</option>
+                        <option value="Climatización">Climatización</option>
+                        <option value="Jardinería">Jardinería & Riego</option>
+                        <option value="Cerrajería">Cerrajería</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

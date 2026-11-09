@@ -24,6 +24,7 @@ import { RealEstateProject, ProviderApplication, AuthUser } from './types';
 import { MOCK_APPLICATIONS } from './data/mockData';
 import { getStoredUser, logoutUser } from './services/authService';
 import { CollaboratorWorkspacePage } from './components/CollaboratorWorkspacePage';
+import { AgencySaaSSection } from './components/AgencySaaSSection';
 
 export default function App() {
   const [viewMode, setViewMode] = useState<'home' | 'market' | 'workspace'>('home');
@@ -69,6 +70,8 @@ export default function App() {
       } else if (hash === '#publicar') {
         setViewMode('market');
         setMarketInitialTab('publish');
+      } else if (hash === '#software-agencias' || hash === '#saas') {
+        setViewMode('home');
       } else if (hash === '#inicio' || hash === '') {
         setViewMode('home');
       }
@@ -241,7 +244,10 @@ export default function App() {
         {/* 6. Melsa Open Market & Red de Servicios (Teaser elegante que enlaza al Portal Indexado) */}
         <MarketTeaserSection onOpenMarket={handleOpenMarket} />
 
-        {/* 7. ¿Por qué elegir Melsa? */}
+        {/* 7. MELSA Agency OS — Software Inmobiliario para Agencias & Corredoras (SaaS) */}
+        <AgencySaaSSection onOpenIntranetModal={handleOpenIntranetOrWorkspace} />
+
+        {/* 8. ¿Por qué elegir Melsa? */}
         <WhyChooseMelsa />
 
         {/* 8. Centro de Inteligencia Financiera & Algoritmos IA (Groq) */}

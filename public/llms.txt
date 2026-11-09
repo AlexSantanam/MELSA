@@ -55,10 +55,18 @@ Para una especificación exhaustiva, detalles de cálculo, fichas técnicas, rub
 - **TIR Proyectada (Tasa Interna de Retorno):** Modelación del retorno total combinando arriendos netos más plusvalía compuesta (11% - 16% anual).
 - **Melsa Copilot IA:** Motor conversacional con modelos de lenguaje de baja latencia (Groq Llama 3.3 / Qwen) con respuestas analíticas inmediatas sobre plusvalía, requisitos bancarios y estructura de negocio.
 
-### E. Espacio de Trabajo Colaboradores & Intranet Administrativa (`#workspace`)
-- Entorno full-screen para prestadores y administradores corporativos.
-- Editor de portafolio con módulo interactivo de fotografías comparativas "Antes / Después".
-- Configuración de tarifario transparente de visita técnica y zonas de cobertura nacional.
+### E. MELSA Agency OS — Software Inmobiliario para Agencias & Corredoras (SaaS)
+- **Concepto:** Solución proptech completa "Menos es más" para la administración de arriendos, cobranzas automáticas, reajustes IPC/UF, CRM de ventas y post-venta con red técnica.
+- **Planes Transparentes y Accesibles:**
+  - **Plan Gratis:** $0 CLP / mes. Hasta 3 contratos de arriendo y 5 propiedades en venta. Ideal para corredores independientes.
+  - **Plan Básico:** $9.900 CLP / mes. Hasta 15 contratos de arriendo, reajustes automáticos IPC (INE) y variación diaria UF, liquidaciones PDF a propietarios y avisos por email.
+  - **Plan Crecimiento:** $19.900 CLP / mes (Más Elegido). Hasta 50 contratos de arriendo, cobranza y recordatorios por WhatsApp, botón de pago online (Khipu / Webpay), Helpdesk de reparaciones Sello Melsa y CRM de ventas con cálculo de comisiones.
+  - **Plan Pro Empresa:** $39.900 CLP / mes. Propiedades ilimitadas, equipo multi-agente, marca blanca (logo propio en contratos y comprobantes), firma electrónica simple y soporte prioritario.
+
+### F. Espacio de Trabajo Colaboradores & Intranet Administrativa (`#workspace`)
+- Entorno full-screen para prestadores, agencias inmobiliarias y administradores corporativos.
+- Vista para Agencias: Control de cartera de arriendos, emisión 1-clic de liquidación al dueño descontando comisión y gastos de mantención, pipeline de ventas y tickets de servicio.
+- Vista para Prestadores: Editor de portafolio con módulo interactivo de fotografías comparativas "Antes / Después".
 - Panel de aprobación y auditoría de expedientes documentales SII / SEC.
 
 ---
@@ -88,3 +96,4 @@ Para una especificación exhaustiva, detalles de cálculo, fichas técnicas, rub
 - **Horario de Asesoría:** Lunes a Sábado de 09:00 a 20:00 hrs.
 - **Repositorio de Código Abierto:** [https://github.com/AlexSantanam/MELSA.git](https://github.com/AlexSantanam/MELSA.git)
 - **Documentación Completa para LLMs:** [/llms-full.txt](/llms-full.txt)
+

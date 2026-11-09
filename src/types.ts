@@ -149,8 +149,69 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'provider';
+  role: 'admin' | 'provider' | 'agency';
   providerId?: string;
   category?: string;
   companyName?: string;
+  agencyPlan?: 'gratis' | 'basico' | 'intermedio' | 'pro';
+}
+
+export type AgencyPlanTier = 'gratis' | 'basico' | 'intermedio' | 'pro';
+
+export interface AgencySaaSPlan {
+  id: AgencyPlanTier;
+  name: string;
+  priceCLP: number;
+  priceFormatted: string;
+  billingPeriod: string;
+  badge?: string;
+  popular?: boolean;
+  propertiesLimit: string;
+  description: string;
+  features: string[];
+  ctaText: string;
+}
+
+export interface AgencyRentalContract {
+  id: string;
+  propertyAddress: string;
+  commune: string;
+  tenantName: string;
+  tenantRut: string;
+  tenantPhone: string;
+  ownerName: string;
+  ownerRut: string;
+  ownerBank: string;
+  ownerAccountNumber: string;
+  rentAmountCLP: number;
+  rentAmountUF?: number;
+  readjustment: 'IPC Semestral' | 'IPC Anual' | 'UF Diaria' | 'Fijo';
+  dueDay: number;
+  commissionPercent: number;
+  status: 'al_dia' | 'por_vencer' | 'moroso' | 'pagado';
+  lastPaymentDate?: string;
+  contractStart: string;
+  contractEnd: string;
+}
+
+export interface AgencyMaintenanceTicket {
+  id: string;
+  propertyAddress: string;
+  tenantName: string;
+  category: 'Gasfitería' | 'Electricidad' | 'Remodelación' | 'Climatización' | 'Cerrajería';
+  description: string;
+  costEstimateCLP: number;
+  status: 'recibido' | 'tecnico_asignado' | 'en_reparacion' | 'completado_liquidado';
+  assignedTechnician?: string;
+  createdAt: string;
+}
+
+export interface AgencySalePipeline {
+  id: string;
+  propertyTitle: string;
+  priceUF: number;
+  stage: 'captacion' | 'visitas' | 'oferta' | 'promesa' | 'escritura' | 'cerrada';
+  commissionEstCLP: number;
+  buyerCandidate: string;
+  agentName: string;
 }

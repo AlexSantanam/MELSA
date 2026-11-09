@@ -78,7 +78,29 @@ export async function loginUser(
     return { user: adminUser };
   }
 
-  // B. Colaboradores / Prestadores
+  // B. Agencias Inmobiliarias (SaaS Arriendos & Ventas)
+  if (targetRole === 'agency' || cleanEmail.includes('agencia') || cleanEmail.includes('propiedades') || cleanEmail.includes('andes') || cleanEmail.includes('corredora')) {
+    const validAgencyPass = ['agencia123', 'colaborador123', '123456', 'melsa2026'];
+    if (cleanPassword && !validAgencyPass.includes(cleanPassword)) {
+      return { 
+        user: null, 
+        error: 'Contraseña incorrecta para Agencias. (Clave por defecto: agencia123)' 
+      };
+    }
+
+    const agencyUser: AuthUser = {
+      id: 'usr-agencia-' + (cleanEmail.split('@')[0]),
+      name: cleanEmail.includes('andes') ? 'Andes Propiedades SpA' : (cleanEmail.split('@')[0] + ' Propiedades'),
+      email: cleanEmail,
+      role: 'agency',
+      companyName: cleanEmail.includes('andes') ? 'Andes Propiedades SpA' : (cleanEmail.split('@')[0] + ' Propiedades'),
+      agencyPlan: 'intermedio'
+    };
+    saveStoredUser(agencyUser);
+    return { user: agencyUser };
+  }
+
+  // C. Colaboradores / Prestadores
   const validProviderPass = ['colaborador123', '123456', 'melsa2026'];
   if (cleanPassword && !validProviderPass.includes(cleanPassword)) {
     return { 
@@ -88,10 +110,10 @@ export async function loginUser(
   }
 
   const providerUser: AuthUser = cleanEmail.includes('morales') 
-    ? MOCK_AUTH_USERS[2] 
+    ? MOCK_AUTH_USERS[3] 
     : {
-        ...MOCK_AUTH_USERS[1],
-        email: cleanEmail || MOCK_AUTH_USERS[1].email
+        ...MOCK_AUTH_USERS[2],
+        email: cleanEmail || MOCK_AUTH_USERS[2].email
       };
 
   saveStoredUser(providerUser);
@@ -113,10 +135,12 @@ export async function registerNewUser(
   email: string, 
   password: string, 
   fullName: string,
-  accountType: 'provider' | 'admin' | 'broker',
-  category?: string
+  accountType: 'provider' | 'admin' | 'broker' | 'agency',
+  category?: string,
+  plan?: import('../types').AgencyPlanTier
 ): Promise<{ user?: AuthUser; success: boolean; error?: string }> {
   const cleanEmail = email.trim().toLowerCase();
+  const assignedRole = accountType === 'admin' ? 'admin' : accountType === 'agency' ? 'agency' : 'provider';
   
   if (isSupabaseConfigured()) {
     try {
@@ -126,8 +150,9 @@ export async function registerNewUser(
         options: {
           data: {
             full_name: fullName,
-            role: accountType,
-            category: category || 'Servicios del Hogar'
+            role: assignedRole,
+            category: category || (assignedRole === 'agency' ? 'Gestión Inmobiliaria' : 'Servicios del Hogar'),
+            agencyPlan: plan || 'gratis'
           }
         }
       });
@@ -140,10 +165,11 @@ export async function registerNewUser(
         id: data.user?.id || 'usr-' + Date.now(),
         name: fullName,
         email: cleanEmail,
-        role: accountType === 'admin' ? 'admin' : 'provider',
-        providerId: 'prov-' + Date.now(),
-        category: category || 'Remodelación & Pintura',
-        companyName: fullName
+        role: assignedRole,
+        providerId: assignedRole === 'provider' ? 'prov-' + Date.now() : undefined,
+        category: category || (assignedRole === 'agency' ? 'Gestión Inmobiliaria' : 'Remodelación & Pintura'),
+        companyName: fullName,
+        agencyPlan: plan || 'gratis'
       };
 
       saveStoredUser(newUser);
@@ -158,10 +184,11 @@ export async function registerNewUser(
     id: 'local-' + Date.now(),
     name: fullName,
     email: cleanEmail,
-    role: accountType === 'admin' ? 'admin' : 'provider',
-    providerId: 'prov-' + Date.now(),
-    category: category || 'Remodelación & Pintura',
-    companyName: fullName
+    role: assignedRole,
+    providerId: assignedRole === 'provider' ? 'prov-' + Date.now() : undefined,
+    category: category || (assignedRole === 'agency' ? 'Gestión Inmobiliaria' : 'Remodelación & Pintura'),
+    companyName: fullName,
+    agencyPlan: plan || 'gratis'
   };
 
   saveStoredUser(newUser);

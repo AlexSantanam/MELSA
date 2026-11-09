@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MelsaLogo } from './MelsaLogo';
-import { Phone, Mail, Calendar, Menu, X, MessageCircle, Lock, User, ShieldCheck } from 'lucide-react';
+import { Phone, Mail, Calendar, Menu, X, MessageCircle, Lock, User, ShieldCheck, Building2 } from 'lucide-react';
 import { AuthUser } from '../types';
 
 interface HeaderProps {
@@ -33,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const navLinks = [
     { label: 'Inicio', href: '#inicio' },
+    { label: 'Software Agencias', href: '#software-agencias' },
     { label: 'Proyectos', href: '#proyectos' },
     { label: 'Market', href: '#mercado' },
     { label: 'Inteligencia IA', href: '#inteligencia-financiera' },
@@ -118,6 +119,11 @@ export const Header: React.FC<HeaderProps> = ({
                   <>
                     <ShieldCheck className="w-4 h-4 text-white" />
                     <span>Admin Melsa</span>
+                  </>
+                ) : currentUser.role === 'agency' ? (
+                  <>
+                    <Building2 className="w-4 h-4 text-white" />
+                    <span>Mi Agencia ({currentUser.name.split(' ')[0]})</span>
                   </>
                 ) : (
                   <>

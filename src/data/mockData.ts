@@ -702,6 +702,14 @@ export const MOCK_AUTH_USERS: import('../types').AuthUser[] = [
     role: 'admin'
   },
   {
+    id: 'usr-agencia-demo',
+    name: 'Andes Propiedades SpA',
+    email: 'contacto@andespropiedades.cl',
+    role: 'agency',
+    companyName: 'Andes Propiedades SpA',
+    agencyPlan: 'intermedio'
+  },
+  {
     id: 'usr-alerce',
     name: 'Alerce Remodelaciones (Constructora)',
     email: 'contacto@alercediseno.cl',
@@ -714,5 +722,228 @@ export const MOCK_AUTH_USERS: import('../types').AuthUser[] = [
     email: 'contacto@moralesgasfiter.cl',
     role: 'provider',
     providerId: 'prov-1'
+  }
+];
+
+export const AGENCY_SAAS_PLANS: import('../types').AgencySaaSPlan[] = [
+  {
+    id: 'gratis',
+    name: 'Gratis Inicial',
+    priceCLP: 0,
+    priceFormatted: '$0',
+    billingPeriod: '/ mes para siempre',
+    propertiesLimit: 'Hasta 3 contratos de arriendo',
+    description: 'Ideal para corredores independientes que inician su cartera y buscan ordenar sus primeras propiedades.',
+    features: [
+      'Gestión de hasta 3 arriendos activos',
+      'Ficha digital de propietarios y arrendatarios',
+      'Registro básico de cuotas y fechas de vencimiento',
+      'Pipeline de hasta 5 propiedades en venta',
+      'Soporte comunitario por correo'
+    ],
+    ctaText: 'Comenzar Gratis'
+  },
+  {
+    id: 'basico',
+    name: 'Plan Básico',
+    priceCLP: 9900,
+    priceFormatted: '$9.900',
+    billingPeriod: '/ mes (facturación mensual)',
+    badge: 'Inicio Profesional',
+    propertiesLimit: 'Hasta 15 contratos de arriendo',
+    description: 'Para corredores y pequeñas agencias que necesitan automatizar reajustes y emitir liquidaciones impecables.',
+    features: [
+      'Gestión de hasta 15 arriendos activos',
+      'Cálculo automático de reajuste por IPC (INE) y UF',
+      'Generador de Liquidaciones a Propietarios en PDF',
+      'Recordatorios automáticos de cobro por Email',
+      'Pipeline de hasta 15 propiedades en venta',
+      'Descarga de cartolas en formato Excel / CSV'
+    ],
+    ctaText: 'Elegir Plan Básico'
+  },
+  {
+    id: 'intermedio',
+    name: 'Plan Crecimiento',
+    priceCLP: 19900,
+    priceFormatted: '$19.900',
+    billingPeriod: '/ mes (facturación mensual)',
+    popular: true,
+    badge: 'Más Elegido',
+    propertiesLimit: 'Hasta 50 contratos de arriendo',
+    description: 'La suite completa para agencias en expansión con cobranza por WhatsApp y red técnica de post-venta.',
+    features: [
+      'Gestión de hasta 50 arriendos activos',
+      'Recordatorios y links de pago automáticos por WhatsApp',
+      'Botón de pago online para arrendatarios (Khipu / Webpay)',
+      'Helpdesk de Reparaciones conectado a la Red Sello Melsa',
+      'Deducción automática de mantenciones en la liquidación',
+      'CRM de Ventas avanzado con cálculo de comisiones',
+      'Hasta 2 usuarios agentes para tu equipo'
+    ],
+    ctaText: 'Comenzar con Crecimiento'
+  },
+  {
+    id: 'pro',
+    name: 'Pro Empresa',
+    priceCLP: 39900,
+    priceFormatted: '$39.900',
+    billingPeriod: '/ mes (facturación mensual)',
+    badge: 'Control Total',
+    propertiesLimit: 'Propiedades y contratos ilimitados',
+    description: 'Solución empresarial sin límites para agencias consolidadas: multi-agente, marca blanca y firma legal.',
+    features: [
+      'Arriendos y propiedades en venta ILIMITADAS',
+      'Multi-agente ilimitado con roles y permisos de equipo',
+      'Marca Blanca: Tu logo y colores en contratos y PDFs',
+      'Módulo de Firma Electrónica Simple para contratos',
+      'Conciliación bancaria automatizada con match de RUT',
+      'Melsa Copilot IA para tasaciones y contratos rápidos',
+      'Asignación prioritaria en red técnica Sello Melsa',
+      'Soporte VIP telefónico y WhatsApp exclusivo'
+    ],
+    ctaText: 'Activar Pro Empresa'
+  }
+];
+
+export const MOCK_AGENCY_CONTRACTS: import('../types').AgencyRentalContract[] = [
+  {
+    id: 'cnt-101',
+    propertyAddress: 'Av. Las Condes 10450, Depto 1402',
+    commune: 'Las Condes, RM',
+    tenantName: 'Sebastián Valenzuela R.',
+    tenantRut: '17.842.119-3',
+    tenantPhone: '+56 9 8451 2233',
+    ownerName: 'Inmobiliaria & Rentas Los Alerces SpA',
+    ownerRut: '76.890.140-5',
+    ownerBank: 'Banco de Chile',
+    ownerAccountNumber: 'Cta Cte 00-142-99014',
+    rentAmountCLP: 820000,
+    rentAmountUF: 21.6,
+    readjustment: 'IPC Semestral',
+    dueDay: 5,
+    commissionPercent: 7.5,
+    status: 'al_dia',
+    lastPaymentDate: '04 Nov 2026',
+    contractStart: '01 Mar 2026',
+    contractEnd: '28 Feb 2027'
+  },
+  {
+    id: 'cnt-102',
+    propertyAddress: 'Av. Vitacura 4820, Depto 604',
+    commune: 'Vitacura, RM',
+    tenantName: 'Camila Larraín Echenique',
+    tenantRut: '16.320.915-K',
+    tenantPhone: '+56 9 9341 7788',
+    ownerName: 'Gonzalo Matte Pérez',
+    ownerRut: '11.450.823-2',
+    ownerBank: 'Banco Santander',
+    ownerAccountNumber: 'Cta Cte 0-000-88319-2',
+    rentAmountCLP: 1150000,
+    rentAmountUF: 30.2,
+    readjustment: 'UF Diaria',
+    dueDay: 5,
+    commissionPercent: 8.0,
+    status: 'por_vencer',
+    lastPaymentDate: '05 Oct 2026',
+    contractStart: '01 Ene 2026',
+    contractEnd: '31 Dic 2026'
+  },
+  {
+    id: 'cnt-103',
+    propertyAddress: 'Av. El Bosque Norte 0240, Oficina 801',
+    commune: 'Las Condes, RM',
+    tenantName: 'Consultores Andinos Ltda.',
+    tenantRut: '77.102.340-9',
+    tenantPhone: '+56 2 2490 8800',
+    ownerName: 'Inversiones El Roble S.A.',
+    ownerRut: '96.551.200-1',
+    ownerBank: 'BCI',
+    ownerAccountNumber: 'Cta Cte 10-882910-4',
+    rentAmountCLP: 1650000,
+    rentAmountUF: 43.4,
+    readjustment: 'IPC Anual',
+    dueDay: 1,
+    commissionPercent: 7.0,
+    status: 'al_dia',
+    lastPaymentDate: '01 Nov 2026',
+    contractStart: '01 Ago 2025',
+    contractEnd: '31 Jul 2027'
+  },
+  {
+    id: 'cnt-104',
+    propertyAddress: 'Monseñor Edwards 1290, Casa 4',
+    commune: 'La Reina, RM',
+    tenantName: 'Jorge Montecinos Alarcón',
+    tenantRut: '15.119.450-4',
+    tenantPhone: '+56 9 7712 3456',
+    ownerName: 'Patricia Undurraga S.',
+    ownerRut: '12.890.312-7',
+    ownerBank: 'Banco Estado',
+    ownerAccountNumber: 'Cta Cte 001-92831-0',
+    rentAmountCLP: 950000,
+    rentAmountUF: 25.0,
+    readjustment: 'IPC Semestral',
+    dueDay: 5,
+    commissionPercent: 8.0,
+    status: 'moroso',
+    lastPaymentDate: '05 Sep 2026',
+    contractStart: '01 Oct 2025',
+    contractEnd: '30 Sep 2027'
+  }
+];
+
+export const MOCK_AGENCY_TICKETS: import('../types').AgencyMaintenanceTicket[] = [
+  {
+    id: 'tck-401',
+    propertyAddress: 'Av. Las Condes 10450, Depto 1402',
+    tenantName: 'Sebastián Valenzuela',
+    category: 'Gasfitería',
+    description: 'Filtración menor en flexible de lavaplatos bajo cubierta de cocina.',
+    costEstimateCLP: 35000,
+    status: 'completado_liquidado',
+    assignedTechnician: 'Eduardo Morales (Sello Melsa)',
+    createdAt: '28 Oct 2026'
+  },
+  {
+    id: 'tck-402',
+    propertyAddress: 'Av. Vitacura 4820, Depto 604',
+    tenantName: 'Camila Larraín',
+    category: 'Electricidad',
+    description: 'Diferencial salta al conectar horno empotrado en circuito cocina.',
+    costEstimateCLP: 45000,
+    status: 'tecnico_asignado',
+    assignedTechnician: 'Héctor Valenzuela (SEC A)',
+    createdAt: '06 Nov 2026'
+  }
+];
+
+export const MOCK_AGENCY_SALES: import('../types').AgencySalePipeline[] = [
+  {
+    id: 'sale-201',
+    propertyTitle: 'Depto 3D/2B Frente a Parque Araucano',
+    priceUF: 8450,
+    stage: 'promesa',
+    commissionEstCLP: 6420000,
+    buyerCandidate: 'Dr. Felipe Errázuriz',
+    agentName: 'María Ignacia Silva'
+  },
+  {
+    id: 'sale-202',
+    propertyTitle: 'Casa Mediterránea en Condominio Piedra Roja',
+    priceUF: 13900,
+    stage: 'visitas',
+    commissionEstCLP: 10560000,
+    buyerCandidate: 'Familia Von Appen',
+    agentName: 'Alexis Santana'
+  },
+  {
+    id: 'sale-203',
+    propertyTitle: 'Penthouse Dúplex con Quincho en El Golf',
+    priceUF: 21500,
+    stage: 'escritura',
+    commissionEstCLP: 16340000,
+    buyerCandidate: 'Inversiones San Cristóbal SpA',
+    agentName: 'Alexis Santana'
   }
 ];

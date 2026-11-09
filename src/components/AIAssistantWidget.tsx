@@ -18,7 +18,7 @@ export const AIAssistantWidget: React.FC = () => {
   const [messages, setMessages] = useState<Array<{ sender: 'user' | 'bot'; text: string }>>([
     {
       sender: 'bot',
-      text: '¡Hola! Soy Melsa Copilot IA. ¿Buscas evaluar la plusvalía de una zona, calcular tu dividendo seguro o conocer opciones de inversión de alta rentabilidad?'
+      text: '¡Hola! Qué gusto saludarte. Soy tu asesor ejecutivo en MELSA Gestión Inmobiliaria. ¿En qué te ayudo hoy? Puedes consultarme sobre proyectos, cómo ingresar al portal, el software para corredoras o coordinar con nuestro equipo.'
     }
   ]);
   const [inputText, setInputText] = useState('');
@@ -26,10 +26,10 @@ export const AIAssistantWidget: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const quickQuestions = [
-    '¿Qué rentabilidad esperar en Las Condes?',
-    '¿Cómo funciona el pie en cuotas?',
-    '¿Qué comunas tienen mayor plusvalía?',
-    '¿Qué requisitos pide el banco?'
+    '¿Cómo ingreso al portal o intranet?',
+    '¿Cómo funciona el Software para Corredoras?',
+    '¿Qué rentabilidad esperar en arriendos?',
+    '¿Cómo funciona el pie en cuotas?'
   ];
 
   const scrollToBottom = () => {
@@ -86,7 +86,7 @@ export const AIAssistantWidget: React.FC = () => {
             className="hidden sm:flex items-center gap-2 bg-[#0F1115] text-white px-3.5 py-2 rounded-full border border-[#D02126]/40 shadow-xl cursor-pointer hover:border-[#D02126] transition-all"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#D02126] animate-pulse" />
-            <span className="text-xs font-semibold">Consultor Financiero IA</span>
+            <span className="text-xs font-semibold">Ejecutivo Comercial Melsa</span>
           </div>
         )}
 
@@ -115,12 +115,12 @@ export const AIAssistantWidget: React.FC = () => {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-white">Melsa Copilot IA</h3>
+                  <h3 className="text-sm font-semibold text-white">Asesor Ejecutivo Melsa</h3>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    Groq Engine
+                    En Línea
                   </span>
                 </div>
-                <p className="text-[11px] text-gray-400 font-light">Asesor Cuantitativo & Inversiones</p>
+                <p className="text-[11px] text-gray-400 font-light">Atención Comercial & Plataforma</p>
               </div>
             </div>
 
@@ -204,7 +204,7 @@ export const AIAssistantWidget: React.FC = () => {
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Pregunta sobre plusvalía, créditos o arriendos..."
+              placeholder="Escribe tu consulta sobre la plataforma o propiedades..."
               className="flex-1 bg-[#0F1115] border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:ring-1 focus:ring-[#D02126] outline-none"
             />
             <button

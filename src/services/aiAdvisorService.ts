@@ -1,6 +1,6 @@
 // aiAdvisorService.ts
-// Motor de conexión para IA Inmobiliaria con API de Groq (Llama 3.3 70B / 8B) o xAI Grok.
-// Altísima velocidad (~300-500 tokens/seg) y costos mínimos (fracción de centavo por consulta vs Claude).
+// Motor de IA Inmobiliaria con API de Groq (Qwen / Llama 3) para MELSA Gestión Inmobiliaria (Chile).
+// Personalidad: Ejecutivo de ventas senior cercano, empático, consultivo y experto en la plataforma.
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -8,18 +8,43 @@ export interface ChatMessage {
 }
 
 const MELSA_SYSTEM_PROMPT = `
-Eres "Melsa AI", el asesor cuantitativo y consultor patrimonial de MELSA Gestión Inmobiliaria a nivel NACIONAL en todo Chile.
-Tu propósito es asesorar a clientes e inversionistas en todas las regiones del país:
-1. Cobertura Nacional Completa:
-   - Región Metropolitana (Santiago, Las Condes, Vitacura, Providencia, Chicureo, Maipú, etc.).
-   - Zona Norte: Antofagasta, Calama, Iquique, Arica y La Serena/Coquimbo.
-   - Zona Centro & Costa: Gran Valparaíso, Viña del Mar, Concón, Rancagua, Talca.
-   - Zona Sur & Austral: Gran Concepción (Biobío), Temuco (Araucanía), Valdivia, Puerto Varas / Puerto Montt (Los Lagos), Punta Arenas.
-2. Análisis de viabilidad y rentabilidad (Cap Rate de arriendo 5% a 8.5%, TIR esperada 11% a 16%).
-3. Estructuración financiera bancaria en Chile (UF y CLP, pie en cuotas, dividendos y créditos hipotecarios).
-4. Tono: Ejecutivo, analítico, seguro, elegante y transparente.
-5. Llamado a la acción: Invita a contactar a los ejecutivos de Melsa al WhatsApp +56 9 9989 9421.
-Sé conciso y claro en tus respuestas (máximo 2-3 párrafos o puntos clave).
+Eres un Ejecutivo Comercial Senior y Asesor Inmobiliario de "MELSA Gestión Inmobiliaria" en Chile.
+Tu nombre comercial es "Asesor Ejecutivo Melsa".
+
+PERSONALIDAD Y TONO:
+- Tu trato es CERCANO, CÁLIDO, EMPÁTICO, PROFESIONAL Y RESOLUTIVO (como el mejor ejecutivo de ventas inmobiliario chileno que atiende por WhatsApp o en oficina: "¡Hola! Qué gusto saludarte", "Te ayudo de inmediato con eso", "Te cuento cómo funciona").
+- NUNCA respondas con plantillas robóticas frías ni suenes como un bot genérico.
+- Responde SIEMPRE de forma directa, ágil y concreta a la pregunta exacta del usuario, sin rodeos.
+- Usa lenguaje natural chileno corporativo (UF, CLP, comunas de Chile, crédito hipotecario, pie en cuotas, promesa de compraventa, corredor de propiedades).
+
+CONOCIMIENTO INTEGRAL DE MELSA:
+1. INGRESO AL PORTAL / INTRANET:
+   - Para ingresar a la plataforma, el usuario solo debe hacer clic en el botón "Intranet" o "Software Agencias" ubicado en la barra de navegación superior de la web.
+   - Desde ahí acceden:
+     • Corredores y Agencias: A su Workspace OS (Daily Copilot, cartera, contratos, cruce de leads y firma digital).
+     • Propietarios: A su portal de autoservicio para revisar el estado de sus propiedades en arriendo, visitas en vivo y liquidaciones mensuales.
+     • Arrendatarios: Para consultar sus obligaciones por RUT, descargar contratos y pagar arriendos en línea.
+   - Si un usuario no recuerda su clave o necesita crear una cuenta nueva, invítalo con calidez a escribirnos directamente al WhatsApp oficial +56 9 9989 9421 para asistirlo al instante.
+
+2. SOFTWARE PARA AGENCIAS Y CORREDORAS (MELSA WORKSPACE OS):
+   - Es el sistema operativo para corretaje más moderno de Chile.
+   - Incluye:
+     • Ingesta Multimodal: Carga propiedades dictando por voz con micrófono o subiendo un PDF antiguo, y la IA de Groq extrae las variables en segundos.
+     • Daily Copilot: Centro de comando que prioriza cada mañana los leads más calientes y contratos por vencer.
+     • Smart Matching: Cruza automáticamente el inventario con compradores y arrendatarios calificados.
+     • LegalTech y Firma Electrónica Notarial (Ley 19.799) con validación OTP y hash criptográfico.
+     • Planes accesibles con 14 días de prueba gratuita.
+
+3. ASESORÍA DE COMPRA, INVERSIÓN Y PROYECTOS:
+   - Cobertura nacional: Santiago Oriente (Las Condes, Vitacura, Providencia, Lo Barnechea, Ñuñoa), Costa (Viña del Mar, Concón), y Sur (Puerto Varas, Frutillar).
+   - Opciones de financiamiento, pago de pie en hasta 30 cuotas sin interés en proyectos en blanco/verde, y análisis de Cap Rate (5.5% a 7.5%) y plusvalía.
+
+4. GESTIÓN Y ADMINISTRACIÓN DE ARRIENDOS:
+   - Arriendo garantizado, filtro riguroso de arrendatarios con DICOM y liquidaciones puntuales al propietario.
+
+LLAMADO A LA ACCIÓN:
+- Al final de tu respuesta, si corresponde dar el siguiente paso, invita cordialmente a continuar la atención por el WhatsApp oficial (+56 9 9989 9421) o agendar una reunión con el equipo.
+- Sé breve y conciso (máximo 2 a 3 párrafos o viñetas claras).
 `;
 
 export async function askMelsaAI(userMessage: string, history: ChatMessage[] = []): Promise<string> {
@@ -28,7 +53,6 @@ export async function askMelsaAI(userMessage: string, history: ChatMessage[] = [
   if (groqApiKey && groqApiKey !== 'TU_GROQ_API_KEY') {
     try {
       const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
-      // qwen/qwen3.8-27b en Groq responde en milisegundos con excelente español
       const model = 'qwen/qwen3.8-27b';
 
       const messages: ChatMessage[] = [
@@ -46,8 +70,8 @@ export async function askMelsaAI(userMessage: string, history: ChatMessage[] = [
         body: JSON.stringify({
           model,
           messages,
-          temperature: 0.6,
-          max_tokens: 500,
+          temperature: 0.65,
+          max_tokens: 550,
         })
       });
 
@@ -56,53 +80,73 @@ export async function askMelsaAI(userMessage: string, history: ChatMessage[] = [
         const reply = data.choices?.[0]?.message?.content;
         if (reply && reply.trim().length > 0) return reply;
       } else {
-        console.warn('Groq API respondió con status:', response.status);
+        console.warn('Groq API status:', response.status);
       }
     } catch (err) {
       console.error('Error al invocar API de Groq:', err);
     }
   }
 
-  // --- MOTOR LOCAL INTELIGENTE DE RESPALDO (Sin necesidad de key o si está offline) ---
-  const query = userMessage.toLowerCase();
+  // --- MOTOR LOCAL CERCANO DE RESPALDO (Ejecutivo de Ventas Humano) ---
+  const query = userMessage.toLowerCase().trim();
 
-  if (query.includes('tasa') || query.includes('crédito') || query.includes('dividendo') || query.includes('banco') || query.includes('financiar')) {
-    return `Para optimizar tu financiamiento, los bancos chilenos exigen que el dividendo mensual no supere el 25% a 30% de tus ingresos líquidos demostrables. 
+  // 1. Acceso a portal / intranet / login
+  if (query.includes('portal') || query.includes('ingreso') || query.includes('ingresar') || query.includes('entrar') || query.includes('login') || query.includes('iniciar sesion') || query.includes('intranet') || query.includes('clave') || query.includes('acceso')) {
+    return `¡Hola! Qué gusto saludarte. Te ayudo de inmediato con tu acceso.
 
-Actualmente, las tasas hipotecarias se sitúan en torno al 4.5% - 5.2%. Una estrategia muy rentable es invertir en proyectos en blanco o verde: puedes pagar el 15% o 20% del pie en hasta 30 cuotas sin interés durante la construcción, y solicitar el crédito recién al momento de la entrega. 
+Para ingresar a la plataforma, solo debes presionar el botón **"Intranet"** o **"Software Agencias"** ubicado en la barra superior derecha de la página.
 
-¿Te gustaría que evaluemos tu capacidad de endeudamiento exacta? Puedes contactarnos directamente a nuestro WhatsApp oficial +56 9 9989 9421.`;
+Desde allí pueden acceder:
+• **Corredoras y Agencias:** Para entrar al Workspace OS y gestionar clientes, cartera y contratos.
+• **Propietarios:** Para consultar sus liquidaciones mensuales y visitas en vivo.
+• **Arrendatarios:** Para revisar contratos y pagar sus obligaciones online.
+
+Si olvidaste tu clave o necesitas habilitar tu acceso por primera vez, escríbenos directamente a nuestro WhatsApp oficial **+56 9 9989 9421** y te asistimos al instante. ¿Te ayudo con algo más?`;
   }
 
-  if (query.includes('rentabilidad') || query.includes('cap rate') || query.includes('tir') || query.includes('ganar') || query.includes('roi')) {
-    return `En el mercado chileno actual, la rentabilidad anual bruta por arriendo (Cap Rate) se distribuye de la siguiente manera:
+  // 2. Software agencias / CRM
+  if (query.includes('software') || query.includes('agencia') || query.includes('corredor') || query.includes('crm') || query.includes('workspace') || query.includes('copilot') || query.includes('matching')) {
+    return `¡Hola! Con mucho gusto te cuento sobre nuestro **Workspace OS para Corredoras**:
 
-• Santiago Oriente (Las Condes / Vitacura): Cap Rate 5.2% - 5.8% anual, con la plusvalía más sólida y menor vacancia del país (< 3%).
-• Providencia / Ñuñoa: Cap Rate 5.8% - 6.5% anual, altísima rotación y absorción de arriendo inmediata.
-• Puerto Varas & Zona Sur: Cap Rate 6.8% - 7.6% con TIR sobre 13% debido a la escasez de suelo y migración de familias.
+Es una plataforma creada exclusivamente para el mercado inmobiliario chileno que automatiza las tareas pesadas del corredor:
+• **Ingesta por Voz con IA:** Dictas un audio de 1 minuto y la IA extrae los datos y redacta el copy comercial listo para portales.
+• **Daily Copilot:** Te dice cada mañana exactamente qué clientes contactar y qué cierres están calientes.
+• **Smart Matching:** Cruza tus propiedades con prospectos calificados en segundos.
+• **Firma Electrónica Notarial (Ley 19.799):** Para cerrar promesas y arriendos con validez legal inmediata.
 
-En Melsa te asesoramos para armar una cartera que equilibre flujo mensual de arriendo con plusvalía de largo plazo.`;
+Puedes probarlo gratis por 14 días haciendo clic en **"Software Agencias"** en el menú superior o escribirnos al WhatsApp **+56 9 9989 9421** para darte una demo guiada.`;
   }
 
-  if (query.includes('sector') || query.includes('donde') || query.includes('zona') || query.includes('comuna') || query.includes('puerto varas') || query.includes('condes')) {
-    return `La mejor zona depende de tu objetivo patrimonial:
+  // 3. Financiamiento / crédito / dividendos
+  if (query.includes('tasa') || query.includes('crédito') || query.includes('credito') || query.includes('dividendo') || query.includes('banco') || query.includes('financiar') || query.includes('pie')) {
+    return `¡Hola! Excelente consulta. Te cuento cómo lo estructuramos en Melsa para que consigas las mejores condiciones:
 
-1. Si buscas Preservación de Capital y Prestigio: Vitacura, Las Condes y Lo Barnechea son el activo refugio indiscutido.
-2. Si buscas Flujo de Arriendo Inmediato: Providencia y unidades 1D+1B cercanas a líneas de Metro tienen vacancia prácticamente nula.
-3. Si buscas Alta Plusvalía a 5 años: La cuenca del Lago Llanquihue (Puerto Varas / Frutillar) y Concón bordemar presentan el mayor potencial de valorización por m².
+Actualmente las tasas hipotecarias se ubican en torno al 4.5% - 5.2%. Una de las mejores estrategias que trabajamos con nuestros inversionistas es comprar en **blanco o verde**: esto te permite pagar el pie (15% o 20%) en hasta 30 cuotas sin interés durante la obra, pidiendo el crédito recién al recibir el departamento.
 
-Podemos filtrar las propiedades vigentes de Melsa que mejor calcen con tu presupuesto. ¿De qué monto dispones para invertir?`;
+Además, los bancos piden que tu dividendo no supere el 25% a 30% de tu renta líquida. ¿Te gustaría que simulemos tu capacidad crediticia sin costo? Escríbenos al WhatsApp **+56 9 9989 9421** y lo vemos con un asesor financiero.`;
   }
 
-  // Respuesta general de consultoría Melsa
-  return `¡Hola! Como asistente financiero de Melsa Gestión Inmobiliaria, analizo opciones de inversión considerando Cap Rate, plusvalía proyectada y capacidad de crédito.
+  // 4. Rentabilidad / Cap Rate
+  if (query.includes('rentabilidad') || query.includes('cap rate') || query.includes('tir') || query.includes('ganar') || query.includes('inversion') || query.includes('invertir')) {
+    return `¡Hola! Con gusto te oriento en números de inversión:
 
-¿En qué puedo orientarte hoy?
-• ¿Quieres evaluar la rentabilidad de una comuna o zona específica?
-• ¿Deseas calcular tu capacidad máxima de compra con crédito hipotecario?
-• ¿Buscas propiedades para vivir o para renta residencial?
+En el mercado chileno actual estamos manejando rentabilidades promedio por arriendo (Cap Rate) muy atractivas:
+• **Santiago Oriente (Las Condes / Vitacura):** Cap Rate 5.2% - 5.8% anual, con la plusvalía más sólida y vacancia mínima.
+• **Providencia / Ñuñoa:** Cap Rate 5.8% - 6.5%, alta demanda y absorción casi inmediata.
+• **Sur & Lagos (Puerto Varas / Frutillar):** Cap Rate sobre 7% con alta plusvalía por escasez de suelo.
 
-También puedes coordinar una sesión directa con nuestros asesores en el WhatsApp +56 9 9989 9421.`;
+Cuéntame qué presupuesto tienes pensado o qué comuna te interesa y te preparo una propuesta personalizada.`;
+  }
+
+  // 5. Saludo o consulta general cercana
+  return `¡Hola! Qué gusto saludarte. Soy tu asesor comercial en **MELSA Gestión Inmobiliaria**.
+
+Te puedo orientar en lo que necesites hoy:
+• ¿Buscas comprar, vender o arrendar una propiedad?
+• ¿Quieres conocer nuestro **Software para Corredoras** o ingresar a la Intranet?
+• ¿Deseas evaluar opciones de inversión con rentabilidad y financiamiento hipotecario?
+
+Dime qué estás buscando o, si prefieres una atención telefónica inmediata, escríbenos a nuestro WhatsApp oficial **+56 9 9989 9421**. ¡Estamos para ayudarte!`;
 }
 
 export async function optimizeListingWithAI(draft: string, meta?: { type?: string; location?: string; price?: string; operation?: string }): Promise<string> {
@@ -113,15 +157,15 @@ export async function optimizeListingWithAI(draft: string, meta?: { type?: strin
       const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
       const model = 'qwen/qwen3.8-27b';
 
-      const prompt = `Eres el redactor inmobiliario senior de MELSA. Transforma las notas o borrador del usuario en una ficha de propiedad irresistible, 100% libre de duplicados de otros portales, optimizada para SEO en Google Chile.
-Datos adicionales: Operación: ${meta?.operation || 'Venta'}, Inmueble: ${meta?.type || 'Propiedad'}, Ubicación: ${meta?.location || 'Chile'}, Precio: ${meta?.price || 'A consultar'}.
-Estructura la respuesta con:
+      const prompt = `Eres el redactor inmobiliario senior de MELSA Gestión Inmobiliaria (Chile). Transforma las notas o borrador en una ficha de propiedad atractiva, 100% optimizada para SEO en Google Chile y portales como PortalInmobiliario y TocToc.
+Datos: Operación: ${meta?.operation || 'Venta'}, Inmueble: ${meta?.type || 'Propiedad'}, Ubicación: ${meta?.location || 'Chile'}, Precio: ${meta?.price || 'A consultar'}.
+Estructura:
 1. Título Vendedor SEO impactante
 2. Resumen Emocional y Atractivo
 3. Puntos Fuertes & Distribución (con viñetas)
 4. Equipamiento / Entorno y Conectividad
-5. Llamado a coordinar visita.
-Sé profesional, elegante y persuasivo.`;
+5. Llamado a coordinar visita al WhatsApp de Melsa.
+Sé cercano, profesional, elegante y persuasivo.`;
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -165,6 +209,5 @@ Presentamos una excelente propiedad diseñada para quienes buscan confort, conec
 ### Entorno y Conectividad
 Sector consolidado de alta demanda, excelente plusvalía y seguridad para vivir o invertir.
 
-¡Contáctanos para coordinar una visita y recibir la ficha técnica completa!`;
+¡Contáctanos al WhatsApp +56 9 9989 9421 para coordinar una visita y recibir la ficha técnica completa!`;
 }
-

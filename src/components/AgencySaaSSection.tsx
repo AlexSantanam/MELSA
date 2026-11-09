@@ -84,8 +84,8 @@ export const AgencySaaSSection: React.FC<AgencySaaSSectionProps> = ({
           </p>
         </div>
 
-        {/* 4 Core Pillars of Value */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
+        {/* 6 Core Pillars of Value (Superando a Altenda) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
           
           {/* Pillar 1 */}
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 group">
@@ -94,33 +94,55 @@ export const AgencySaaSSection: React.FC<AgencySaaSSectionProps> = ({
             </div>
             <h3 className="text-lg font-bold text-gray-900 mb-2">Control de Arriendos & IPC</h3>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Cálculo automático de reajustes por variación de la UF y el IPC del INE. Fechas de pago, morosidad y contratos siempre al día.
+              Cálculo automático de reajustes por variación de la UF y el IPC del INE. Historial de contratos, vencimientos y ocupación siempre al día.
             </p>
           </div>
 
           {/* Pillar 2 */}
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 group">
             <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <DollarSign className="w-6 h-6" />
+              <MessageCircle className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Cobro & Liquidación 1-Clic</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Cobranzas Multicanal Automáticas</h3>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Descuento automático de tu comisión de corretaje y deducciones. Genera liquidaciones en PDF para tus propietarios al instante.
+              Recordatorios programados por <strong>WhatsApp, SMS y Correo Electrónico</strong>. Reduce la morosidad a cero sin pasar horas cobrando por teléfono.
             </p>
           </div>
 
           {/* Pillar 3 */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 group">
+            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <DollarSign className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Liquidaciones a Propietarios en 1 Clic</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Descuento automático de comisiones de administración, gastos comunes y comprobantes oficiales en PDF listos para transferir al banco del dueño.
+            </p>
+          </div>
+
+          {/* Pillar 4 */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 group">
+            <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Users className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Portales de Clientes (Dueño & Arrendatario)</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Acceso transparente 24/7: el propietario revisa sus liquidaciones históricas y el arrendatario consulta sus fechas de pago y contratos firmados.
+            </p>
+          </div>
+
+          {/* Pillar 5 */}
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 group">
             <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <TrendingUp className="w-6 h-6" />
             </div>
             <h3 className="text-lg font-bold text-gray-900 mb-2">Pipeline CRM de Ventas</h3>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Embudo visual desde la captación hasta la promesa y escritura. Control transparente de división de comisiones entre agentes.
+              Embudo visual desde la captación hasta la promesa y escritura. Coordinación de visitas comerciales y reparto transparente de comisiones de equipo.
             </p>
           </div>
 
-          {/* Pillar 4 (Exclusivo Melsa) */}
+          {/* Pillar 6 (Exclusivo Melsa) */}
           <div className="bg-white rounded-2xl p-6 border-2 border-[#D02126]/30 shadow-sm hover:shadow-md transition-all duration-300 group relative">
             <div className="absolute -top-3 right-4 px-2 py-0.5 rounded-full bg-[#D02126] text-white text-[10px] font-bold tracking-wider uppercase">
               Exclusivo Melsa

@@ -43,11 +43,15 @@ interface AgencyWorkspaceViewProps {
 
 export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({ currentUser }) => {
   // Navigation Sub-tab for Agency
-  const [activeTab, setActiveTab] = useState<'rentals' | 'settlement' | 'maintenance' | 'sales' | 'plans'>('rentals');
+  const [activeTab, setActiveTab] = useState<'rentals' | 'settlement' | 'portals' | 'maintenance' | 'sales' | 'plans'>('rentals');
 
   // Agency Subscription Plan
   const [currentPlan, setCurrentPlan] = useState<AgencyPlanTier>(currentUser.agencyPlan || 'intermedio');
   const [planChangeAlert, setPlanChangeAlert] = useState<string | null>(null);
+
+  // Client Portals Preview State (Propietarios & Arrendatarios)
+  const [portalPreviewMode, setPortalPreviewMode] = useState<'owner' | 'tenant'>('owner');
+  const [copiedLinkNotice, setCopiedLinkNotice] = useState<string | null>(null);
 
   // Contracts State
   const [contracts, setContracts] = useState<AgencyRentalContract[]>(MOCK_AGENCY_CONTRACTS);
@@ -246,6 +250,18 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({ curren
         >
           <DollarSign className="w-4 h-4 text-emerald-500" />
           <span>Liquidación a Propietarios</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('portals')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'portals'
+              ? 'bg-[#0F1115] text-white shadow-sm'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-black'
+          }`}
+        >
+          <Users className="w-4 h-4 text-purple-500" />
+          <span>Portales para Clientes (Dueño & Inquilino)</span>
         </button>
 
         <button
@@ -709,7 +725,277 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({ curren
       )}
 
       {/* ----------------------------------------------------------------- */}
-      {/* TAB 3: REPARACIONES & TICKET TÉCNICO SELLO MELSA (DIFERENCIADOR)  */}
+      {/* TAB 3: PORTALES DE CLIENTES (PROPIETARIO & ARRENDATARIO)          */}
+      {/* ----------------------------------------------------------------- */}
+      {activeTab === 'portals' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          
+          {/* Header Description */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 uppercase">
+                  Tecnología para Clientes
+                </span>
+                <h2 className="text-lg font-bold text-gray-900 font-serif-title">
+                  Portales de Auto-Atención para Propietarios e Inquilinos
+                </h2>
+              </div>
+              <p className="text-xs text-gray-500">
+                Entrega acceso transparente 24/7 sin llamadas ni correos repetitivos. Cada cliente cuenta con su propio enlace seguro y personalizado.
+              </p>
+            </div>
+
+            {/* Toggle Preview Mode */}
+            <div className="flex p-1 bg-gray-100 rounded-2xl shrink-0">
+              <button
+                type="button"
+                onClick={() => setPortalPreviewMode('owner')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  portalPreviewMode === 'owner'
+                    ? 'bg-white text-gray-900 shadow-xs'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                <Building2 className="w-4 h-4 text-[#D02126]" />
+                <span>Portal Propietario</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPortalPreviewMode('tenant')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  portalPreviewMode === 'tenant'
+                    ? 'bg-white text-gray-900 shadow-xs'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                <Users className="w-4 h-4 text-purple-600" />
+                <span>Portal Arrendatario</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Shareable Link Bar */}
+          <div className="bg-[#FAF9F8] p-4 rounded-2xl border border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-gray-600">
+              <span className="font-semibold text-gray-800">
+                Enlace seguro {portalPreviewMode === 'owner' ? 'para el Dueño' : 'para el Arrendatario'}:
+              </span>
+              <code className="bg-white px-2.5 py-1 rounded-lg border border-gray-200 text-[11px] font-mono text-[#D02126]">
+                {portalPreviewMode === 'owner' 
+                  ? 'https://melsa.cl/portal/propietario/gonzalo-matte-p-604'
+                  : 'https://melsa.cl/portal/arrendatario/camila-larrain-a-604'}
+              </code>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setCopiedLinkNotice('¡Enlace copiado al portapapeles!');
+                  setTimeout(() => setCopiedLinkNotice(null), 3000);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 font-bold text-xs transition-all cursor-pointer"
+              >
+                Copiar Enlace
+              </button>
+              <a
+                href={`https://wa.me/56999899421?text=Hola,%20te%20comparto%20el%20acceso%20a%20tu%20portal%20inmobiliario%20de%20administraci%C3%B3n`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3.5 py-1.5 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-white font-bold text-xs flex items-center gap-1.5 transition-all"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>Enviar por WhatsApp</span>
+              </a>
+            </div>
+          </div>
+
+          {copiedLinkNotice && (
+            <p className="text-xs text-center text-emerald-600 font-bold animate-in fade-in">
+              ✓ {copiedLinkNotice}
+            </p>
+          )}
+
+          {/* SIMULATED CLIENT PORTAL SCREEN */}
+          <div className="bg-white rounded-3xl border-2 border-gray-200 shadow-xl overflow-hidden">
+            
+            {/* Fake Browser Window Top Header */}
+            <div className="bg-[#0F1115] text-white px-6 py-4 flex items-center justify-between border-b border-gray-800">
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+                </div>
+                <span className="text-xs text-gray-300 font-mono hidden sm:inline">
+                  {portalPreviewMode === 'owner' 
+                    ? 'melsa.cl/portal/propietario • Vista Dueño' 
+                    : 'melsa.cl/portal/arrendatario • Vista Inquilino'}
+                </span>
+              </div>
+              <span className="text-[11px] font-bold text-[#D02126] bg-white/10 px-2.5 py-1 rounded-lg">
+                Agencia: {currentUser.companyName || 'Andes Propiedades SpA'}
+              </span>
+            </div>
+
+            {/* A. OWNER PORTAL VIEW */}
+            {portalPreviewMode === 'owner' ? (
+              <div className="p-6 sm:p-8 space-y-6 bg-gradient-to-b from-[#FAF9F8] to-white">
+                
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-6">
+                  <div>
+                    <span className="text-xs uppercase font-bold text-gray-400 block">Portal Privado del Propietario</span>
+                    <h3 className="text-xl sm:text-2xl font-bold font-serif-title text-gray-900 mt-1">
+                      Gonzalo Matte Pérez
+                    </h3>
+                    <span className="text-xs text-gray-500">RUT: 11.450.823-2 • Cuenta activa en Andes Propiedades</span>
+                  </div>
+
+                  <div className="bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-2xl text-right">
+                    <span className="text-[10px] uppercase font-bold text-emerald-800 block">Estado Arriendo Noviembre</span>
+                    <span className="text-sm font-black text-emerald-700">✓ Arriendo Pagado al Día</span>
+                  </div>
+                </div>
+
+                {/* Property Card in Owner Portal */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Inmueble Administrado</span>
+                    <h4 className="font-bold text-gray-900 text-sm">Av. Vitacura 4820, Depto 604</h4>
+                    <span className="text-xs text-gray-500">Vitacura, Región Metropolitana</span>
+                    <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-xs">
+                      <span className="text-gray-500">Inquilina:</span>
+                      <strong className="text-gray-800">Camila Larraín</strong>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Renta Mensual Pactada</span>
+                    <h4 className="font-black text-gray-900 text-lg">$1.150.000 CLP</h4>
+                    <span className="text-xs text-gray-500">Reajuste por UF Diaria (~30.2 UF)</span>
+                    <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-xs">
+                      <span className="text-gray-500">Contrato:</span>
+                      <strong className="text-emerald-700">Vigente a Dic 2026</strong>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Transferencia Líquida Mes</span>
+                    <h4 className="font-black text-emerald-600 text-lg">$1.058.000 CLP</h4>
+                    <span className="text-xs text-gray-500">Banco Santander Cta Cte</span>
+                    <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-xs">
+                      <span className="text-gray-500">Comisión 8%:</span>
+                      <strong className="text-gray-800">- $92.000 CLP</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* History of Monthly Settlements in Owner Portal */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs">
+                  <h4 className="font-bold text-gray-900 text-sm mb-3">Historial de Liquidaciones & Comprobantes Oficiales</h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-[#D02126]" />
+                        <div>
+                          <span className="font-bold text-gray-800 block">Liquidación Noviembre 2026</span>
+                          <span className="text-[11px] text-gray-400">Transferido el 06/11/2026 • Monto líquido: $1.058.000</span>
+                        </div>
+                      </div>
+                      <button className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 font-bold hover:bg-gray-100 flex items-center gap-1 text-[11px]">
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Descargar PDF</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-[#D02126]" />
+                        <div>
+                          <span className="font-bold text-gray-800 block">Liquidación Octubre 2026</span>
+                          <span className="text-[11px] text-gray-400">Transferido el 06/10/2026 • Monto líquido: $1.058.000</span>
+                        </div>
+                      </div>
+                      <button className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 font-bold hover:bg-gray-100 flex items-center gap-1 text-[11px]">
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Descargar PDF</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            ) : (
+              /* B. TENANT PORTAL VIEW */
+              <div className="p-6 sm:p-8 space-y-6 bg-gradient-to-b from-[#FAF9F8] to-white">
+                
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-6">
+                  <div>
+                    <span className="text-xs uppercase font-bold text-gray-400 block">Portal Privado del Arrendatario</span>
+                    <h3 className="text-xl sm:text-2xl font-bold font-serif-title text-gray-900 mt-1">
+                      Camila Larraín Echenique
+                    </h3>
+                    <span className="text-xs text-gray-500">Inmueble: Av. Vitacura 4820, Depto 604 • Administra: Andes Propiedades</span>
+                  </div>
+
+                  <div className="bg-amber-50 border border-amber-200 px-4 py-2 rounded-2xl text-right">
+                    <span className="text-[10px] uppercase font-bold text-amber-800 block">Próximo Vencimiento</span>
+                    <span className="text-sm font-black text-amber-900">05 de Diciembre 2026</span>
+                  </div>
+                </div>
+
+                {/* Tenant Payment Card */}
+                <div className="bg-white rounded-3xl p-6 border-2 border-purple-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
+                  <div>
+                    <span className="text-xs uppercase font-bold text-purple-700 block mb-1">Monto a Pagar del Mes</span>
+                    <h4 className="text-3xl font-black text-gray-900">$1.150.000 CLP</h4>
+                    <p className="text-xs text-gray-500 mt-1">Canon mensual equivalente a 30.2 UF calculada al día.</p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <button className="px-5 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2">
+                      <CreditCard className="w-4 h-4" />
+                      <span>Pagar con Webpay Plus</span>
+                    </button>
+                    <button className="px-5 py-3 rounded-xl bg-[#0F1115] hover:bg-black text-white font-bold text-xs shadow-md flex items-center justify-center gap-2">
+                      <span>Pagar con Transferencia (Khipu)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tenant Service Request (Sello Melsa) */}
+                <div className="bg-gradient-to-r from-red-50 to-amber-50 rounded-2xl p-6 border border-red-200/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#D02126] text-white flex items-center justify-center shrink-0">
+                      <Wrench className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-sm">¿Problemas o averías en el departamento?</h4>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Reporta filtraciones de agua, fallas eléctricas o cerrajería. Asignamos técnicos auditados con Sello Melsa con garantía.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => setActiveTab('maintenance')}
+                    className="px-4 py-2.5 rounded-xl bg-[#D02126] hover:bg-[#B81B1F] text-white text-xs font-bold shrink-0 shadow-sm transition-all"
+                  >
+                    + Reportar Avería
+                  </button>
+                </div>
+
+              </div>
+            )}
+
+          </div>
+
+        </div>
+      )}
+
+      {/* ----------------------------------------------------------------- */}
+      {/* TAB 4: REPARACIONES & TICKET TÉCNICO SELLO MELSA (DIFERENCIADOR)  */}
       {/* ----------------------------------------------------------------- */}
       {activeTab === 'maintenance' && (
         <div className="space-y-6">

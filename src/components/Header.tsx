@@ -81,18 +81,18 @@ export const Header: React.FC<HeaderProps> = ({
       <nav
         className={`w-full transition-all duration-300 ${
           isScrolled
-            ? 'bg-white/95 backdrop-blur-md shadow-md py-3 border-b border-[#D02126]/20'
-            : 'bg-white/95 backdrop-blur-sm py-4 border-b border-gray-100 shadow-sm'
+            ? 'bg-white/95 backdrop-blur-md shadow-md py-2.5 border-b border-[#D02126]/20'
+            : 'bg-white/95 backdrop-blur-sm py-3.5 border-b border-gray-100 shadow-sm'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
           {/* Logo Aligned Left */}
-          <a href="#inicio" className="flex items-center focus:outline-none">
-            <MelsaLogo height={isScrolled ? 42 : 48} />
+          <a href="#inicio" className="flex items-center shrink-0 focus:outline-none">
+            <MelsaLogo height={isScrolled ? 38 : 44} />
           </a>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden lg:flex items-center space-x-7">
+          <div className="hidden xl:flex items-center gap-3.5 2xl:gap-5.5">
             {navLinks.map((link) => (
               <a
                 key={link.label}
@@ -106,11 +106,11 @@ export const Header: React.FC<HeaderProps> = ({
                     onOpenCommunities?.();
                   }
                 }}
-                className="text-sm font-medium text-[#0F1115] hover:text-[#D02126] transition-colors relative py-1 group flex items-center gap-1.5"
+                className="text-xs 2xl:text-sm font-semibold text-[#0F1115] hover:text-[#D02126] transition-colors relative py-1.5 whitespace-nowrap flex items-center gap-1.5 shrink-0 group leading-none"
               >
                 <span>{link.label}</span>
                 {link.badge && (
-                  <span className="text-[10px] font-black uppercase px-1.5 py-0.2 rounded-full bg-red-500/10 text-[#D02126] border border-red-500/20">
+                  <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-red-50 text-[#D02126] border border-red-200/80 whitespace-nowrap shrink-0 leading-none inline-flex items-center">
                     {link.badge}
                   </span>
                 )}
@@ -120,31 +120,31 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* 1 Solo Botón Superior Derecho: Iniciar Sesión / Mi Cuenta */}
-          <div className="hidden sm:flex items-center">
+          <div className="hidden sm:flex items-center shrink-0">
             <button
               onClick={onOpenIntranetModal}
-              className="relative group inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white bg-[#D02126] hover:bg-[#B81B1F] shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer"
+              className="relative group inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-xs 2xl:text-sm font-bold text-white bg-[#D02126] hover:bg-[#B81B1F] shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer whitespace-nowrap shrink-0"
             >
               {currentUser ? (
                 currentUser.role === 'admin' ? (
                   <>
-                    <ShieldCheck className="w-4 h-4 text-white" />
+                    <ShieldCheck className="w-4 h-4 text-white shrink-0" />
                     <span>Admin Melsa</span>
                   </>
                 ) : currentUser.role === 'agency' ? (
                   <>
-                    <Building2 className="w-4 h-4 text-white" />
+                    <Building2 className="w-4 h-4 text-white shrink-0" />
                     <span>Mi Agencia ({currentUser.name.split(' ')[0]})</span>
                   </>
                 ) : (
                   <>
-                    <User className="w-4 h-4 text-white" />
+                    <User className="w-4 h-4 text-white shrink-0" />
                     <span>Mi Panel ({currentUser.name.split(' ')[0]})</span>
                   </>
                 )
               ) : (
                 <>
-                  <User className="w-4 h-4 text-white" />
+                  <User className="w-4 h-4 text-white shrink-0" />
                   <span>INICIAR SESIÓN</span>
                 </>
               )}
@@ -152,10 +152,10 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="lg:hidden flex items-center gap-2">
+          <div className="xl:hidden flex items-center gap-2">
             <button
               onClick={onOpenIntranetModal}
-              className="p-2 text-xs font-semibold text-white bg-[#D02126] rounded-xl sm:hidden flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="p-2 text-xs font-semibold text-white bg-[#D02126] rounded-xl sm:hidden flex items-center gap-1.5 cursor-pointer shadow-sm whitespace-nowrap"
             >
               <User className="w-3.5 h-3.5 text-white" />
               <span>{currentUser ? (currentUser.role === 'admin' ? 'Admin' : 'Mi Panel') : 'INICIAR SESIÓN'}</span>
@@ -172,7 +172,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Mobile Dropdown Drawer */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden bg-white border-b border-gray-200 shadow-xl px-4 pt-3 pb-6 space-y-3 animate-in slide-in-from-top duration-300">
+          <div className="xl:hidden bg-white border-b border-gray-200 shadow-xl px-4 pt-3 pb-6 space-y-3 animate-in slide-in-from-top duration-300">
             {navLinks.map((link) => (
               <a
                 key={link.label}

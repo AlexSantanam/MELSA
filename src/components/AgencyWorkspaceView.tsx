@@ -769,9 +769,9 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             >
               <span className="flex items-center gap-1.5 font-bold">
                 <span className="w-2 h-2 rounded-full bg-[#D02126]" />
-                Asistente Melsa
+                Activación de Corredora
               </span>
-              <span className="text-[10px] text-[#D02126] font-bold bg-rose-50 px-1.5 py-0.5 rounded">1-8</span>
+              <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">88%</span>
             </button>
           </div>
         </aside>

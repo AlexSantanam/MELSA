@@ -27,6 +27,8 @@ import {
   Download, 
   TrendingUp, 
   LogOut, 
+  Pencil,
+  Edit3,
   Settings, 
   Bell, 
   Trash2, 
@@ -431,6 +433,20 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
   const [newPropOwner, setNewPropOwner] = useState('');
   const [newPropPhotos, setNewPropPhotos] = useState<string[]>([]);
 
+  // Edit Property State (Para corregir precio, fotos y datos)
+  const [editingProperty, setEditingProperty] = useState<AgencyPropertyItem | null>(null);
+  const [editPropTitle, setEditPropTitle] = useState('');
+  const [editPropAddress, setEditPropAddress] = useState('');
+  const [editPropCommune, setEditPropCommune] = useState('');
+  const [editPropType, setEditPropType] = useState<'Depto' | 'Casa' | 'Oficina'>('Casa');
+  const [editPropRent, setEditPropRent] = useState<number>(0);
+  const [editPropBedrooms, setEditPropBedrooms] = useState<number>(3);
+  const [editPropBathrooms, setEditPropBathrooms] = useState<number>(2);
+  const [editPropSurfaceM2, setEditPropSurfaceM2] = useState<number>(100);
+  const [editPropStatus, setEditPropStatus] = useState<'disponible' | 'arrendada' | 'en_mantencion'>('disponible');
+  const [editPropPhotos, setEditPropPhotos] = useState<string[]>([]);
+  const [multimodalPhotos, setMultimodalPhotos] = useState<string[]>([]);
+
   // Contracts State
   const [contracts, setContracts] = useState<AgencyRentalContract[]>(MOCK_AGENCY_CONTRACTS);
 
@@ -550,6 +566,45 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
     setNewPropAddress('');
     setNewPropOwner('');
     setNewPropPhotos([]);
+  };
+
+  // Save Edited Property Handler
+  const handleSaveEditedProperty = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProperty) return;
+
+    const updatedCoverPhoto = editPropPhotos[0] || editingProperty.coverPhoto || (editPropType === 'Casa'
+      ? 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800'
+      : 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=800');
+
+    setProperties(prev => prev.map(p => {
+      if (p.id !== editingProperty.id) return p;
+      return {
+        ...p,
+        title: editPropTitle.trim() || p.title,
+        address: editPropAddress.trim() || p.address,
+        commune: editPropCommune.trim() || p.commune,
+        type: editPropType,
+        rentCLP: Number(editPropRent) || 0,
+        bedrooms: Number(editPropBedrooms) || p.bedrooms,
+        bathrooms: Number(editPropBathrooms) || p.bathrooms,
+        surfaceM2: Number(editPropSurfaceM2) || p.surfaceM2,
+        status: editPropStatus,
+        coverPhoto: updatedCoverPhoto
+      };
+    }));
+
+    setEditingProperty(null);
+    setCopilotActionNotice(`✓ Propiedad "${editPropTitle}" actualizada correctamente.`);
+  };
+
+  // Delete Property Handler
+  const handleDeleteProperty = (propertyId: string) => {
+    if (confirm('¿Estás seguro de que deseas eliminar esta propiedad de tu cartera?')) {
+      setProperties(prev => prev.filter(p => p.id !== propertyId));
+      setEditingProperty(null);
+      setCopilotActionNotice('✓ Propiedad eliminada de la cartera.');
+    }
   };
 
   // Add Agenda Event
@@ -1905,6 +1960,29 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                         <div>
                           <div className="relative h-44 w-full bg-gray-100">
                             <img src={prop.coverPhoto} alt={prop.title} className="w-full h-full object-cover" />
+                            
+                            {/* Botón Editar sobre la imagen */}
+                            <button
+                              onClick={() => {
+                                setEditingProperty(prop);
+                                setEditPropTitle(prop.title);
+                                setEditPropAddress(prop.address);
+                                setEditPropCommune(prop.commune);
+                                setEditPropType(prop.type);
+                                setEditPropRent(prop.rentCLP);
+                                setEditPropBedrooms(prop.bedrooms);
+                                setEditPropBathrooms(prop.bathrooms);
+                                setEditPropSurfaceM2(prop.surfaceM2);
+                                setEditPropStatus(prop.status);
+                                setEditPropPhotos(prop.coverPhoto ? [prop.coverPhoto] : []);
+                              }}
+                              className="absolute top-3 left-3 bg-white/95 hover:bg-white text-gray-800 hover:text-[#D02126] text-[11px] font-bold px-2.5 py-1 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5 backdrop-blur-xs border border-gray-200"
+                              title="Editar fotos, precio y datos"
+                            >
+                              <Pencil className="w-3 h-3 text-[#D02126]" />
+                              <span>Editar</span>
+                            </button>
+
                             <span className={`absolute top-3 right-3 text-[10px] font-bold px-2.5 py-1 rounded-full ${
                               prop.status === 'arrendada' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-[#D02126] text-white'
                             }`}>
@@ -1939,6 +2017,26 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                               <span className="text-base font-bold text-[#D02126]">{formatCLP(prop.rentCLP)}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setEditingProperty(prop);
+                                  setEditPropTitle(prop.title);
+                                  setEditPropAddress(prop.address);
+                                  setEditPropCommune(prop.commune);
+                                  setEditPropType(prop.type);
+                                  setEditPropRent(prop.rentCLP);
+                                  setEditPropBedrooms(prop.bedrooms);
+                                  setEditPropBathrooms(prop.bathrooms);
+                                  setEditPropSurfaceM2(prop.surfaceM2);
+                                  setEditPropStatus(prop.status);
+                                  setEditPropPhotos(prop.coverPhoto ? [prop.coverPhoto] : []);
+                                }}
+                                className="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 border border-gray-200"
+                                title="Editar fotos, precio y características"
+                              >
+                                <Pencil className="w-3 h-3 text-[#D02126]" />
+                                <span>Editar</span>
+                              </button>
                               <button
                                 onClick={() => {
                                   setPitchPropertyId(prop.id);
@@ -4395,6 +4493,227 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
       )}
 
       {/* ============================================================== */}
+      {/* MODAL: EDITAR PROPIEDAD (PRECIO, FOTOS, METROS, DETALLES)      */}
+      {/* ============================================================== */}
+      {editingProperty && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 space-y-5 my-8 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-[#D02126]" />
+                <div>
+                  <h3 className="text-base font-extrabold text-[#0F1115]">Editar Propiedad</h3>
+                  <p className="text-[11px] text-gray-500">Modifica fotos, canon mensual y características</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingProperty(null)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditedProperty} className="space-y-4 text-xs">
+              
+              {/* Título */}
+              <div>
+                <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">Título de la Propiedad</label>
+                <input
+                  type="text"
+                  required
+                  value={editPropTitle}
+                  onChange={(e) => setEditPropTitle(e.target.value)}
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-[#0F1115] outline-none focus:border-[#D02126]"
+                />
+              </div>
+
+              {/* Dirección y Comuna */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">Dirección / Calle</label>
+                  <input
+                    type="text"
+                    required
+                    value={editPropAddress}
+                    onChange={(e) => setEditPropAddress(e.target.value)}
+                    className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-[#0F1115] outline-none focus:border-[#D02126]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">Comuna</label>
+                  <input
+                    type="text"
+                    required
+                    value={editPropCommune}
+                    onChange={(e) => setEditPropCommune(e.target.value)}
+                    className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-[#0F1115] outline-none focus:border-[#D02126]"
+                  />
+                </div>
+              </div>
+
+              {/* Canon Mensual ($CLP) y Estado */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3 bg-rose-50/50 rounded-2xl border border-rose-200/80">
+                  <label className="block text-[11px] font-black text-[#D02126] uppercase mb-1">
+                    Canon Mensual ($CLP) *
+                  </label>
+                  <input
+                    type="number"
+                    step="10000"
+                    required
+                    value={editPropRent}
+                    onChange={(e) => setEditPropRent(Number(e.target.value))}
+                    className="w-full bg-white border border-rose-300 rounded-xl px-3 py-2 text-sm font-black text-[#D02126] outline-none focus:ring-1 focus:ring-[#D02126]"
+                  />
+                  <span className="text-[10px] text-gray-500 mt-1 block">
+                    Formato: {formatCLP(editPropRent)}
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">Estado del Inmueble</label>
+                  <select
+                    value={editPropStatus}
+                    onChange={(e) => setEditPropStatus(e.target.value as any)}
+                    className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-[#0F1115] outline-none focus:border-[#D02126]"
+                  >
+                    <option value="disponible">Disponible</option>
+                    <option value="arrendada">Arrendada</option>
+                    <option value="en_mantencion">En mantención</option>
+                  </select>
+
+                  <div className="mt-2">
+                    <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">Tipo</label>
+                    <select
+                      value={editPropType}
+                      onChange={(e) => setEditPropType(e.target.value as any)}
+                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-[#0F1115] outline-none focus:border-[#D02126]"
+                    >
+                      <option value="Casa">Casa</option>
+                      <option value="Depto">Departamento</option>
+                      <option value="Oficina">Oficina</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dormitorios, Baños, Metros */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">Dormitorios</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="15"
+                    value={editPropBedrooms}
+                    onChange={(e) => setEditPropBedrooms(Number(e.target.value))}
+                    className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-[#0F1115] outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">Baños</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={editPropBathrooms}
+                    onChange={(e) => setEditPropBathrooms(Number(e.target.value))}
+                    className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-[#0F1115] outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1">M² Superficie</label>
+                  <input
+                    type="number"
+                    min="15"
+                    value={editPropSurfaceM2}
+                    onChange={(e) => setEditPropSurfaceM2(Number(e.target.value))}
+                    className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-[#0F1115] outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Fotografías Uploader */}
+              <div className="space-y-2 pt-2 border-t border-gray-100">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase">
+                    Fotografías de la Propiedad (Sube fotos reales)
+                  </label>
+                  <span className="text-[10px] text-gray-400">JPG / PNG</span>
+                </div>
+
+                <PropertyPhotoUploader
+                  images={editPropPhotos}
+                  onChange={setEditPropPhotos}
+                  maxFiles={6}
+                  label="Fotos de la Propiedad"
+                />
+
+                {/* Preset Suggestions */}
+                <div className="pt-2 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] text-gray-400 font-semibold">O seleccionar foto representativa:</span>
+                  <button
+                    type="button"
+                    onClick={() => setEditPropPhotos(['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800'])}
+                    className="text-[10px] px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-200 hover:border-[#D02126] text-gray-700 cursor-pointer font-medium"
+                  >
+                    🏡 Casa con Patio
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditPropPhotos(['https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800'])}
+                    className="text-[10px] px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-200 hover:border-[#D02126] text-gray-700 cursor-pointer font-medium"
+                  >
+                    🏠 Casa Moderna
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditPropPhotos(['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=800'])}
+                    className="text-[10px] px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-200 hover:border-[#D02126] text-gray-700 cursor-pointer font-medium"
+                  >
+                    🌿 Parcela / Jardín
+                  </button>
+                </div>
+              </div>
+
+              {/* Botones de Acción y Eliminar */}
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => handleDeleteProperty(editingProperty.id)}
+                  className="px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Eliminar Propiedad</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingProperty(null)}
+                    className="px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-bold text-xs cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl bg-[#D02126] hover:bg-[#b01b20] text-white font-bold text-xs transition-colors shadow-sm cursor-pointer"
+                  >
+                    Guardar Cambios
+                  </button>
+                </div>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
       {/* MODAL: NUEVA ACTIVIDAD / REUNIÓN                               */}
       {/* ============================================================== */}
       {isAddingActivityModal && (
@@ -5363,14 +5682,27 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                   </span>
                 </div>
 
-                <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-1">
-                  <span className="text-[10px] text-gray-400 uppercase font-bold">Título de la Propiedad</span>
-                  <input
-                    type="text"
-                    value={extractedPropertyResult.title}
-                    onChange={(e) => setExtractedPropertyResult({ ...extractedPropertyResult, title: e.target.value })}
-                    className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 font-bold text-[#0F1115] text-xs"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-1">
+                    <span className="text-[10px] text-gray-400 uppercase font-bold">Título de la Propiedad</span>
+                    <input
+                      type="text"
+                      value={extractedPropertyResult.title}
+                      onChange={(e) => setExtractedPropertyResult({ ...extractedPropertyResult, title: e.target.value })}
+                      className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 font-bold text-[#0F1115] text-xs outline-none focus:border-[#D02126]"
+                    />
+                  </div>
+
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-1">
+                    <span className="text-[10px] text-gray-400 uppercase font-bold">Dirección / Calle</span>
+                    <input
+                      type="text"
+                      value={extractedPropertyResult.address}
+                      onChange={(e) => setExtractedPropertyResult({ ...extractedPropertyResult, address: e.target.value })}
+                      placeholder="Ej. Valentín Letelier 693, Villa Alemana"
+                      className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 font-bold text-[#0F1115] text-xs outline-none focus:border-[#D02126]"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -5384,31 +5716,119 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     />
                   </div>
                   <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200">
-                    <span className="text-[10px] text-gray-400 block uppercase font-bold">Distribución</span>
-                    <span className="font-bold text-[#0F1115] block pt-1">{extractedPropertyResult.bedrooms}D / {extractedPropertyResult.bathrooms}B</span>
+                    <span className="text-[10px] text-gray-400 block uppercase font-bold">Dorms / Baños</span>
+                    <div className="flex items-center gap-1 pt-0.5">
+                      <input
+                        type="number"
+                        min="1"
+                        max="12"
+                        value={extractedPropertyResult.bedrooms}
+                        onChange={(e) => setExtractedPropertyResult({ ...extractedPropertyResult, bedrooms: Number(e.target.value) })}
+                        className="w-10 bg-white border border-gray-200 rounded px-1 py-0.5 font-bold text-[#0F1115] text-xs"
+                      />
+                      <span className="text-gray-400 font-bold">D /</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={extractedPropertyResult.bathrooms}
+                        onChange={(e) => setExtractedPropertyResult({ ...extractedPropertyResult, bathrooms: Number(e.target.value) })}
+                        className="w-10 bg-white border border-gray-200 rounded px-1 py-0.5 font-bold text-[#0F1115] text-xs"
+                      />
+                      <span className="text-gray-400 font-bold">B</span>
+                    </div>
                   </div>
                   <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200">
-                    <span className="text-[10px] text-gray-400 block uppercase font-bold">Superficie</span>
-                    <span className="font-bold text-[#0F1115] block pt-1">{extractedPropertyResult.surfaceM2} m²</span>
+                    <span className="text-[10px] text-gray-400 block uppercase font-bold">Superficie M²</span>
+                    <input
+                      type="number"
+                      min="15"
+                      value={extractedPropertyResult.surfaceM2}
+                      onChange={(e) => setExtractedPropertyResult({ ...extractedPropertyResult, surfaceM2: Number(e.target.value) })}
+                      className="w-full bg-white border border-gray-200 rounded px-1.5 py-0.5 font-bold text-[#0F1115] text-xs mt-0.5"
+                    />
                   </div>
-                  <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200">
-                    <span className="text-[10px] text-gray-400 block uppercase font-bold">Canon Arriendo</span>
-                    <span className="font-bold text-[#D02126] block pt-1">{formatCLP(extractedPropertyResult.rentCLP)}</span>
+                  <div className="p-2.5 bg-rose-50/70 rounded-xl border border-rose-200">
+                    <span className="text-[10px] text-[#D02126] block uppercase font-black">Canon Arriendo ($) *</span>
+                    <input
+                      type="number"
+                      step="10000"
+                      placeholder="Ej. 750000"
+                      value={extractedPropertyResult.rentCLP || ''}
+                      onChange={(e) => setExtractedPropertyResult({ ...extractedPropertyResult, rentCLP: Number(e.target.value) })}
+                      className="w-full bg-white border border-rose-300 rounded px-1.5 py-0.5 font-black text-[#D02126] text-xs mt-0.5 outline-none focus:ring-1 focus:ring-[#D02126]"
+                    />
+                  </div>
+                </div>
+
+                {/* Subir Fotos Reales en la Creación */}
+                <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-gray-600 uppercase font-bold">
+                      📸 Fotos del Inmueble (Sube fotos reales o elige una sugerida)
+                    </span>
+                    <span className="text-[10px] text-gray-400">JPG / PNG</span>
+                  </div>
+
+                  <PropertyPhotoUploader
+                    images={multimodalPhotos}
+                    onChange={setMultimodalPhotos}
+                    maxFiles={6}
+                    label="Fotografías de la Propiedad"
+                  />
+
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[10px] text-gray-400 font-semibold">O seleccionar foto representativa:</span>
+                    <button
+                      type="button"
+                      onClick={() => setMultimodalPhotos(['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800'])}
+                      className="text-[10px] px-2 py-1 rounded-lg bg-white border border-gray-200 hover:border-[#D02126] text-gray-700 cursor-pointer font-medium"
+                    >
+                      🏡 Casa con Patio
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMultimodalPhotos(['https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800'])}
+                      className="text-[10px] px-2 py-1 rounded-lg bg-white border border-gray-200 hover:border-[#D02126] text-gray-700 cursor-pointer font-medium"
+                    >
+                      🏠 Casa Moderna
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMultimodalPhotos(['https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=800'])}
+                      className="text-[10px] px-2 py-1 rounded-lg bg-white border border-gray-200 hover:border-[#D02126] text-gray-700 cursor-pointer font-medium"
+                    >
+                      🏢 Depto / Edificio
+                    </button>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   <div className="p-2 bg-gray-50 rounded-xl border border-gray-200">
                     <span className="text-[10px] text-gray-400 block uppercase font-bold">Estacionamientos</span>
-                    <span className="font-bold text-[#0F1115]">{extractedPropertyResult.parking} unid.</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={extractedPropertyResult.parking}
+                      onChange={(e) => setExtractedPropertyResult({ ...extractedPropertyResult, parking: Number(e.target.value) })}
+                      className="w-full bg-white border border-gray-200 rounded px-1.5 py-0.5 font-bold text-[#0F1115] text-xs mt-0.5"
+                    />
                   </div>
                   <div className="p-2 bg-gray-50 rounded-xl border border-gray-200">
                     <span className="text-[10px] text-gray-400 block uppercase font-bold">Bodegas</span>
-                    <span className="font-bold text-[#0F1115]">{extractedPropertyResult.storage} unid.</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="5"
+                      value={extractedPropertyResult.storage}
+                      onChange={(e) => setExtractedPropertyResult({ ...extractedPropertyResult, storage: Number(e.target.value) })}
+                      className="w-full bg-white border border-gray-200 rounded px-1.5 py-0.5 font-bold text-[#0F1115] text-xs mt-0.5"
+                    />
                   </div>
                   <div className="p-2 bg-gray-50 rounded-xl border border-gray-200">
                     <span className="text-[10px] text-gray-400 block uppercase font-bold">Mantenimiento</span>
-                    <span className="font-bold text-gray-700 truncate block" title={extractedPropertyResult.maintenanceStatus}>
+                    <span className="font-bold text-gray-700 truncate block mt-0.5" title={extractedPropertyResult.maintenanceStatus}>
                       {extractedPropertyResult.maintenanceStatus}
                     </span>
                   </div>
@@ -5417,7 +5837,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                 <div className="space-y-1">
                   <label className="font-bold text-[#0F1115]">Descripción Comercial Generada por IA (SEO Ready):</label>
                   <textarea
-                    rows={5}
+                    rows={4}
                     value={extractedPropertyResult.generatedCopy}
                     onChange={(e) => setExtractedPropertyResult({ ...extractedPropertyResult, generatedCopy: e.target.value })}
                     className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-800 leading-relaxed focus:outline-none focus:border-[#D02126]"
@@ -5427,6 +5847,10 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                 <div className="flex items-center gap-2 pt-1">
                   <button
                     onClick={() => {
+                      const chosenPhoto = multimodalPhotos[0] || (extractedPropertyResult.type === 'Casa'
+                        ? 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800'
+                        : 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=800');
+
                       const newProp: AgencyPropertyItem = {
                         id: 'prop-' + Date.now(),
                         title: extractedPropertyResult.title,
@@ -5436,15 +5860,16 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                         bedrooms: extractedPropertyResult.bedrooms,
                         bathrooms: extractedPropertyResult.bathrooms,
                         surfaceM2: extractedPropertyResult.surfaceM2,
-                        rentCLP: extractedPropertyResult.rentCLP,
+                        rentCLP: Number(extractedPropertyResult.rentCLP) || 0,
                         ownerName: 'Propietario Captado por IA',
                         status: 'disponible',
-                        coverPhoto: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=800'
+                        coverPhoto: chosenPhoto
                       };
                       setProperties(prev => [newProp, ...prev]);
                       setIsMultimodalModalOpen(false);
                       setExtractedPropertyResult(null);
-                      setCopilotActionNotice(`✓ ¡Propiedad "${newProp.title}" incorporada a tu cartera y guardada en el sistema!`);
+                      setMultimodalPhotos([]);
+                      setCopilotActionNotice(`✓ ¡Propiedad "${newProp.title}" incorporada a tu cartera con éxito!`);
                     }}
                     className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2"
                   >
@@ -5453,7 +5878,10 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                   </button>
 
                   <button
-                    onClick={() => setExtractedPropertyResult(null)}
+                    onClick={() => {
+                      setExtractedPropertyResult(null);
+                      setMultimodalPhotos([]);
+                    }}
                     className="px-4 py-3 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold text-xs cursor-pointer"
                   >
                     Reintentar

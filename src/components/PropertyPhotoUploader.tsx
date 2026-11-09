@@ -12,20 +12,29 @@ import {
 import { uploadMultiplePropertyImages, UploadResult } from '../services/storageService';
 
 interface PropertyPhotoUploaderProps {
-  images: string[];
-  onChange: (newImages: string[]) => void;
+  images?: string[];
+  photos?: string[];
+  onChange?: (newImages: string[]) => void;
+  onPhotosChange?: (newImages: string[]) => void;
   maxFiles?: number;
+  maxPhotos?: number;
   label?: string;
   folder?: string;
 }
 
 export const PropertyPhotoUploader: React.FC<PropertyPhotoUploaderProps> = ({
-  images = [],
-  onChange,
-  maxFiles = 8,
+  images: imagesProp,
+  photos: photosProp,
+  onChange: onChangeProp,
+  onPhotosChange: onPhotosChangeProp,
+  maxFiles: maxFilesProp,
+  maxPhotos: maxPhotosProp,
   label = 'Fotografías de la Vivienda / Propiedad',
   folder = 'viviendas'
 }) => {
+  const images = imagesProp || photosProp || [];
+  const onChange = onChangeProp || onPhotosChangeProp || (() => {});
+  const maxFiles = maxFilesProp || maxPhotosProp || 8;
   const [isUploading, setIsUploading] = useState(false);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

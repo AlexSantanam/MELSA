@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Lock, 
@@ -26,12 +26,17 @@ import {
   Edit3,
   MessageSquare,
   Wrench,
-  Check
+  Check,
+  Mail,
+  KeyRound,
+  Copy,
+  Laptop
 } from 'lucide-react';
-import { AuthUser, ProviderApplication, HomeServiceProvider, ProviderProject } from '../types';
+import { AuthUser, ProviderApplication, HomeServiceProvider, ProviderProject, AgencyPlanTier } from '../types';
 import { MOCK_APPLICATIONS, HOME_SERVICE_PROVIDERS, MOCK_AUTH_USERS } from '../data/mockData';
-import { loginUser, logoutUser, registerNewUser } from '../services/authService';
+import { loginUser, logoutUser, registerNewUser, requestEmailOtp, verifyEmailOtp } from '../services/authService';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { MelsaLogo } from './MelsaLogo';
 
 interface IntranetPortalModalProps {
   isOpen: boolean;
@@ -43,6 +48,8 @@ interface IntranetPortalModalProps {
   onUserChange: (user: AuthUser | null) => void;
   onOpenApplicationModal?: () => void;
   onOpenWorkspace?: () => void;
+  initialPlan?: AgencyPlanTier;
+  initialAuthMode?: 'login' | 'register';
 }
 
 export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
@@ -54,25 +61,171 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
   currentUser,
   onUserChange,
   onOpenApplicationModal,
-  onOpenWorkspace
+  onOpenWorkspace,
+  initialPlan,
+  initialAuthMode
 }) => {
   // Auth Mode: 'login' | 'register'
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [emailInput, setEmailInput] = useState('');
+  const [authMode, setAuthMode] = useState<'login' | 'register'>(initialAuthMode || 'login');
+  
+  // Registration Flow (Altenda 3-step: 'plan' -> 'details' -> 'verify' -> 'activated')
+  const [regStep, setRegStep] = useState<'plan' | 'details' | 'verify' | 'activated'>('details');
+  const [regPlan, setRegPlan] = useState<AgencyPlanTier>(initialPlan || 'gratis');
+  const [regName, setRegName] = useState('Alexis Santana');
+  const [regCompany, setRegCompany] = useState('Corredora Los Pinos');
+  const [regEmail, setRegEmail] = useState('alexis.s.m@gmail.com');
+  const [regPhone, setRegPhone] = useState('+56 9 9989 9421');
+  const [regAccountType, setRegAccountType] = useState<'agency' | 'provider' | 'broker'>('agency');
+  const [regCategory, setRegCategory] = useState('Gestión Inmobiliaria');
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [registerSuccessMsg, setRegisterSuccessMsg] = useState<string | null>(null);
+
+  // Login Flow: 'code' (clave al correo OTP) | 'password' (contraseña tradicional)
+  const [loginMethod, setLoginMethod] = useState<'code' | 'password'>('code');
+  const [loginStep, setLoginStep] = useState<'request' | 'verify'>('request');
+  const [emailInput, setEmailInput] = useState('alexis.s.m@gmail.com');
   const [passwordInput, setPasswordInput] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Registration Form State
-  const [regName, setRegName] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regPassword, setRegPassword] = useState('');
-  const [regConfirmPassword, setRegConfirmPassword] = useState('');
-  const [regAccountType, setRegAccountType] = useState<'provider' | 'broker' | 'agency'>('agency');
-  const [regPlan, setRegPlan] = useState<'gratis' | 'basico' | 'intermedio' | 'pro'>('intermedio');
-  const [regCategory, setRegCategory] = useState('Remodelación & Pintura');
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [registerSuccessMsg, setRegisterSuccessMsg] = useState<string | null>(null);
+  // OTP 6-Digit System (Altenda Style)
+  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [activeOtpCode, setActiveOtpCode] = useState<string>('209676');
+  const [isSendingOtp, setIsSendingOtp] = useState<boolean>(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState<boolean>(false);
+  const [activatedUser, setActivatedUser] = useState<AuthUser | null>(null);
+  const [copiedCodeToast, setCopiedCodeToast] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (initialPlan) setRegPlan(initialPlan);
+    if (initialAuthMode) setAuthMode(initialAuthMode);
+  }, [initialPlan, initialAuthMode, isOpen]);
+
+  // Step 2 -> Step 3: Request Activation Code for Registration
+  const handleRequestRegistrationOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+    if (!regEmail || !regEmail.includes('@')) {
+      setLoginError('Por favor ingresa un correo electrónico válido.');
+      return;
+    }
+    if (!regName.trim()) {
+      setLoginError('Por favor ingresa tu nombre completo.');
+      return;
+    }
+
+    setIsSendingOtp(true);
+    const res = requestEmailOtp({
+      email: regEmail,
+      fullName: regName,
+      companyName: regCompany || regName,
+      plan: regPlan,
+      role: regAccountType === 'provider' ? 'provider' : 'agency'
+    });
+    setIsSendingOtp(false);
+
+    if (res.success) {
+      setActiveOtpCode(res.code);
+      setOtpDigits(['', '', '', '', '', '']);
+      setRegStep('verify');
+    }
+  };
+
+  // Login: Request Code for Login
+  const handleRequestLoginOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+    if (!emailInput || !emailInput.includes('@')) {
+      setLoginError('Ingresa un correo electrónico válido.');
+      return;
+    }
+
+    setIsSendingOtp(true);
+    const res = requestEmailOtp({
+      email: emailInput,
+      role: 'agency'
+    });
+    setIsSendingOtp(false);
+
+    if (res.success) {
+      setActiveOtpCode(res.code);
+      setOtpDigits(['', '', '', '', '', '']);
+      setLoginStep('verify');
+    }
+  };
+
+  // Verify OTP (Used in both Registration step 3 and Login OTP step)
+  const handleVerifyOtp = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const fullCode = otpDigits.join('');
+    if (fullCode.length < 6) {
+      setLoginError('Ingresa los 6 dígitos del código de activación.');
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setLoginError(null);
+
+    const email = authMode === 'register' ? regEmail : emailInput;
+    const res = verifyEmailOtp(email, fullCode, {
+      fullName: authMode === 'register' ? regName : undefined,
+      companyName: authMode === 'register' ? (regCompany || regName) : undefined,
+      plan: authMode === 'register' ? regPlan : undefined
+    });
+
+    setIsVerifyingOtp(false);
+
+    if (res.success && res.user) {
+      setActivatedUser(res.user);
+      if (authMode === 'register') {
+        setRegStep('activated');
+      } else {
+        onUserChange(res.user);
+        onClose();
+        onOpenWorkspace?.();
+      }
+    } else {
+      setLoginError(res.error || 'Código incorrecto. Revisa tu correo o haz clic en reenviar.');
+    }
+  };
+
+  const handleDigitChange = (index: number, val: string) => {
+    const clean = val.replace(/[^0-9]/g, '');
+    const updated = [...otpDigits];
+    updated[index] = clean.slice(-1);
+    setOtpDigits(updated);
+
+    if (clean && index < 5) {
+      const next = document.getElementById(`otp-box-${index + 1}`);
+      next?.focus();
+    }
+  };
+
+  const handleDigitKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      const prev = document.getElementById(`otp-box-${index - 1}`);
+      prev?.focus();
+    }
+  };
+
+  const handlePasteOtp = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+    if (pasted) {
+      const updated = [...otpDigits];
+      for (let i = 0; i < 6; i++) {
+        updated[i] = pasted[i] || '';
+      }
+      setOtpDigits(updated);
+      const target = document.getElementById(`otp-box-${Math.min(pasted.length - 1, 5)}`);
+      target?.focus();
+    }
+  };
+
+  const handleAutoFillCode = () => {
+    const code = activeOtpCode || '209676';
+    setOtpDigits(code.split('').slice(0, 6));
+  };
   
   // Admin view tab
   const [adminTab, setAdminTab] = useState<'applications' | 'providers'>('applications');
@@ -258,57 +411,93 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
         {/* 1. AUTH SCREEN: INICIAR SESIÓN O CREAR CUENTA                 */}
         {/* ------------------------------------------------------------- */}
         {!currentUser ? (
-          <div className="max-w-md mx-auto py-4 space-y-5 animate-in fade-in duration-150">
+          <div className="max-w-md mx-auto py-2 space-y-4 animate-in fade-in duration-150">
             
+            {/* Header / Brand */}
             <div className="text-center">
               <div className="w-12 h-12 rounded-2xl bg-[#D02126]/10 text-[#D02126] mx-auto flex items-center justify-center mb-2">
                 <Lock className="w-6 h-6" />
               </div>
               <h3 className="text-2xl font-serif font-bold text-[#0F1115]">
-                {authMode === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta en Melsa'}
+                {authMode === 'login' ? 'Acceso al Sistema Melsa' : 'Crear Cuenta en Melsa'}
               </h3>
               <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
                 {authMode === 'login'
-                  ? 'Acceso a la plataforma de administración o a tu panel privado de colaborador.'
-                  : 'Crea tu cuenta oficial para publicar tus servicios o gestionar tus propiedades.'}
+                  ? 'Ingresa mediante clave enviada a tu correo o con tu contraseña habitual.'
+                  : 'Software para Corredoras & Agencias: arriendos, cobranzas y liquidaciones.'}
               </p>
             </div>
 
-            {/* Switch Tabs: Iniciar Sesión vs Crear Cuenta */}
-            <div className="flex p-1 bg-gray-100 rounded-2xl">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode('login');
-                  setLoginError(null);
-                  setRegisterSuccessMsg(null);
-                }}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  authMode === 'login'
-                    ? 'bg-white text-[#0F1115] shadow-xs'
-                    : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                Iniciar Sesión
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode('register');
-                  setLoginError(null);
-                  setRegisterSuccessMsg(null);
-                }}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  authMode === 'register'
-                    ? 'bg-[#D02126] text-white shadow-xs'
-                    : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                + Crear Cuenta Nueva
-              </button>
-            </div>
+            {/* Stepper (Only visible in registration flow) */}
+            {authMode === 'register' && (
+              <div className="flex items-center justify-center gap-2 sm:gap-4 text-xs font-semibold text-gray-400 py-2 border-b border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setRegStep('plan')}
+                  className={`flex items-center gap-1 transition-colors cursor-pointer ${
+                    regStep === 'plan' ? 'text-[#0B6B67] font-bold' : 'hover:text-gray-700'
+                  }`}
+                >
+                  <span className="text-[10px] uppercase">01</span> Tu plan
+                </button>
+                <span className="text-gray-300">›</span>
+                <button
+                  type="button"
+                  onClick={() => setRegStep('details')}
+                  className={`flex items-center gap-1 transition-colors cursor-pointer ${
+                    regStep === 'details' ? 'text-[#0B6B67] font-bold' : 'hover:text-gray-700'
+                  }`}
+                >
+                  <span className="text-[10px] uppercase">02</span> Tus datos
+                </button>
+                <span className="text-gray-300">›</span>
+                <span className={`flex items-center gap-1 ${
+                  regStep === 'verify' || regStep === 'activated' ? 'text-[#0B6B67] font-bold' : ''
+                }`}>
+                  <span className="text-[10px] uppercase">03</span> Activa tu cuenta
+                </span>
+              </div>
+            )}
 
-            {/* Error & Success Messages */}
+            {/* Switch Tabs: Iniciar Sesión vs Crear Cuenta */}
+            {regStep !== 'activated' && (
+              <div className="flex p-1 bg-gray-100 rounded-2xl">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('login');
+                    setLoginStep('request');
+                    setLoginError(null);
+                    setRegisterSuccessMsg(null);
+                  }}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    authMode === 'login'
+                      ? 'bg-white text-[#0F1115] shadow-xs'
+                      : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                >
+                  Iniciar Sesión
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('register');
+                    setRegStep('details');
+                    setLoginError(null);
+                    setRegisterSuccessMsg(null);
+                  }}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    authMode === 'register'
+                      ? 'bg-[#D02126] text-white shadow-xs'
+                      : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                >
+                  + Crear Cuenta Nueva
+                </button>
+              </div>
+            )}
+
+            {/* Error & Success Alerts */}
             {loginError && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700 animate-in fade-in duration-150">
                 <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
@@ -323,255 +512,603 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
               </div>
             )}
 
-            {/* MODE A: LOGIN FORM */}
+            {/* ========================================================= */}
+            {/* MODE A: LOGIN SCREEN                                      */}
+            {/* ========================================================= */}
             {authMode === 'login' ? (
-              <form onSubmit={handleManualLogin} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
-                    Correo Electrónico
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="ej. admin@melsa.cl o tu-correo@empresa.cl"
-                    className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-3 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] focus:border-[#D02126] outline-none transition-all"
-                  />
-                  <span className="text-[10px] text-gray-400 mt-1 block">
-                    * El correo de administración otorga acceso y control total de auditoría.
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
-                    Contraseña
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-3 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] focus:border-[#D02126] outline-none transition-all"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoggingIn}
-                  className="w-full py-3.5 rounded-xl bg-[#D02126] hover:bg-[#B81B1F] text-white font-semibold text-xs tracking-wider uppercase transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
-                >
-                  {isLoggingIn ? (
-                    <>
-                      <Clock className="w-4 h-4 animate-spin" />
-                      <span>Verificando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-4 h-4" />
-                      <span>INICIAR SESIÓN</span>
-                    </>
-                  )}
-                </button>
-
-                {/* Switch to Register */}
-                <div className="text-center pt-2">
-                  <span className="text-xs text-gray-500">¿No tienes una cuenta aún? </span>
+              <div className="space-y-4">
+                {/* Method selector: Clave al Correo vs Contraseña */}
+                <div className="flex items-center justify-between p-1 bg-gray-50 border border-gray-200 rounded-xl text-xs">
                   <button
                     type="button"
-                    onClick={() => setAuthMode('register')}
+                    onClick={() => {
+                      setLoginMethod('code');
+                      setLoginError(null);
+                    }}
+                    className={`flex-1 py-1.5 px-3 rounded-lg font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      loginMethod === 'code'
+                        ? 'bg-white text-[#0B6B67] shadow-xs font-bold border border-gray-200/50'
+                        : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>Clave al Correo (OTP)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginMethod('password');
+                      setLoginError(null);
+                    }}
+                    className={`flex-1 py-1.5 px-3 rounded-lg font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      loginMethod === 'password'
+                        ? 'bg-white text-[#0F1115] shadow-xs font-bold border border-gray-200/50'
+                        : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>Contraseña Habitual</span>
+                  </button>
+                </div>
+
+                {/* SUB-FLOW 1: CLAVE AL CORREO (OTP) */}
+                {loginMethod === 'code' ? (
+                  loginStep === 'request' ? (
+                    <form onSubmit={handleRequestLoginOtp} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
+                          Correo Electrónico *
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          value={emailInput}
+                          onChange={(e) => setEmailInput(e.target.value)}
+                          placeholder="ej. alexis.s.m@gmail.com o admin@melsa.cl"
+                          className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-3 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#0B6B67] focus:border-[#0B6B67] outline-none transition-all"
+                        />
+                        <span className="text-[10px] text-gray-400 mt-1 block">
+                          Te enviaremos un código numérico de 6 dígitos para entrar sin contraseña.
+                        </span>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isSendingOtp}
+                        className="w-full py-3.5 rounded-xl bg-[#0B6B67] hover:bg-[#08524F] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                      >
+                        {isSendingOtp ? (
+                          <>
+                            <Clock className="w-4 h-4 animate-spin" />
+                            <span>Enviando código...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="w-4 h-4" />
+                            <span>ENVIAR CLAVE AL CORREO</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Quick Access Atajos */}
+                      <div className="pt-2 border-t border-gray-100">
+                        <span className="text-[10px] uppercase font-bold text-gray-400 block mb-2 text-center">
+                          Atajos Rápidos de Acceso:
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEmailInput('alexis.s.m@gmail.com');
+                              setRegCompany('Corredora Los Pinos');
+                            }}
+                            className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-[#D02126] border border-red-200 text-[11px] font-bold text-left transition-all cursor-pointer"
+                          >
+                            🏢 Alexis Santana (Los Pinos)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEmailInput('admin@melsainmobiliaria.com')}
+                            className="p-2 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200 text-[11px] font-semibold text-left transition-all cursor-pointer"
+                          >
+                            🛡️ Admin Auditoría Melsa
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  ) : (
+                    /* Verify Login OTP */
+                    <div className="space-y-4 animate-in fade-in duration-150">
+                      {/* Circle check icon */}
+                      <div className="w-14 h-14 rounded-full border-2 border-[#0B6B67] bg-[#0B6B67]/10 text-[#0B6B67] mx-auto flex items-center justify-center shadow-xs">
+                        <Check className="w-7 h-7 stroke-[2.5]" />
+                      </div>
+
+                      <div className="text-center">
+                        <h4 className="text-lg font-bold text-[#0F1115]">Revisa tu correo</h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Enviamos un código de acceso a <strong>{emailInput}</strong>
+                        </p>
+                      </div>
+
+                      {/* Simulated Email Card matching Altenda */}
+                      <div className="bg-[#FAF9F8] border border-gray-200 rounded-2xl p-3.5 text-left shadow-xs space-y-2">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-gray-200/60">
+                          <span className="text-[11px] font-bold text-gray-800">✉️ Correo de Notificación Oficial</span>
+                          <span className="text-[10px] text-gray-400">Válido 24 horas</span>
+                        </div>
+                        <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-gray-200">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-gray-400 block">CÓDIGO DE ACCESO</span>
+                            <span className="text-xl font-mono font-bold tracking-widest text-[#0B6B67]">{activeOtpCode}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleAutoFillCode();
+                              setCopiedCodeToast(true);
+                              setTimeout(() => setCopiedCodeToast(false), 2000);
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-[#0B6B67]/10 hover:bg-[#0B6B67]/20 text-[#0B6B67] text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>{copiedCodeToast ? '¡Autollenado!' : 'Autollenar'}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 6 Digit Inputs */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-2 text-center">
+                          Código de verificación (6 dígitos)
+                        </label>
+                        <div className="flex justify-center gap-2 sm:gap-2.5">
+                          {otpDigits.map((digit, idx) => (
+                            <input
+                              key={idx}
+                              id={`otp-box-${idx}`}
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={1}
+                              value={digit}
+                              onChange={(e) => handleDigitChange(idx, e.target.value)}
+                              onKeyDown={(e) => handleDigitKeyDown(idx, e)}
+                              onPaste={handlePasteOtp}
+                              className="w-10 h-12 text-center text-xl font-bold rounded-xl border-2 border-gray-200 focus:border-[#0B6B67] focus:ring-2 focus:ring-[#0B6B67]/20 outline-none transition-all bg-white text-[#0F1115]"
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleVerifyOtp()}
+                        disabled={isVerifyingOtp}
+                        className="w-full py-3.5 rounded-xl bg-[#0B6B67] hover:bg-[#08524F] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                      >
+                        {isVerifyingOtp ? (
+                          <>
+                            <Clock className="w-4 h-4 animate-spin" />
+                            <span>Verificando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>ENTRAR A MI PANEL</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </>
+                        )}
+                      </button>
+
+                      <div className="flex items-center justify-center gap-3 text-xs pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const res = requestEmailOtp({ email: emailInput });
+                            setActiveOtpCode(res.code);
+                            setRegisterSuccessMsg('Se reenvió un nuevo código a tu correo.');
+                          }}
+                          className="text-gray-500 hover:text-gray-800 cursor-pointer"
+                        >
+                          No recibí el código
+                        </button>
+                        <span className="text-gray-300">•</span>
+                        <button
+                          type="button"
+                          onClick={() => setLoginStep('request')}
+                          className="text-[#D02126] font-semibold hover:underline cursor-pointer"
+                        >
+                          Cambiar correo
+                        </button>
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  /* SUB-FLOW 2: PASSWORD LOGIN */
+                  <form onSubmit={handleManualLogin} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
+                        Correo Electrónico
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        placeholder="ej. alexis.s.m@gmail.com o admin@melsa.cl"
+                        className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-3 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
+                        Contraseña
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
+                        placeholder="••••••••••••"
+                        className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-3 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none transition-all"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoggingIn}
+                      className="w-full py-3.5 rounded-xl bg-[#D02126] hover:bg-[#B81B1F] text-white font-semibold text-xs tracking-wider uppercase transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                    >
+                      {isLoggingIn ? (
+                        <>
+                          <Clock className="w-4 h-4 animate-spin" />
+                          <span>Verificando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-4 h-4" />
+                          <span>INICIAR SESIÓN</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                )}
+
+                {/* Footer Switch to Register */}
+                <div className="text-center pt-2">
+                  <span className="text-xs text-gray-500">¿No tienes cuenta aún? </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('register');
+                      setRegStep('details');
+                    }}
                     className="text-xs text-[#D02126] font-bold hover:underline cursor-pointer ml-1"
                   >
                     Crear Cuenta de Agencia o Colaborador
                   </button>
                 </div>
-
-                {/* Quick Access Demo Accounts */}
-                <div className="pt-3 border-t border-gray-100">
-                  <span className="text-[10px] uppercase font-bold text-gray-400 block mb-2 text-center">
-                    Atajos para Pruebas Rápidas:
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEmailInput('admin@melsainmobiliaria.com');
-                        setPasswordInput('melsa2026');
-                      }}
-                      className="px-2.5 py-1.5 rounded-lg bg-gray-50 hover:bg-red-50 hover:text-[#D02126] border border-gray-200 text-[11px] font-semibold transition-all text-left"
-                    >
-                      🛡️ Admin Melsa
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEmailInput('contacto@andespropiedades.cl');
-                        setPasswordInput('agencia123');
-                      }}
-                      className="px-2.5 py-1.5 rounded-lg bg-red-50 text-[#D02126] hover:bg-red-100 border border-red-200 text-[11px] font-bold transition-all text-left"
-                    >
-                      🏢 Agencia SaaS
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEmailInput('contacto@moralesgasfiter.cl');
-                        setPasswordInput('colaborador123');
-                      }}
-                      className="px-2.5 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 text-[11px] font-semibold transition-all text-left"
-                    >
-                      🔧 Técnico Hogar
-                    </button>
-                  </div>
-                </div>
-
-              </form>
+              </div>
             ) : (
-              /* MODE B: REGISTER / ACCOUNT CREATION FORM */
-              <form onSubmit={handleRegister} className="space-y-4 animate-in fade-in duration-150">
+              /* ========================================================= */
+              /* MODE B: REGISTRATION WIZARD (ALTENDA 3 STEPS)              */
+              /* ========================================================= */
+              <div className="space-y-4">
                 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
-                    Nombre Completo o Razón Social *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={regName}
-                    onChange={(e) => setRegName(e.target.value)}
-                    placeholder="Ej. Gasfitería Los Dominicos SpA o Juan Morales"
-                    className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none"
-                  />
-                </div>
+                {/* STEP 1: TU PLAN */}
+                {regStep === 'plan' && (
+                  <div className="space-y-3 animate-in fade-in duration-150">
+                    <div className="text-center mb-2">
+                      <h4 className="text-base font-bold text-[#0F1115]">Selecciona tu Plan de Software</h4>
+                      <p className="text-xs text-gray-500">Menos es más: tarifas transparentes sin contratos de permanencia.</p>
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
-                    Correo Electrónico (Login) *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    placeholder="contacto@tuempresa.cl"
-                    className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none"
-                  />
-                </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {[
+                        { id: 'gratis' as AgencyPlanTier, name: 'Plan Gratis', price: '$0', desc: 'Hasta 3 arriendos activos', highlight: false },
+                        { id: 'basico' as AgencyPlanTier, name: 'Plan Básico', price: '$9.900', desc: 'Hasta 15 arriendos activos', highlight: false },
+                        { id: 'intermedio' as AgencyPlanTier, name: 'Plan Crecimiento', price: '$19.900', desc: 'Hasta 50 arriendos activos', highlight: true },
+                        { id: 'pro' as AgencyPlanTier, name: 'Pro Empresa', price: '$39.900', desc: 'Propiedades y arriendos ilimitados', highlight: false },
+                      ].map((p) => (
+                        <div
+                          key={p.id}
+                          onClick={() => setRegPlan(p.id)}
+                          className={`p-3 rounded-2xl border-2 transition-all cursor-pointer ${
+                            regPlan === p.id
+                              ? 'border-[#0B6B67] bg-[#0B6B67]/5 shadow-xs'
+                              : 'border-gray-200 hover:border-gray-300 bg-white'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-gray-900">{p.name}</span>
+                            <span className="text-xs font-bold text-[#0B6B67]">{p.price}<span className="text-[10px] text-gray-400 font-light">/mes</span></span>
+                          </div>
+                          <p className="text-[11px] text-gray-500 mt-1">{p.desc}</p>
+                        </div>
+                      ))}
+                    </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
-                      Tipo de Perfil
-                    </label>
-                    <select
-                      value={regAccountType}
-                      onChange={(e) => setRegAccountType(e.target.value as any)}
-                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none"
+                    <button
+                      type="button"
+                      onClick={() => setRegStep('details')}
+                      className="w-full py-3.5 rounded-xl bg-[#0B6B67] hover:bg-[#08524F] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 mt-4"
                     >
-                      <option value="agency">Agencia Inmobiliaria (SaaS Arriendos & Ventas)</option>
-                      <option value="provider">Técnico / Empresa del Hogar</option>
-                      <option value="broker">Corredor Independiente</option>
-                    </select>
+                      <span>CONTINUAR A TUS DATOS</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
                   </div>
+                )}
 
-                  {regAccountType === 'agency' ? (
+                {/* STEP 2: TUS DATOS */}
+                {regStep === 'details' && (
+                  <form onSubmit={handleRequestRegistrationOtp} className="space-y-3.5 animate-in fade-in duration-150">
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
-                        Plan Inicial de Software
+                        Nombre Completo *
                       </label>
-                      <select
-                        value={regPlan}
-                        onChange={(e) => setRegPlan(e.target.value as any)}
-                        className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none font-semibold text-[#D02126]"
-                      >
-                        <option value="gratis">Plan Gratis ($0 / mes - hasta 3 arriendos)</option>
-                        <option value="basico">Plan Básico ($9.900 CLP / mes - hasta 15 arriendos)</option>
-                        <option value="intermedio">Plan Crecimiento ($19.900 CLP / mes - hasta 50 arriendos)</option>
-                        <option value="pro">Pro Empresa ($39.900 CLP / mes - ilimitado)</option>
-                      </select>
+                      <input
+                        type="text"
+                        required
+                        value={regName}
+                        onChange={(e) => setRegName(e.target.value)}
+                        placeholder="Ej. Alexis Santana"
+                        className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#0B6B67] outline-none"
+                      />
                     </div>
-                  ) : (
+
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
-                        Especialidad
+                        Nombre de la Corredora o Razón Social *
                       </label>
-                      <select
-                        value={regCategory}
-                        onChange={(e) => setRegCategory(e.target.value)}
-                        className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none"
-                      >
-                        <option value="Gasfitería">Gasfitería</option>
-                        <option value="Electricidad">Electricidad SEC</option>
-                        <option value="Remodelación & Pintura">Remodelación & Pintura</option>
-                        <option value="Climatización">Climatización</option>
-                        <option value="Jardinería">Jardinería & Riego</option>
-                        <option value="Cerrajería">Cerrajería</option>
-                      </select>
+                      <input
+                        type="text"
+                        required
+                        value={regCompany}
+                        onChange={(e) => setRegCompany(e.target.value)}
+                        placeholder="Ej. Corredora Los Pinos"
+                        className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#0B6B67] outline-none"
+                      />
                     </div>
-                  )}
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
-                      Contraseña (mín 6) *
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      value={regPassword}
-                      onChange={(e) => setRegPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none"
-                    />
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
+                        Correo Electrónico (Login) *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={regEmail}
+                        onChange={(e) => setRegEmail(e.target.value)}
+                        placeholder="alexis.s.m@gmail.com"
+                        className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#0B6B67] outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
+                          Plan de Software
+                        </label>
+                        <select
+                          value={regPlan}
+                          onChange={(e) => setRegPlan(e.target.value as any)}
+                          className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0B6B67] font-bold focus:ring-2 focus:ring-[#0B6B67] outline-none"
+                        >
+                          <option value="gratis">Plan Gratis ($0 / mes)</option>
+                          <option value="basico">Plan Básico ($9.900 / mes)</option>
+                          <option value="intermedio">Plan Crecimiento ($19.900 / mes)</option>
+                          <option value="pro">Pro Empresa ($39.900 / mes)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
+                          Teléfono WhatsApp
+                        </label>
+                        <input
+                          type="text"
+                          value={regPhone}
+                          onChange={(e) => setRegPhone(e.target.value)}
+                          placeholder="+56 9 9989 9421"
+                          className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#0B6B67] outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSendingOtp}
+                      className="w-full py-3.5 rounded-xl bg-[#0B6B67] hover:bg-[#08524F] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
+                    >
+                      {isSendingOtp ? (
+                        <>
+                          <Clock className="w-4 h-4 animate-spin" />
+                          <span>Enviando código...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>ACTIVAR MI CUENTA CON CLAVE AL CORREO</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+
+                    <div className="text-center pt-1">
+                      <span className="text-xs text-gray-500">¿Ya tienes cuenta creada? </span>
+                      <button
+                        type="button"
+                        onClick={() => setAuthMode('login')}
+                        className="text-xs text-[#D02126] font-bold hover:underline cursor-pointer ml-1"
+                      >
+                        Iniciar Sesión aquí
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* STEP 3: ACTIVA TU CUENTA (REVISA TU CORREO - ALTENDA EXACT CLONE) */}
+                {regStep === 'verify' && (
+                  <div className="text-center space-y-4 animate-in fade-in duration-150">
+                    
+                    {/* Circle icon with green checkmark */}
+                    <div className="w-16 h-16 rounded-full border-2 border-[#0B6B67] bg-[#0B6B67]/10 text-[#0B6B67] mx-auto flex items-center justify-center shadow-xs">
+                      <Check className="w-8 h-8 stroke-[2.5]" />
+                    </div>
+
+                    <div>
+                      <h3 className="text-2xl font-bold text-[#0F1115] tracking-tight">
+                        Revisa tu correo
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto leading-relaxed">
+                        Enviamos un correo de validación. Ingresa el código de seis dígitos para activar tu cuenta.
+                      </p>
+                    </div>
+
+                    {/* Official Simulated Email Card (exact clone of Altenda notification screenshot) */}
+                    <div className="bg-[#FAF9F8] border border-gray-200 rounded-2xl p-4 text-left shadow-xs space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-gray-200/60">
+                        <div className="flex items-center gap-2">
+                          <MelsaLogo isLight={false} className="h-4" />
+                          <span className="text-[11px] font-bold text-gray-800">Notificación Oficial</span>
+                        </div>
+                        <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                          <Mail className="w-3 h-3 text-[#D02126]" />
+                          <span>Comunicaciones</span>
+                        </span>
+                      </div>
+
+                      <div className="space-y-1 text-xs text-gray-700">
+                        <h4 className="font-bold text-sm text-[#0F1115]">Activa tu cuenta de Melsa</h4>
+                        <p>Hola, <strong>{regName}</strong></p>
+                        <p className="text-gray-500 text-[11px]">Gracias por crear tu cuenta en Melsa para <strong>{regCompany || 'Los Pinos'}</strong>.</p>
+                      </div>
+
+                      <div className="p-3 bg-white rounded-xl border border-gray-200 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">CÓDIGO DE ACTIVACIÓN</span>
+                          <span className="text-xl font-mono font-bold tracking-widest text-[#0B6B67]">{activeOtpCode}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleAutoFillCode();
+                            setCopiedCodeToast(true);
+                            setTimeout(() => setCopiedCodeToast(false), 2000);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-[#0B6B67]/10 hover:bg-[#0B6B67]/20 text-[#0B6B67] text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>{copiedCodeToast ? '¡Autollenado!' : 'Autollenar'}</span>
+                        </button>
+                      </div>
+
+                      <div className="text-[10px] text-gray-500 space-y-0.5">
+                        <p>Tu plan seleccionado: <strong>{regPlan.toUpperCase()}</strong>.</p>
+                        <p>El código y el enlace son válidos por 24 horas.</p>
+                      </div>
+                    </div>
+
+                    {/* 6 Digit Inputs */}
+                    <div className="pt-2">
+                      <label className="block text-xs font-semibold text-gray-700 mb-2 text-center">
+                        Código de verificación
+                      </label>
+                      <div className="flex justify-center gap-2 sm:gap-2.5">
+                        {otpDigits.map((digit, idx) => (
+                          <input
+                            key={idx}
+                            id={`otp-box-${idx}`}
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={1}
+                            value={digit}
+                            onChange={(e) => handleDigitChange(idx, e.target.value)}
+                            onKeyDown={(e) => handleDigitKeyDown(idx, e)}
+                            onPaste={handlePasteOtp}
+                            className="w-10 h-12 text-center text-xl font-bold rounded-xl border-2 border-gray-200 focus:border-[#0B6B67] focus:ring-2 focus:ring-[#0B6B67]/20 outline-none transition-all bg-white text-[#0F1115]"
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleVerifyOtp()}
+                      disabled={isVerifyingOtp}
+                      className="w-full py-3.5 rounded-xl bg-[#0B6B67] hover:bg-[#08524F] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                    >
+                      {isVerifyingOtp ? (
+                        <>
+                          <Clock className="w-4 h-4 animate-spin" />
+                          <span>Activando cuenta...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Activar mi cuenta</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+
+                    <div className="flex items-center justify-center gap-4 text-xs pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const res = requestEmailOtp({ email: regEmail, fullName: regName, companyName: regCompany, plan: regPlan });
+                          setActiveOtpCode(res.code);
+                          setRegisterSuccessMsg('Se ha reenviado un nuevo código de activación a tu correo.');
+                        }}
+                        className="text-gray-500 hover:text-gray-900 cursor-pointer"
+                      >
+                        No recibí el código
+                      </button>
+                      <span className="text-gray-300">•</span>
+                      <button
+                        type="button"
+                        onClick={() => setRegStep('details')}
+                        className="text-[#D02126] font-semibold hover:underline cursor-pointer"
+                      >
+                        Volver a mis datos
+                      </button>
+                    </div>
                   </div>
+                )}
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
-                      Confirmar Clave *
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      value={regConfirmPassword}
-                      onChange={(e) => setRegConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none"
-                    />
+                {/* STEP 4: TU CUENTA ESTÁ ACTIVADA (ALTENDA SCREENSHOT 3 EXACT CLONE) */}
+                {regStep === 'activated' && (
+                  <div className="text-center py-6 space-y-6 animate-in zoom-in-95 duration-200">
+                    <div className="w-20 h-20 rounded-full border-2 border-[#0B6B67] bg-[#0B6B67]/10 text-[#0B6B67] mx-auto flex items-center justify-center shadow-sm">
+                      <Check className="w-10 h-10 stroke-[2.5]" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <h3 className="text-3xl font-serif font-bold text-[#0F1115]">
+                        Tu cuenta está activada
+                      </h3>
+                      <p className="text-sm text-gray-500 max-w-sm mx-auto font-light">
+                        Todo listo para empezar a gestionar tus propiedades con Melsa.
+                      </p>
+                    </div>
+
+                    <div className="max-w-xs mx-auto pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (activatedUser) {
+                            onUserChange(activatedUser);
+                          }
+                          onClose();
+                          onOpenWorkspace?.();
+                        }}
+                        className="w-full py-4 px-6 rounded-2xl bg-[#0B6B67] hover:bg-[#08524F] text-white font-bold text-sm transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <span>Entrar a mi panel</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <button
-                  type="submit"
-                  disabled={isRegistering}
-                  className="w-full py-3.5 rounded-xl bg-[#D02126] hover:bg-[#B81B1F] text-white font-semibold text-xs tracking-wider uppercase transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
-                >
-                  {isRegistering ? (
-                    <>
-                      <Clock className="w-4 h-4 animate-spin" />
-                      <span>Registrando en Supabase...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>CREAR MI CUENTA OFICIAL</span>
-                    </>
-                  )}
-                </button>
-
-                <div className="text-center pt-2">
-                  <span className="text-xs text-gray-500">¿Ya tienes cuenta creada? </span>
-                  <button
-                    type="button"
-                    onClick={() => setAuthMode('login')}
-                    className="text-xs text-[#D02126] font-bold hover:underline cursor-pointer ml-1"
-                  >
-                    Iniciar Sesión aquí
-                  </button>
-                </div>
-
-              </form>
+              </div>
             )}
 
             {/* Footer helper for new technicians */}

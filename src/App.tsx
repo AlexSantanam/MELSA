@@ -20,7 +20,7 @@ import { AdvisoryModal } from './components/AdvisoryModal';
 import { ProjectDetailModal } from './components/ProjectDetailModal';
 import { WhatsAppWidget } from './components/WhatsAppWidget';
 import { AIAssistantWidget } from './components/AIAssistantWidget';
-import { RealEstateProject, ProviderApplication, AuthUser } from './types';
+import { RealEstateProject, ProviderApplication, AuthUser, AgencyPlanTier } from './types';
 import { MOCK_APPLICATIONS } from './data/mockData';
 import { getStoredUser, logoutUser } from './services/authService';
 import { CollaboratorWorkspacePage } from './components/CollaboratorWorkspacePage';
@@ -41,6 +41,7 @@ export default function App() {
   const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
   const [isIntranetModalOpen, setIsIntranetModalOpen] = useState(false);
   const [applications, setApplications] = useState<ProviderApplication[]>(MOCK_APPLICATIONS);
+  const [selectedPlanForModal, setSelectedPlanForModal] = useState<AgencyPlanTier>('gratis');
 
   const [activeHeroFilter, setActiveHeroFilter] = useState<{
     type: string;
@@ -199,6 +200,7 @@ export default function App() {
           onRejectApplication={handleRejectApplication}
           currentUser={currentUser}
           onUserChange={setCurrentUser}
+          initialPlan={selectedPlanForModal}
           onOpenApplicationModal={() => setIsApplicationModalOpen(true)}
           onOpenWorkspace={() => {
             setViewMode('workspace');
@@ -245,7 +247,13 @@ export default function App() {
         <MarketTeaserSection onOpenMarket={handleOpenMarket} />
 
         {/* 7. MELSA Agency OS — Software Inmobiliario para Agencias & Corredoras (SaaS) */}
-        <AgencySaaSSection onOpenIntranetModal={handleOpenIntranetOrWorkspace} />
+        <AgencySaaSSection 
+          onOpenIntranetModal={handleOpenIntranetOrWorkspace} 
+          onSelectPlan={(plan) => {
+            setSelectedPlanForModal(plan);
+            setIsIntranetModalOpen(true);
+          }}
+        />
 
         {/* 8. ¿Por qué elegir Melsa? */}
         <WhyChooseMelsa />
@@ -312,6 +320,7 @@ export default function App() {
         onRejectApplication={handleRejectApplication}
         currentUser={currentUser}
         onUserChange={setCurrentUser}
+        initialPlan={selectedPlanForModal}
         onOpenApplicationModal={() => setIsApplicationModalOpen(true)}
         onOpenWorkspace={() => {
           setViewMode('workspace');

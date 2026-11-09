@@ -46,7 +46,12 @@ import {
   Copy,
   Lock,
   Mail,
-  Globe
+  Globe,
+  Share2,
+  Send,
+  Bot,
+  Eye,
+  CheckCheck
 } from 'lucide-react';
 import { 
   AuthUser, 
@@ -110,12 +115,99 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
   isAdmin,
   onToggleAdminView
 }) => {
-  // Navigation Vertical Tabs (Exact 13 modules from Altenda sidebar + Integraciones + Configuración)
+  // Navigation Vertical Tabs (Exact 13 modules from Altenda sidebar + Integraciones + Configuración + Superpoderes Proptech)
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'properties' | 'sales' | 'agenda' | 'clients' | 'contracts' | 
     'collections' | 'payments' | 'settlement' | 'portals' | 'maintenance' | 'users' | 'plans' |
-    'settings' | 'integrations'
+    'settings' | 'integrations' | 'inbox' | 'matching'
   >('dashboard');
+
+  // Superpoder 1: Inbox Omnicanal & Triage IA State
+  const [inboxFilter, setInboxFilter] = useState<'all' | 'whatsapp' | 'instagram' | 'portales'>('all');
+  const [selectedLeadId, setSelectedLeadId] = useState<string>('lead-1');
+  const [inboxLeads, setInboxLeads] = useState([
+    {
+      id: 'lead-1',
+      name: 'Camila Zúñiga Valdés',
+      phone: '+56 9 8456 7890',
+      channel: 'whatsapp',
+      time: 'Hace 4 min',
+      unread: true,
+      lastMessage: 'Hola! Vi el departamento en Parque Araucano, ¿sigue disponible para visitar este sábado?',
+      aiTriage: {
+        intent: 'Arriendo',
+        budget: '$850.000 / mes',
+        commune: 'Las Condes',
+        typology: '2D / 2B',
+        urgency: 'Alta (Muda fin de mes)',
+        qualificationScore: 96,
+        summary: 'Lead altamente calificado. Cumple 3x renta con aval bancario listo.'
+      },
+      matchedPropertyId: 'prop-1'
+    },
+    {
+      id: 'lead-2',
+      name: 'Matías Edwards Larraín',
+      phone: '+56 9 9234 5678',
+      channel: 'portal_inmobiliario',
+      time: 'Hace 28 min',
+      unread: true,
+      lastMessage: 'Estimados, me interesa agendar orden de visita para la casa en Los Pinos.',
+      aiTriage: {
+        intent: 'Compra',
+        budget: '6.500 a 7.200 UF',
+        commune: 'Lo Barnechea',
+        typology: '4D / 4B',
+        urgency: 'Media (Aprobación bancaria Scotia)',
+        qualificationScore: 92,
+        summary: 'Preaprobación hipotecaria activa en Scotiabank por 6.800 UF.'
+      },
+      matchedPropertyId: 'prop-3'
+    },
+    {
+      id: 'lead-3',
+      name: 'Ignacia Fontaine R.',
+      phone: '+56 9 7321 0987',
+      channel: 'instagram',
+      time: 'Hace 1 hora',
+      unread: false,
+      lastMessage: 'Hola buenas tardes, ¿cuál es el gasto común del dúplex en El Golf?',
+      aiTriage: {
+        intent: 'Arriendo',
+        budget: '$1.600.000 / mes',
+        commune: 'Las Condes (El Golf)',
+        typology: '3D / 3B Dúplex',
+        urgency: 'Media',
+        qualificationScore: 88,
+        summary: 'Consulta específica de GGCC (~$280.000). Perfil profesional idóneo.'
+      },
+      matchedPropertyId: 'prop-2'
+    }
+  ]);
+  const [chatReplyText, setChatReplyText] = useState('');
+  const [chatSuccessNotice, setChatSuccessNotice] = useState<string | null>(null);
+
+  // Superpoder 2: Smart Matching State
+  const [matchingFilterProp, setMatchingFilterProp] = useState<string>('all');
+  const [smartMatchSentAlert, setSmartMatchSentAlert] = useState<string | null>(null);
+
+  // Superpoder 3: Multiposting & IA Listing Generator State
+  const [multipostPlatforms, setMultipostPlatforms] = useState({
+    portalInmobiliario: true,
+    toctoc: true,
+    yapo: true,
+    enlace: false,
+    sitioWeb: true
+  });
+  const [aiGeneratingCopy, setAiGeneratingCopy] = useState(false);
+  const [aiGeneratedListingCopy, setAiGeneratedListingCopy] = useState('');
+  const [isAiCopyModalOpen, setIsAiCopyModalOpen] = useState(false);
+
+  // Superpoder 5: LegalTech Firma Electrónica Nativa State
+  const [isLegalSignModalOpen, setIsLegalSignModalOpen] = useState(false);
+  const [legalSignContract, setLegalSignContract] = useState<any>(null);
+  const [isSigningProcess, setIsSigningProcess] = useState(false);
+  const [signedDocCertificate, setSignedDocCertificate] = useState<string | null>(null);
 
   // Configuración View State (Altenda screenshot 3 & detailed subtabs)
   const [settingsTab, setSettingsTab] = useState<'legal' | 'contact' | 'payments' | 'notifications'>('legal');
@@ -474,12 +566,14 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
       {/* ============================================================== */}
       <div className="flex-1 flex overflow-hidden">
         
-        {/* LEFT VERTICAL SIDEBAR (ALTENDA 13 MODULES) */}
+        {/* LEFT VERTICAL SIDEBAR (ALTENDA 13 MODULES + PROPTECH SUPERPOWERS) */}
         <aside className="w-60 bg-white border-r border-gray-200/90 shrink-0 flex flex-col justify-between py-4 px-3 overflow-y-auto">
           <nav className="space-y-0.5">
             {[
               { id: 'dashboard', label: 'Panel general', icon: LayoutDashboard },
+              { id: 'inbox', label: 'Inbox Omnicanal (IA)', icon: MessageCircle, badge: '3 leads' },
               { id: 'properties', label: 'Propiedades', icon: Home },
+              { id: 'matching', label: 'Smart Matching (IA)', icon: Sparkles, badge: 'Auto' },
               { id: 'sales', label: 'Cartera de ventas', icon: Building2 },
               { id: 'agenda', label: 'Agenda', icon: Calendar },
               { id: 'clients', label: 'Clientes', icon: Users },
@@ -498,14 +592,23 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id as any)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-left ${
                     isActive
                       ? 'bg-[#E6F4EA] text-[#008E88] font-bold shadow-2xs'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#008E88]' : 'text-gray-400'}`} />
-                  <span className="truncate">{item.label}</span>
+                  <div className="flex items-center gap-3 truncate">
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#008E88]' : 'text-gray-400'}`} />
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                      isActive ? 'bg-[#008E88] text-white' : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -809,8 +912,392 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             )}
 
             {/* ========================================================== */}
-            {/* TAB 2: PROPIEDADES (SCREENSHOT 3 EXACT MATCH)              */}
+            {/* SUPERPODER 1: INBOX OMNICANAL & TRIAGE INTELIGENTE (IA)    */}
             {/* ========================================================== */}
+            {activeTab === 'inbox' && (
+              <div className="space-y-6 animate-in fade-in duration-150">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50] flex items-center gap-2">
+                      <MessageCircle className="w-6 h-6 text-[#008E88]" />
+                      <span>Inbox Omnicanal & Triage con IA</span>
+                    </h1>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Centraliza WhatsApp, Instagram, Facebook y formularios web en una sola bandeja. Tu copiloto de IA perfila a los leads 24/7.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Agente IA Activo · 24/7</span>
+                    </span>
+                  </div>
+                </div>
+
+                {chatSuccessNotice && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>{chatSuccessNotice}</span>
+                  </div>
+                )}
+
+                {/* 2-Column Omnichannel Split: Leads list + AI Conversation Workspace */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  
+                  {/* Left Column: Unified Leads List */}
+                  <div className="lg:col-span-5 bg-white rounded-3xl p-5 border border-gray-200/90 shadow-2xs space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                      <span className="text-xs font-bold text-gray-700">Conversaciones entrantes ({inboxLeads.length})</span>
+                      <div className="flex items-center gap-1 text-[11px]">
+                        <button
+                          onClick={() => setInboxFilter('all')}
+                          className={`px-2 py-0.5 rounded-lg font-bold cursor-pointer transition-colors ${
+                            inboxFilter === 'all' ? 'bg-[#E6F4EA] text-[#008E88]' : 'text-gray-400 hover:text-gray-600'
+                          }`}
+                        >
+                          Todos
+                        </button>
+                        <button
+                          onClick={() => setInboxFilter('whatsapp')}
+                          className={`px-2 py-0.5 rounded-lg font-bold cursor-pointer transition-colors ${
+                            inboxFilter === 'whatsapp' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-400 hover:text-gray-600'
+                          }`}
+                        >
+                          WhatsApp
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      {inboxLeads
+                        .filter(l => inboxFilter === 'all' || l.channel === inboxFilter)
+                        .map((lead) => {
+                          const isSelected = lead.id === selectedLeadId;
+                          return (
+                            <div
+                              key={lead.id}
+                              onClick={() => {
+                                setSelectedLeadId(lead.id);
+                                setChatReplyText(`Hola ${lead.name.split(' ')[0]}! Sí, la propiedad sigue disponible. ¿Te acomoda visitarla este sábado a las 11:30 hrs? Te comparto el enlace con la ficha técnica completa.`);
+                              }}
+                              className={`p-3.5 rounded-2xl border transition-all cursor-pointer space-y-2 ${
+                                isSelected
+                                  ? 'bg-[#F4F9F8] border-[#008E88] shadow-xs ring-1 ring-[#008E88]/20'
+                                  : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50/50'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-[#E6F4EA] text-[#008E88] font-bold flex items-center justify-center text-xs">
+                                    {lead.name.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <span className="font-bold text-xs text-[#153B50] block">{lead.name}</span>
+                                    <span className="text-[10px] text-gray-400 font-mono">{lead.phone}</span>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-[10px] text-gray-400 block">{lead.time}</span>
+                                  <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                                    lead.channel === 'whatsapp' ? 'bg-emerald-100 text-emerald-800' :
+                                    lead.channel === 'portal_inmobiliario' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800'
+                                  }`}>
+                                    {lead.channel === 'whatsapp' ? 'WhatsApp' : lead.channel === 'portal_inmobiliario' ? 'Portal Inmob' : 'Instagram'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <p className="text-xs text-gray-600 line-clamp-2 font-light">
+                                "{lead.lastMessage}"
+                              </p>
+
+                              {/* AI Triage Mini Tag */}
+                              <div className="pt-2 border-t border-gray-100/60 flex items-center justify-between text-[11px]">
+                                <span className="text-gray-500 font-medium">
+                                  {lead.aiTriage.intent} · {lead.aiTriage.typology}
+                                </span>
+                                <span className="font-bold text-[#008E88] bg-emerald-50 px-2 py-0.5 rounded-full">
+                                  {lead.aiTriage.qualificationScore}% Score
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+
+                  {/* Right Column: AI Triage Copilot + Conversation Thread */}
+                  {(() => {
+                    const activeLead = inboxLeads.find(l => l.id === selectedLeadId) || inboxLeads[0];
+                    return (
+                      <div className="lg:col-span-7 space-y-5">
+                        
+                        {/* AI Triage Profile Card */}
+                        <div className="bg-white rounded-3xl p-6 border border-gray-200/90 shadow-2xs space-y-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <Bot className="w-5 h-5 text-[#008E88]" />
+                                <h3 className="text-base font-bold text-[#153B50]">Perfil Calificado por IA</h3>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                Analizado automáticamente al ingresar el mensaje del lead.
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
+                                {activeLead.aiTriage.qualificationScore} / 100 Calificación
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Hard Variables Extracted by AI */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                            <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100">
+                              <span className="text-[10px] uppercase font-bold text-gray-400 block">Intención</span>
+                              <span className="font-bold text-[#153B50] block mt-0.5">{activeLead.aiTriage.intent}</span>
+                            </div>
+                            <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100">
+                              <span className="text-[10px] uppercase font-bold text-gray-400 block">Presupuesto</span>
+                              <span className="font-bold text-[#008E88] block mt-0.5">{activeLead.aiTriage.budget}</span>
+                            </div>
+                            <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100">
+                              <span className="text-[10px] uppercase font-bold text-gray-400 block">Ubicación</span>
+                              <span className="font-bold text-[#153B50] block mt-0.5">{activeLead.aiTriage.commune}</span>
+                            </div>
+                            <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100">
+                              <span className="text-[10px] uppercase font-bold text-gray-400 block">Urgencia</span>
+                              <span className="font-bold text-amber-700 block mt-0.5">{activeLead.aiTriage.urgency}</span>
+                            </div>
+                          </div>
+
+                          <div className="p-3 rounded-2xl bg-[#F0F7F6] border border-[#CDEAE6] text-xs space-y-1">
+                            <span className="font-bold text-[#153B50] flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-[#008E88]" />
+                              <span>Diagnóstico de Cierre</span>
+                            </span>
+                            <p className="text-gray-600 leading-relaxed">
+                              {activeLead.aiTriage.summary}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Interactive Message + Fast Action Reply */}
+                        <div className="bg-white rounded-3xl p-6 border border-gray-200/90 shadow-2xs space-y-4">
+                          <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                            <div>
+                              <span className="font-bold text-xs text-[#153B50] block">{activeLead.name}</span>
+                              <span className="text-[11px] text-gray-400 font-mono">{activeLead.phone}</span>
+                            </div>
+                            <a
+                              href={`https://wa.me/${activeLead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(chatReplyText || activeLead.lastMessage)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+                            >
+                              <Phone className="w-3.5 h-3.5" />
+                              <span>Abrir en WhatsApp</span>
+                            </a>
+                          </div>
+
+                          {/* Message Bubble Incoming */}
+                          <div className="bg-[#FAF9F8] p-4 rounded-2xl border border-gray-100 space-y-1 max-w-lg">
+                            <span className="text-[10px] font-bold text-[#008E88] block">Mensaje del Lead</span>
+                            <p className="text-xs text-gray-700 leading-relaxed font-normal">
+                              "{activeLead.lastMessage}"
+                            </p>
+                          </div>
+
+                          {/* AI Suggested Response Box */}
+                          <div className="space-y-2 pt-2">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-bold text-gray-700 flex items-center gap-1">
+                                <Sparkles className="w-3.5 h-3.5 text-[#008E88]" />
+                                <span>Respuesta Sugerida por Copiloto de Ventas</span>
+                              </span>
+                              <button
+                                onClick={() => setChatReplyText(`Hola ${activeLead.name.split(' ')[0]}! Sí, la propiedad sigue disponible. ¿Te acomoda visitarla este sábado a las 11:30 hrs? Te comparto el enlace con la ficha técnica completa.`)}
+                                className="text-[#008E88] hover:underline font-bold cursor-pointer"
+                              >
+                                Regenerar con IA
+                              </button>
+                            </div>
+
+                            <textarea
+                              rows={3}
+                              value={chatReplyText || `Hola ${activeLead.name.split(' ')[0]}! Sí, la propiedad sigue disponible. ¿Te acomoda visitarla este sábado a las 11:30 hrs? Te comparto el enlace con la ficha técnica completa.`}
+                              onChange={(e) => setChatReplyText(e.target.value)}
+                              className="w-full bg-[#FAF9F8] border border-gray-200 rounded-2xl p-3.5 text-xs text-gray-700 focus:outline-none focus:border-[#008E88] leading-relaxed"
+                            />
+
+                            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setActiveTab('agenda');
+                                    setIsAddingActivityModal(true);
+                                  }}
+                                  className="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs cursor-pointer flex items-center gap-1.5"
+                                >
+                                  <Calendar className="w-3.5 h-3.5 text-[#008E88]" />
+                                  <span>Agendar Visita</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setActiveTab('sales');
+                                  }}
+                                  className="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs cursor-pointer flex items-center gap-1.5"
+                                >
+                                  <Building2 className="w-3.5 h-3.5 text-[#008E88]" />
+                                  <span>Mover a Pipeline</span>
+                                </button>
+                              </div>
+
+                              <button
+                                onClick={() => {
+                                  setChatSuccessNotice(`¡Respuesta enviada a ${activeLead.name} vía WhatsApp y registrada en el CRM!`);
+                                  setTimeout(() => setChatSuccessNotice(null), 3500);
+                                }}
+                                className="px-5 py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white font-bold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-2"
+                              >
+                                <Send className="w-3.5 h-3.5" />
+                                <span>Enviar Respuesta & Registrar</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+                    );
+                  })()}
+
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================== */}
+            {/* SUPERPODER 2: SMART MATCHING (CRUCE DE DEMANDAS CON IA)    */}
+            {/* ========================================================== */}
+            {activeTab === 'matching' && (
+              <div className="space-y-6 animate-in fade-in duration-150">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50] flex items-center gap-2">
+                      <Sparkles className="w-6 h-6 text-[#008E88]" />
+                      <span>Smart Matching (Cruce Automático de Demandas)</span>
+                    </h1>
+                    <p className="text-xs text-gray-500 mt-1">
+                      El algoritmo de cruce analiza en tiempo real tu inventario de propiedades y te muestra qué clientes están buscando exactamente lo que tienes para cerrar en 1 clic.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <select
+                      value={matchingFilterProp}
+                      onChange={(e) => setMatchingFilterProp(e.target.value)}
+                      className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-700 outline-none shadow-2xs cursor-pointer"
+                    >
+                      <option value="all">Todas las propiedades ({properties.length})</option>
+                      {properties.map(p => (
+                        <option key={p.id} value={p.id}>{p.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {smartMatchSentAlert && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>{smartMatchSentAlert}</span>
+                  </div>
+                )}
+
+                {/* Grid of Matches */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {[
+                    {
+                      id: 'match-1',
+                      score: 96,
+                      propTitle: 'Depto Parque Araucano',
+                      propPrice: '$850.000 / mes',
+                      prospectName: 'Camila Zúñiga Valdés',
+                      prospectPhone: '+56 9 8456 7890',
+                      budget: '$900.000 max',
+                      demandReason: 'Busca 2D/2B en Las Condes con mudanza urgente a fin de mes. Aprobación financiera 3x renta.',
+                      propId: 'prop-1'
+                    },
+                    {
+                      id: 'match-2',
+                      score: 93,
+                      propTitle: 'Casa Mediterránea Los Pinos',
+                      propPrice: '6.500 UF',
+                      prospectName: 'Matías Edwards Larraín',
+                      prospectPhone: '+56 9 9234 5678',
+                      budget: '7.000 UF',
+                      demandReason: 'Preaprobación bancaria activa en Scotiabank para casa familiar en Lo Barnechea.',
+                      propId: 'prop-3'
+                    },
+                    {
+                      id: 'match-3',
+                      score: 89,
+                      propTitle: 'Penthouse Dúplex El Golf',
+                      propPrice: '$1.650.000 / mes',
+                      prospectName: 'Ignacia Fontaine R.',
+                      prospectPhone: '+56 9 7321 0987',
+                      budget: '$1.700.000 max',
+                      demandReason: 'Interesada en terraza con quincho y cercanía a barrio financiero El Golf.',
+                      propId: 'prop-2'
+                    }
+                  ]
+                    .filter(m => matchingFilterProp === 'all' || m.propId === matchingFilterProp)
+                    .map((match) => (
+                      <div
+                        key={match.id}
+                        className="bg-white rounded-3xl p-6 border border-gray-200 shadow-2xs flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="px-3 py-1 rounded-full bg-[#E6F4EA] text-[#008E88] text-xs font-bold flex items-center gap-1">
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>{match.score}% Cruce Perfecto</span>
+                            </span>
+                            <span className="text-xs font-mono font-bold text-[#153B50]">{match.propPrice}</span>
+                          </div>
+
+                          <div>
+                            <h4 className="text-sm font-bold text-[#153B50] leading-snug">{match.propTitle}</h4>
+                            <p className="text-[11px] text-gray-400 mt-0.5">Prospecto compatible:</p>
+                            <span className="text-xs font-bold text-[#008E88] block">{match.prospectName}</span>
+                          </div>
+
+                          <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100 text-xs space-y-1">
+                            <span className="text-[10px] uppercase font-bold text-gray-400 block">Motivo del Match</span>
+                            <p className="text-gray-600 text-[11px] leading-relaxed">
+                              {match.demandReason}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="pt-2">
+                          <button
+                            onClick={() => {
+                              const msg = `Hola ${match.prospectName.split(' ')[0]}! Te contacto de la corredora Los Pinos. Acaba de ingresar una propiedad que coincide en 96% con lo que buscas: ${match.propTitle} (${match.propPrice}). ¿Te gustaría coordinar una visita exclusiva?`;
+                              window.open(`https://wa.me/${match.prospectPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                              setSmartMatchSentAlert(`¡Ficha comercial enviada con éxito por WhatsApp a ${match.prospectName}!`);
+                              setTimeout(() => setSmartMatchSentAlert(null), 3000);
+                            }}
+                            className="w-full py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>Enviar Ficha por WhatsApp (1 Clic)</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
             {activeTab === 'properties' && (
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -856,6 +1343,67 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                   </div>
                 </div>
 
+                {/* SUPERPODER 3: MULTIPOSTING A 1 CLIC (PORTAL INMOBILIARIO, TOCTOC, YAPO, SITIO WEB) */}
+                <div className="bg-gradient-to-r from-[#153B50] to-[#0A2230] rounded-3xl p-5 text-white shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-[#008E88] text-white uppercase tracking-wider">
+                        Multiposting Sincronizado
+                      </span>
+                      <span className="text-xs text-emerald-300 font-semibold flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        API Portales Activa
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-200">
+                      Publica, actualiza o da de baja tu inventario simultáneamente en los mayores portales de Chile con un solo clic.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-gray-300">
+                      <span className="flex items-center gap-1">✓ Portal Inmobiliario / ML</span>
+                      <span className="flex items-center gap-1">✓ TocToc</span>
+                      <span className="flex items-center gap-1">✓ Yapo</span>
+                      <span className="flex items-center gap-1">✓ Web Melsa Propia</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0">
+                    <button
+                      onClick={() => {
+                        const sample = properties[0];
+                        if (sample) {
+                          setAiGeneratingCopy(true);
+                          setIsAiCopyModalOpen(true);
+                          setTimeout(() => {
+                            setAiGeneratedListingCopy(
+                              `✨ ESPECTACULAR OPORTUNIDAD EN ${sample.commune.toUpperCase()} ✨\n\n` +
+                              `📍 Ubicación privilegiada: ${sample.address}, a pasos de servicios, locomoción y áreas verdes.\n\n` +
+                              `🏡 Características principales:\n` +
+                              `• ${sample.bedrooms} Dormitorios luminosos con clóset integrado\n` +
+                              `• ${sample.bathrooms} Baños completos de fina terminación\n` +
+                              `• ${sample.surfaceM2} m² construidos con distribución eficiente\n` +
+                              `• Cocina equipada, pisos de alto tráfico y vista despejada\n\n` +
+                              `💰 Canon mensual: ${formatCLP(sample.rentCLP)} / mes\n` +
+                              `🔒 Requisitos simples, contrato digital Ley 19.799 y soporte Sello Melsa.\n\n` +
+                              `📲 ¡Agenda tu visita hoy mismo por WhatsApp y sé el primero en conocerlo!`
+                            );
+                            setAiGeneratingCopy(false);
+                          }, 800);
+                        }
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all border border-white/20 cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Redactar Ficha con IA</span>
+                    </button>
+                    <button
+                      onClick={() => alert('✓ ¡Cartera sincronizada con éxito en Portal Inmobiliario, TocToc y Sitio Web!')}
+                      className="px-4 py-2 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white text-xs font-bold transition-all cursor-pointer shadow-sm"
+                    >
+                      Sincronizar a Portales
+                    </button>
+                  </div>
+                </div>
+
                 <p className="text-xs text-gray-500">
                   Consulta el estado de tus inmuebles y accede a sus fichas.
                 </p>
@@ -882,9 +1430,19 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                             }`}>
                               {prop.status === 'arrendada' ? '✓ Arrendada' : 'Disponible'}
                             </span>
+                            <div className="absolute bottom-2 left-2 flex gap-1">
+                              <span className="bg-black/60 backdrop-blur-xs text-[9px] text-white font-bold px-2 py-0.5 rounded-full">
+                                Portal Inm. ✓
+                              </span>
+                              <span className="bg-black/60 backdrop-blur-xs text-[9px] text-white font-bold px-2 py-0.5 rounded-full">
+                                TocToc ✓
+                              </span>
+                            </div>
                           </div>
                           <div className="p-5 space-y-2">
-                            <h4 className="text-sm font-bold text-[#153B50] leading-snug">{prop.title}</h4>
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-bold text-[#153B50] leading-snug">{prop.title}</h4>
+                            </div>
                             <p className="text-xs text-gray-500">{prop.address}, {prop.commune}</p>
                             <div className="flex items-center gap-3 text-xs text-gray-600 pt-2 border-t border-gray-100">
                               <span>🛏️ {prop.bedrooms} Dorm</span>
@@ -894,19 +1452,45 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                           </div>
                         </div>
 
-                        <div className="p-5 pt-0 flex items-center justify-between border-t border-gray-100/60 mt-2">
-                          <div>
-                            <span className="text-[10px] uppercase font-bold text-gray-400 block">Canon Mensual</span>
-                            <span className="text-base font-bold text-[#008E88]">{formatCLP(prop.rentCLP)}</span>
+                        <div className="p-5 pt-0 space-y-3 border-t border-gray-100/60 mt-2">
+                          <div className="flex items-center justify-between pt-3">
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-gray-400 block">Canon Mensual</span>
+                              <span className="text-base font-bold text-[#008E88]">{formatCLP(prop.rentCLP)}</span>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setSelectedContractId(contracts[0]?.id || '');
+                                setActiveTab('contracts');
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-[#E6F4EA] text-[#008E88] text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              Ver contrato →
+                            </button>
                           </div>
+
                           <button
                             onClick={() => {
-                              setSelectedContractId(contracts[0]?.id || '');
-                              setActiveTab('contracts');
+                              setAiGeneratingCopy(true);
+                              setIsAiCopyModalOpen(true);
+                              setTimeout(() => {
+                                setAiGeneratedListingCopy(
+                                  `✨ OPORTUNIDAD EN ${prop.commune.toUpperCase()} ✨\n\n` +
+                                  `📍 Dirección: ${prop.address}\n\n` +
+                                  `🏡 Distribución y comodidades:\n` +
+                                  `• ${prop.bedrooms} Dormitorios | ${prop.bathrooms} Baños\n` +
+                                  `• Superficie útil: ${prop.surfaceM2} m²\n` +
+                                  `• Excelente conectividad y plusvalía garantizada\n\n` +
+                                  `💰 Canon mensual: ${formatCLP(prop.rentCLP)}\n` +
+                                  `📲 Contactar directamente para coordinar visita express.`
+                                );
+                                setAiGeneratingCopy(false);
+                              }, 600);
                             }}
-                            className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-[#E6F4EA] text-[#008E88] text-xs font-bold transition-colors cursor-pointer"
+                            className="w-full py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-[#008E88] text-[11px] font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5 border border-emerald-200/60"
                           >
-                            Ver contrato →
+                            <Sparkles className="w-3 h-3 text-[#008E88]" />
+                            <span>Generar Ficha Comercial con IA</span>
                           </button>
                         </div>
                       </div>
@@ -962,10 +1546,20 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-base font-bold text-[#153B50]">Propiedades en venta</h3>
-                  <p className="text-xs text-gray-500">
-                    Construye tu cartera de ventas. Registra tu propiedad en venta, define su mandato y coordina las visitas de tus interesados.
-                  </p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-base font-bold text-[#153B50]">Pipeline Visual Inmobiliario</h3>
+                      <p className="text-xs text-gray-500">
+                        Construye tu cartera de ventas y activa workflows automáticos de seguimiento por WhatsApp para acelerar el cierre.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Workflows WhatsApp Activos
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Visual Kanban Stages */}
@@ -994,6 +1588,59 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                               <span className="text-[10px] text-gray-400">Comisión 2%: ~{formatCLP(item.commissionEstCLP)}</span>
                             </div>
                             <span className="text-[10px] text-gray-500 block">Interesado: <strong>{item.buyerCandidate}</strong></span>
+
+                            {/* Automated Workflows Trigger Buttons */}
+                            <div className="pt-2 border-t border-gray-100 flex flex-col gap-1.5">
+                              {col.stage === 'visitas' && (
+                                <>
+                                  <a
+                                    href={`https://wa.me/?text=${encodeURIComponent(`Hola ${item.buyerCandidate}! Te recordamos tu visita programada para mañana a las 11:00 hrs en ${item.propertyTitle}. ¿Nos confirmas tu asistencia? ¡Saludos de Alexis Santana!`)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="w-full py-1 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[10px] text-center border border-emerald-200 transition-colors flex items-center justify-center gap-1"
+                                  >
+                                    <span>⚡ Recordatorio Visita 24h</span>
+                                  </a>
+                                  <a
+                                    href={`https://wa.me/?text=${encodeURIComponent(`Hola ${item.buyerCandidate}! Esperamos que te haya gustado la visita a ${item.propertyTitle}. Cuéntanos, ¿qué te pareció la propiedad? ¿Te gustaría presentar una reserva u oferta?`)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="w-full py-1 px-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-[10px] text-center border border-blue-200 transition-colors flex items-center justify-center gap-1"
+                                  >
+                                    <span>⚡ Solicitar Feedback Post-Visita</span>
+                                  </a>
+                                </>
+                              )}
+
+                              {col.stage === 'captacion' && (
+                                <a
+                                  href={`https://wa.me/?text=${encodeURIComponent(`Hola ${item.buyerCandidate}! Te escribo de Los Pinos Inmobiliaria. Tenemos nuevas opciones que se ajustan a tu búsqueda en ${item.propertyTitle}. ¿Te gustaría que te comparta la ficha actualizada?`)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="w-full py-1 px-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-[10px] text-center border border-amber-200 transition-colors flex items-center justify-center gap-1"
+                                >
+                                  <span>⚡ Reactivar Lead (+15 días)</span>
+                                </a>
+                              )}
+
+                              {(col.stage === 'oferta' || col.stage === 'promesa') && (
+                                <button
+                                  onClick={() => {
+                                    setLegalSignContract({
+                                      id: item.id,
+                                      propertyAddress: item.propertyTitle,
+                                      tenantName: item.buyerCandidate,
+                                      rentCLP: item.commissionEstCLP * 50,
+                                      type: col.stage === 'promesa' ? 'Promesa de Compraventa' : 'Carta de Oferta y Cierre'
+                                    });
+                                    setIsLegalSignModalOpen(true);
+                                  }}
+                                  className="w-full py-1 px-2 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold text-[10px] text-center border border-purple-200 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                  <span>✍️ Enviar a Firma Electrónica</span>
+                                </button>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1264,6 +1911,28 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                   </div>
                 </div>
 
+                {/* Banner LegalTech Firma Electrónica */}
+                <div className="bg-[#153B50] rounded-2xl p-4 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
+                  <div className="flex items-center gap-2.5">
+                    <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+                    <div>
+                      <span className="font-bold block">Firma Electrónica Nativa con Validez Legal (Ley 19.799)</span>
+                      <span className="text-gray-300 text-[11px] block">
+                        Cierra reservas, contratos de arriendo y órdenes de visita con verificación de identidad por RUT y OTP sin ir a notaría.
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setLegalSignContract(contracts[0]);
+                      setIsLegalSignModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-colors shrink-0 cursor-pointer shadow-xs"
+                  >
+                    ✍️ Firmar Contrato Activo
+                  </button>
+                </div>
+
                 {/* Content Box with Empty State or Filtered Table */}
                 <div className="bg-white rounded-3xl p-6 sm:p-12 border border-gray-200/90 shadow-2xs min-h-[300px] flex flex-col justify-center">
                   {!showDemoData && contractsSearch === '' ? (
@@ -1281,7 +1950,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                             <th className="pb-3">Canon CLP</th>
                             <th className="pb-3">Reajuste</th>
                             <th className="pb-3">Estado</th>
-                            <th className="pb-3 text-right">Acción</th>
+                            <th className="pb-3 text-right">Acciones</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -1305,13 +1974,23 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                                     Vigente
                                   </span>
                                 </td>
-                                <td className="py-3 text-right">
+                                <td className="py-3 text-right space-x-2">
+                                  <button
+                                    onClick={() => {
+                                      setLegalSignContract(c);
+                                      setIsLegalSignModalOpen(true);
+                                    }}
+                                    className="px-2 py-1 rounded-lg bg-emerald-50 text-[#008E88] font-bold hover:bg-emerald-100 text-[11px] cursor-pointer"
+                                    title="Firmar digitalmente según Ley 19.799"
+                                  >
+                                    ✍️ Firmar
+                                  </button>
                                   <button 
                                     onClick={() => {
                                       setSelectedContractId(c.id);
                                       setActiveTab('settlement');
                                     }}
-                                    className="text-[#008E88] font-bold hover:underline cursor-pointer"
+                                    className="text-gray-500 hover:text-gray-900 font-semibold text-[11px] cursor-pointer"
                                   >
                                     Liquidar →
                                   </button>
@@ -1638,9 +2317,76 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             {/* ========================================================== */}
             {activeTab === 'portals' && (
               <div className="space-y-8 animate-in fade-in duration-150">
-                <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
-                  Portales
-                </h1>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#153B50]">
+                    Portales
+                  </h1>
+                  <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1.5 self-start sm:self-auto">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Portal Autoservicio Propietarios Activo
+                  </span>
+                </div>
+
+                {/* SUPERPODER 5 (PARTE 1): TRANSPARENCIA EN TIEMPO REAL - PORTAL DEL PROPIETARIO */}
+                <div className="bg-gradient-to-br from-white to-emerald-50/30 rounded-3xl p-6 sm:p-8 border border-emerald-100 shadow-sm space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-[#008E88] text-white flex items-center justify-center shadow-xs">
+                        <BarChart2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-bold text-[#153B50]">Portal del Propietario en Tiempo Real</h3>
+                        <p className="text-xs text-gray-500">
+                          Autoservicio donde el dueño del inmueble inicia sesión y supervisa métricas en vivo sin tener que llamar al corredor.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-mono font-bold text-[#008E88] bg-white px-3 py-1 rounded-xl border border-[#008E88]/30">
+                      Vista Propietario: Los Pinos 356
+                    </span>
+                  </div>
+
+                  {/* 4 Live Metrics Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white p-4 rounded-2xl border border-gray-200/90 shadow-2xs space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Visualizaciones Web</span>
+                      <span className="text-2xl font-serif font-bold text-[#153B50] block">1.420</span>
+                      <span className="text-[10px] text-emerald-600 font-bold block">↑ +18% esta semana</span>
+                    </div>
+                    <div className="bg-white p-4 rounded-2xl border border-gray-200/90 shadow-2xs space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Leads Calificados</span>
+                      <span className="text-2xl font-serif font-bold text-[#008E88] block">14</span>
+                      <span className="text-[10px] text-gray-500 block">Filtrados con IA</span>
+                    </div>
+                    <div className="bg-white p-4 rounded-2xl border border-gray-200/90 shadow-2xs space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Visitas Físicas</span>
+                      <span className="text-2xl font-serif font-bold text-[#153B50] block">5</span>
+                      <span className="text-[10px] text-purple-600 font-bold block">1 programada mañana</span>
+                    </div>
+                    <div className="bg-white p-4 rounded-2xl border border-gray-200/90 shadow-2xs space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Ofertas Formales</span>
+                      <span className="text-2xl font-serif font-bold text-amber-600 block">2</span>
+                      <span className="text-[10px] text-amber-600 font-bold block">En evaluación</span>
+                    </div>
+                  </div>
+
+                  {/* Feedback summary in real time */}
+                  <div className="p-4 rounded-2xl bg-white border border-gray-200/80 space-y-2 text-xs">
+                    <span className="font-bold text-[#153B50] flex items-center gap-1.5">
+                      💬 Feedback Reciente de Interesados (Recopilado por WhatsApp):
+                    </span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-gray-600">
+                      <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                        <p className="italic">"Excelente luminosidad y mantención del inmueble. El cliente evalúa si califica al crédito."</p>
+                        <span className="text-[10px] text-gray-400 font-medium block mt-1">— Visita de Matías Edwards</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                        <p className="italic">"Propiedad en excelente punto de Las Condes. Solicitó borrador de promesa para revisar con abogado."</p>
+                        <span className="text-[10px] text-gray-400 font-medium block mt-1">— Visita de Carolina Ruiz</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Section 1: Acceso de propietarios y arrendatarios */}
                 <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/90 shadow-2xs space-y-4">
@@ -3534,6 +4280,220 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                 Invitar al Equipo
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL: REDACTOR DE FICHAS COMERCIALES CON IA (SUPERPODER 3)    */}
+      {/* ============================================================== */}
+      {isAiCopyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#153B50]">Redactor Comercial con IA</h3>
+                  <span className="text-[10px] text-gray-400">Optimizado para Portal Inmobiliario, TocToc y WhatsApp</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsAiCopyModalOpen(false)}
+                className="text-gray-400 hover:text-gray-700 cursor-pointer p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {aiGeneratingCopy ? (
+              <div className="py-12 text-center space-y-3">
+                <div className="w-10 h-10 border-3 border-[#008E88] border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-xs text-gray-600 font-semibold">
+                  Generando redacción publicitaria de alta conversión...
+                </p>
+                <span className="text-[10px] text-gray-400">Analizando metros cuadrados, conectividad y puntos de interés.</span>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-2xl">
+                  <textarea
+                    rows={10}
+                    value={aiGeneratedListingCopy}
+                    onChange={(e) => setAiGeneratedListingCopy(e.target.value)}
+                    className="w-full bg-transparent text-xs text-gray-800 font-sans focus:outline-none resize-none leading-relaxed"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard?.writeText(aiGeneratedListingCopy);
+                      alert('✓ ¡Ficha comercial copiada al portapapeles!');
+                    }}
+                    className="flex-1 py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white font-bold text-xs transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Copy className="w-4 h-4" />
+                    <span>Copiar Ficha al Portapapeles</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setAiGeneratingCopy(true);
+                      setTimeout(() => {
+                        setAiGeneratedListingCopy(prev => prev + '\n\n⭐ Bono especial: Gastos comunes rebajados el primer mes.');
+                        setAiGeneratingCopy(false);
+                      }, 500);
+                    }}
+                    className="px-3.5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs cursor-pointer transition-colors"
+                  >
+                    Variar tono
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL: LEGALTECH FIRMA ELECTRÓNICA NATIVA LEY 19.799 (PODER 5) */}
+      {/* ============================================================== */}
+      {isLegalSignModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-200 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-emerald-50 text-[#008E88] flex items-center justify-center">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#153B50]">Firma Electrónica Nativa</h3>
+                  <span className="text-[10px] text-gray-400">Conforme a la Ley N° 19.799 de Chile</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsLegalSignModalOpen(false);
+                  setSignedDocCertificate(null);
+                }}
+                className="text-gray-400 hover:text-gray-700 cursor-pointer p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {signedDocCertificate ? (
+              <div className="py-6 space-y-4 text-center">
+                <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-base font-bold text-[#153B50]">¡Documento Firmado con Éxito!</h4>
+                  <p className="text-xs text-gray-500">
+                    Se ha generado el certificado criptográfico de firma electrónica con estampado de tiempo.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200 font-mono text-[10px] text-gray-600 text-left space-y-1">
+                  <div><strong>ID Documento:</strong> DOC-{Date.now().toString().slice(-6)}</div>
+                  <div><strong>Certificado Hash:</strong> {signedDocCertificate}</div>
+                  <div><strong>Firmantes validados:</strong> 2 de 2 (Corredor y Arrendatario)</div>
+                  <div><strong>Validez Jurídica:</strong> Plena prueba legal en tribunales chilenos</div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setIsLegalSignModalOpen(false);
+                    setSignedDocCertificate(null);
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white font-bold text-xs cursor-pointer shadow-xs"
+                >
+                  Cerrar y Ver Contrato Firmado
+                </button>
+              </div>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setIsSigningProcess(true);
+                  setTimeout(() => {
+                    setIsSigningProcess(false);
+                    setSignedDocCertificate('SHA256:8b4e72f910cd4a61b8f' + Date.now().toString(16));
+                  }, 1200);
+                }}
+                className="space-y-3.5 text-xs"
+              >
+                <div className="p-3 rounded-2xl bg-[#F4F8F7] border border-gray-200 space-y-1.5">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase block">Documento a Suscribir</span>
+                  <div className="font-bold text-[#153B50]">{legalSignContract?.propertyAddress || 'Los Pinos 356, Las Condes'}</div>
+                  <div className="text-gray-500 text-[11px]">
+                    Parte Interesada: <strong>{legalSignContract?.tenantName || 'Alexis Santana'}</strong>
+                  </div>
+                  <div className="text-[#008E88] font-bold text-[11px]">
+                    Canon: {formatCLP(legalSignContract?.rentCLP || 750000)} / mes
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">RUT del Representante / Corredor *</label>
+                  <input
+                    type="text"
+                    required
+                    defaultValue="15.883.974-1"
+                    className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono text-[#153B50] outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">Código de Validación OTP (Enviado al correo/móvil) *</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      defaultValue="209676"
+                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono text-[#153B50] tracking-widest text-center font-bold outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => alert('Código OTP reenviado al correo alexis.s.m@gmail.com')}
+                      className="px-3 py-2 rounded-xl border border-gray-200 text-[11px] text-gray-600 hover:bg-gray-50 font-semibold cursor-pointer shrink-0"
+                    >
+                      Reenviar
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-gray-400 block mt-1">Código de 6 dígitos con validez de 24 horas.</span>
+                </div>
+
+                <div className="flex items-start gap-2 pt-1 text-[11px] text-gray-600">
+                  <input type="checkbox" required defaultChecked id="legalTerms" className="mt-0.5 accent-[#008E88]" />
+                  <label htmlFor="legalTerms" className="cursor-pointer">
+                    Acepto suscribir electrónicamente este instrumento privado con validez jurídica según la <strong>Ley 19.799</strong> de Chile.
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSigningProcess}
+                  className="w-full py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
+                >
+                  {isSigningProcess ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Validando Firma Criptográfica...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Firmar Instrumento Ahora</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}

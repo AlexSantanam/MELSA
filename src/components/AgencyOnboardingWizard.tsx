@@ -14,7 +14,9 @@ import {
   Sparkles,
   ExternalLink,
   ShieldCheck,
-  Check
+  Check,
+  Copy,
+  Users
 } from 'lucide-react';
 import { AuthUser, AgencyOnboardingData, AgencyPlanTier } from '../types';
 import { MelsaLogo } from './MelsaLogo';
@@ -72,12 +74,29 @@ export const AgencyOnboardingWizard: React.FC<AgencyOnboardingWizardProps> = ({
   const [portalAccentColor, setPortalAccentColor] = useState(initialData?.portalAccentColor || '#008e88');
   const [portalLogoUrl, setPortalLogoUrl] = useState<string | undefined>(initialData?.portalLogoUrl);
 
-  // 6. Fees
+  // 6. Payment Link (Screenshot 6/8)
+  const [paymentLink, setPaymentLink] = useState<string>(
+    `https://user.melsa.cl/pay/c8fd0927723bfabb542051e19c733246`
+  );
+  const [isPaymentLinkActive, setIsPaymentLinkActive] = useState<boolean>(false);
+  const [copiedPaymentLink, setCopiedPaymentLink] = useState<boolean>(false);
+
+  // 7. Client Access Link (Screenshot 7/8)
+  const [personalAccessLink, setPersonalAccessLink] = useState<string>(
+    `https://user.melsa.cl/my/33`
+  );
+  const [copiedAccessLink, setCopiedAccessLink] = useState<boolean>(false);
+
+  // 8. Team Member (Screenshot 8/8)
+  const [teamMemberName, setTeamMemberName] = useState<string>('');
+  const [teamMemberEmail, setTeamMemberEmail] = useState<string>('');
+  const [teamMemberPassword, setTeamMemberPassword] = useState<string>('');
+  const [teamMemberRole, setTeamMemberRole] = useState<'Colaborador' | 'Administrador'>('Colaborador');
+
+  // Additional settings
   const [monthlyFeePercent, setMonthlyFeePercent] = useState<number>(initialData?.monthlyFeePercent || 7);
   const [placementFeePercent, setPlacementFeePercent] = useState<number>(initialData?.placementFeePercent || 50);
   const [salesCommissionPercent, setSalesCommissionPercent] = useState<number>(initialData?.salesCommissionPercent || 2);
-
-  // 7. Cobranzas automáticas
   const [reminderDaysBefore, setReminderDaysBefore] = useState<number>(initialData?.reminderDaysBefore || 3);
   const [enableWhatsAppReminders, setEnableWhatsAppReminders] = useState<boolean>(initialData?.enableWhatsAppReminders ?? true);
   const [enableEmailReminders, setEnableEmailReminders] = useState<boolean>(initialData?.enableEmailReminders ?? true);
@@ -169,7 +188,7 @@ export const AgencyOnboardingWizard: React.FC<AgencyOnboardingWizardProps> = ({
 
         <button
           onClick={onSkip}
-          className="text-xs text-gray-500 hover:text-[#0B6B67] font-semibold transition-colors cursor-pointer"
+          className="text-xs text-gray-500 hover:text-[#008E88] font-semibold transition-colors cursor-pointer"
         >
           Saltar configuración y ver panel →
         </button>
@@ -179,7 +198,7 @@ export const AgencyOnboardingWizard: React.FC<AgencyOnboardingWizardProps> = ({
       <div className="max-w-2xl mx-auto w-full bg-transparent my-auto">
         
         {/* ============================================================== */}
-        {/* STEP 1: INFORMACIÓN LEGAL                                      */}
+        {/* STEP 1: INFORMACIÓN LEGAL (SCREENSHOT 1/8)                     */}
         {/* ============================================================== */}
         {step === 1 && (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -249,7 +268,7 @@ export const AgencyOnboardingWizard: React.FC<AgencyOnboardingWizardProps> = ({
         )}
 
         {/* ============================================================== */}
-        {/* STEP 2: INFORMACIÓN DE CONTACTO                                */}
+        {/* STEP 2: INFORMACIÓN DE CONTACTO (SCREENSHOT 2/8)               */}
         {/* ============================================================== */}
         {step === 2 && (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -293,7 +312,7 @@ export const AgencyOnboardingWizard: React.FC<AgencyOnboardingWizardProps> = ({
         )}
 
         {/* ============================================================== */}
-        {/* STEP 3: CUENTA PARA TRANSFERENCIAS                            */}
+        {/* STEP 3: CUENTA PARA TRANSFERENCIAS (SCREENSHOT 3/8)           */}
         {/* ============================================================== */}
         {step === 3 && (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -402,7 +421,7 @@ export const AgencyOnboardingWizard: React.FC<AgencyOnboardingWizardProps> = ({
         )}
 
         {/* ============================================================== */}
-        {/* STEP 4: IMPORTA TUS PROPIEDADES                               */}
+        {/* STEP 4: IMPORTA TUS PROPIEDADES (SCREENSHOT 4/8)              */}
         {/* ============================================================== */}
         {step === 4 && (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -473,7 +492,7 @@ export const AgencyOnboardingWizard: React.FC<AgencyOnboardingWizardProps> = ({
         )}
 
         {/* ============================================================== */}
-        {/* STEP 5: TU PORTAL DE PAGOS                                    */}
+        {/* STEP 5: TU PORTAL DE PAGOS (SCREENSHOT 5/8)                   */}
         {/* ============================================================== */}
         {step === 5 && (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -572,7 +591,7 @@ export const AgencyOnboardingWizard: React.FC<AgencyOnboardingWizardProps> = ({
                 </div>
               </div>
 
-              {/* Right: Live Portal Card Preview (exact match to Screenshot 5) */}
+              {/* Right: Live Portal Card Preview (exact match to Screenshot 5/8) */}
               <div className="bg-white rounded-3xl p-6 border border-gray-200/80 shadow-sm space-y-4">
                 
                 {/* Simulated Portal Top Header */}
@@ -619,277 +638,270 @@ export const AgencyOnboardingWizard: React.FC<AgencyOnboardingWizardProps> = ({
         )}
 
         {/* ============================================================== */}
-        {/* STEP 6: COMISIONES & HONORARIOS DE ADMINISTRACIÓN              */}
+        {/* STEP 6: TU ENLACE DE PAGO (SCREENSHOT 6/8)                     */}
         {/* ============================================================== */}
         {step === 6 && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="text-center sm:text-left space-y-1">
               <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[#153B50] tracking-tight">
-                Comisiones & Honorarios
+                Tu enlace de pago
               </h1>
               <p className="text-xs sm:text-sm text-gray-500">
-                Define las comisiones automáticas que se aplicarán en liquidaciones a propietarios.
+                Activa tu enlace y compártelo con tus arrendatarios.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-[#E6F0EE] p-4 rounded-2xl">
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Comisión mensual de administración
-                </label>
-                <div className="flex items-center gap-2 mt-2">
-                  <input
-                    type="number"
-                    min="1"
-                    max="30"
-                    value={monthlyFeePercent}
-                    onChange={(e) => setMonthlyFeePercent(Number(e.target.value))}
-                    className="w-20 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold text-[#008E88] outline-none"
-                  />
-                  <span className="text-sm font-bold text-[#153B50]">% del arriendo mensual</span>
-                </div>
-                <span className="text-[11px] text-gray-500 mt-2 block">
-                  Se descuenta automáticamente al emitir la liquidación mensual.
-                </span>
-              </div>
+            <div className="text-center sm:text-left">
+              <span className={`text-xs font-semibold ${isPaymentLinkActive ? 'text-emerald-700' : 'text-gray-500'}`}>
+                {isPaymentLinkActive 
+                  ? '✓ Enlace preparado · Enlace activado y listo para cobrar' 
+                  : 'Enlace preparado · Pendiente de activación'}
+              </span>
+            </div>
 
-              <div className="bg-[#E6F0EE] p-4 rounded-2xl">
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Comisión por colocación (Nuevo contrato)
-                </label>
-                <div className="flex items-center gap-2 mt-2">
-                  <input
-                    type="number"
-                    min="10"
-                    max="100"
-                    value={placementFeePercent}
-                    onChange={(e) => setPlacementFeePercent(Number(e.target.value))}
-                    className="w-20 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold text-[#008E88] outline-none"
-                  />
-                  <span className="text-sm font-bold text-[#153B50]">% del primer mes</span>
-                </div>
-                <span className="text-[11px] text-gray-500 mt-2 block">
-                  Honorario único por gestión comercial y selección de inquilino.
-                </span>
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-gray-700">
+                Enlace de tu portal de pagos
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={paymentLink}
+                  className="w-full bg-[#E6F0EE] border border-transparent rounded-xl px-4 py-3 text-xs sm:text-sm text-[#153B50] font-mono outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(paymentLink);
+                    setCopiedPaymentLink(true);
+                    setTimeout(() => setCopiedPaymentLink(false), 2000);
+                  }}
+                  className="p-3 rounded-xl bg-[#E6F0EE] hover:bg-[#D9E9E6] text-[#008E88] transition-colors cursor-pointer shrink-0"
+                  title="Copiar enlace"
+                >
+                  {copiedPaymentLink ? <Check className="w-5 h-5 text-emerald-600" /> : <Copy className="w-5 h-5" />}
+                </button>
               </div>
+              {copiedPaymentLink && (
+                <span className="text-[11px] text-emerald-600 font-semibold block">
+                  ¡Enlace copiado al portapapeles!
+                </span>
+              )}
+            </div>
 
-              <div className="bg-[#E6F0EE] p-4 rounded-2xl">
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Comisión por venta inmobiliaria
-                </label>
-                <div className="flex items-center gap-2 mt-2">
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="1"
-                    max="5"
-                    value={salesCommissionPercent}
-                    onChange={(e) => setSalesCommissionPercent(Number(e.target.value))}
-                    className="w-20 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold text-[#008E88] outline-none"
-                  />
-                  <span className="text-sm font-bold text-[#153B50]">% + IVA por parte</span>
-                </div>
-                <span className="text-[11px] text-gray-500 mt-2 block">
-                  Estándar nacional del 2% comprador y 2% vendedor.
-                </span>
-              </div>
-
-              <div className="bg-[#E6F0EE] p-4 rounded-2xl">
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Costo emisión de liquidaciones
-                </label>
-                <div className="mt-2 text-sm font-bold text-emerald-700 flex items-center gap-1.5">
-                  <Check className="w-4 h-4 stroke-[3]" />
-                  <span>$0 CLP (Incluido en tu plan MELSA)</span>
-                </div>
-                <span className="text-[11px] text-gray-500 mt-2 block">
-                  PDF oficial con desglose legal descargable sin recargos.
-                </span>
-              </div>
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => setIsPaymentLinkActive(true)}
+                className={`px-8 py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all shadow-xs cursor-pointer inline-flex items-center gap-2 ${
+                  isPaymentLinkActive 
+                    ? 'bg-emerald-600 text-white' 
+                    : 'bg-[#008E88] hover:bg-[#08736E] text-white'
+                }`}
+              >
+                <span>{isPaymentLinkActive ? '✓ Enlace Activado' : 'Activar enlace'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         )}
 
         {/* ============================================================== */}
-        {/* STEP 7: AUTOMATIZACIÓN DE COBRANZAS                           */}
+        {/* STEP 7: ACCESO DE PROPIETARIOS Y ARRENDATARIOS (7/8)          */}
         {/* ============================================================== */}
         {step === 7 && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <div className="text-center sm:text-left space-y-1">
               <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[#153B50] tracking-tight">
-                Automatización de cobranzas
+                Acceso de propietarios y arrendatarios
               </h1>
-              <p className="text-xs sm:text-sm text-gray-500">
-                Configura los recordatorios automáticos por WhatsApp y correo para tus arrendatarios.
+              <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
+                Ambos entran desde el mismo enlace. Usan el correo que registraste en Melsa y reciben un código de acceso. Cada persona ve solo lo que le corresponde.
               </p>
             </div>
 
-            <div className="space-y-3">
-              <label className="flex items-start gap-3 bg-[#E6F0EE] p-4 rounded-2xl cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={enableWhatsAppReminders}
-                  onChange={(e) => setEnableWhatsAppReminders(e.target.checked)}
-                  className="mt-1 w-4 h-4 rounded text-[#008E88] focus:ring-[#008E88] cursor-pointer"
-                />
-                <div>
-                  <span className="text-xs font-bold text-[#153B50] block">
-                    Recordatorios preventivos por WhatsApp
-                  </span>
-                  <span className="text-[11px] text-gray-600 block mt-0.5">
-                    Envío automático 3 días antes de la fecha de pago con el link directo a tu portal de pagos.
-                  </span>
-                </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-gray-700">
+                Enlace de acceso personal
               </label>
-
-              <label className="flex items-start gap-3 bg-[#E6F0EE] p-4 rounded-2xl cursor-pointer">
+              <div className="flex items-center gap-2">
                 <input
-                  type="checkbox"
-                  checked={enableEmailReminders}
-                  onChange={(e) => setEnableEmailReminders(e.target.checked)}
-                  className="mt-1 w-4 h-4 rounded text-[#008E88] focus:ring-[#008E88] cursor-pointer"
+                  type="text"
+                  readOnly
+                  value={personalAccessLink}
+                  className="w-full bg-[#E6F0EE] border border-transparent rounded-xl px-4 py-3 text-xs sm:text-sm text-[#153B50] font-mono outline-none"
                 />
-                <div>
-                  <span className="text-xs font-bold text-[#153B50] block">
-                    Comprobantes y liquidaciones por correo
-                  </span>
-                  <span className="text-[11px] text-gray-600 block mt-0.5">
-                    Notificación al propietario cuando se recibe la renta y envío del PDF de liquidación.
-                  </span>
-                </div>
-              </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(personalAccessLink);
+                    setCopiedAccessLink(true);
+                    setTimeout(() => setCopiedAccessLink(false), 2000);
+                  }}
+                  className="p-3 rounded-xl bg-[#E6F0EE] hover:bg-[#D9E9E6] text-[#008E88] transition-colors cursor-pointer shrink-0"
+                  title="Copiar enlace personal"
+                >
+                  {copiedAccessLink ? <Check className="w-5 h-5 text-emerald-600" /> : <Copy className="w-5 h-5" />}
+                </button>
+              </div>
+              {copiedAccessLink && (
+                <span className="text-[11px] text-emerald-600 font-semibold block">
+                  ¡Enlace copiado al portapapeles!
+                </span>
+              )}
+            </div>
 
-              <div className="bg-[#E6F0EE] p-4 rounded-2xl">
-                <span className="text-xs font-bold text-[#153B50] block">
-                  Día habitual de vencimiento de contratos
-                </span>
-                <span className="text-[11px] text-gray-500 block mb-2">
-                  Día 5 de cada mes (reajustable por contrato individual).
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-lg bg-white font-bold text-xs text-[#008E88]">Día 5 de cada mes</span>
-                  <span className="text-xs text-gray-500">con 5 días de gracia</span>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-[#153B50]">Propietarios</h4>
+                <p className="text-xs text-gray-500">
+                  Consultan sus documentos y liquidaciones disponibles.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-[#153B50]">Arrendatarios</h4>
+                <p className="text-xs text-gray-500">
+                  Revisan sus documentos, obligaciones y comprobantes.
+                </p>
               </div>
             </div>
           </div>
         )}
 
         {/* ============================================================== */}
-        {/* STEP 8: ¡TODO LISTO! RESUMEN DE CONFIGURACIÓN                  */}
+        {/* STEP 8: TU EQUIPO (SCREENSHOT 8/8)                             */}
         {/* ============================================================== */}
         {step === 8 && (
-          <div className="space-y-6 animate-in zoom-in-95 duration-200 text-center">
-            
-            <div className="w-16 h-16 rounded-full border-2 border-[#008E88] bg-[#008E88]/15 text-[#008E88] mx-auto flex items-center justify-center shadow-xs">
-              <Check className="w-8 h-8 stroke-[2.5]" />
-            </div>
-
-            <div className="space-y-1">
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="text-center sm:text-left space-y-1">
               <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[#153B50] tracking-tight">
-                ¡Tu corredora está lista!
+                Tu equipo
               </h1>
-              <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
-                Hemos configurado todos los módulos para comenzar la gestión de tus arriendos y ventas.
+              <p className="text-xs sm:text-sm text-gray-500">
+                Crea cuentas para quienes trabajarán contigo en Melsa.
               </p>
             </div>
 
-            {/* Summary card */}
-            <div className="bg-white rounded-3xl p-6 border border-gray-200 text-left shadow-xs max-w-lg mx-auto space-y-3">
-              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                <div>
-                  <h4 className="text-base font-bold text-[#153B50]">{companyName}</h4>
-                  <span className="text-xs text-gray-400">RUT: {companyRut} · {legalAddress}</span>
-                </div>
-                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#008E88]/15 text-[#008E88]">
-                  Plan {(currentUser.agencyPlan || 'Básico').toUpperCase()}
-                </span>
+            <div className="text-center sm:text-left">
+              <span className="text-xs font-semibold text-gray-500">
+                Tienes 1 cupo disponible. Tu cuenta ya ocupa un cupo.
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+              <div className="sm:col-span-3">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Nombre
+                </label>
+                <input
+                  type="text"
+                  value={teamMemberName}
+                  onChange={(e) => setTeamMemberName(e.target.value)}
+                  placeholder="ej. Juan Pérez"
+                  className="w-full bg-[#E6F0EE] border border-transparent focus:border-[#008E88] rounded-xl px-3.5 py-2.5 text-xs text-[#153B50] outline-none"
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <span className="text-gray-400 block text-[10px] uppercase font-bold">Representante</span>
-                  <span className="font-semibold text-gray-800">{legalRepresentative}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400 block text-[10px] uppercase font-bold">Contacto</span>
-                  <span className="font-semibold text-gray-800">{contactPhone}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400 block text-[10px] uppercase font-bold">Cuenta Bancaria</span>
-                  <span className="font-semibold text-gray-800">{bankName}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400 block text-[10px] uppercase font-bold">Comisión Arriendo</span>
-                  <span className="font-semibold text-[#008E88]">{monthlyFeePercent}% mensual</span>
-                </div>
+              <div className="sm:col-span-4">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Correo
+                </label>
+                <input
+                  type="email"
+                  value={teamMemberEmail}
+                  onChange={(e) => setTeamMemberEmail(e.target.value)}
+                  placeholder="ej. juan@los-pinos.cl"
+                  className="w-full bg-[#E6F0EE] border border-transparent focus:border-[#008E88] rounded-xl px-3.5 py-2.5 text-xs text-[#153B50] outline-none"
+                />
               </div>
 
-              <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
-                <span className="text-gray-500">Portal Arrendatarios:</span>
-                <span className="font-mono text-[#008E88] font-bold">melsa.cl/portal/{portalName.toLowerCase().replace(/\s+/g, '-')}</span>
+              <div className="sm:col-span-3">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Contraseña inicial
+                </label>
+                <input
+                  type="password"
+                  value={teamMemberPassword}
+                  onChange={(e) => setTeamMemberPassword(e.target.value)}
+                  placeholder="Mínimo 12 caracteres"
+                  className="w-full bg-[#E6F0EE] border border-transparent focus:border-[#008E88] rounded-xl px-3.5 py-2.5 text-xs text-[#153B50] outline-none"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Permiso
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setTeamMemberRole(prev => prev === 'Colaborador' ? 'Administrador' : 'Colaborador')}
+                  className="flex items-center gap-2 cursor-pointer pt-1"
+                >
+                  <div className={`w-9 h-5 rounded-full transition-colors p-0.5 ${
+                    teamMemberRole === 'Administrador' ? 'bg-[#008E88]' : 'bg-gray-400'
+                  }`}>
+                    <div className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                      teamMemberRole === 'Administrador' ? 'translate-x-4' : 'translate-x-0'
+                    }`} />
+                  </div>
+                  <span className="text-xs font-semibold text-gray-700">
+                    {teamMemberRole}
+                  </span>
+                </button>
               </div>
             </div>
 
-            <div className="pt-2 max-w-sm mx-auto">
-              <button
-                type="button"
-                onClick={handleFinish}
-                className="w-full py-4 rounded-2xl bg-[#008E88] hover:bg-[#08736E] text-white font-bold text-sm tracking-wider uppercase transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2"
-              >
-                <span>ENTRAR A MI PANEL DE CONTROL</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-
+            <p className="text-[11px] text-gray-500 font-light pt-1">
+              Un administrador puede gestionar la configuración y el equipo. Puedes añadir más usuarios desde Usuarios según los cupos disponibles.
+            </p>
           </div>
         )}
 
       </div>
 
       {/* ============================================================== */}
-      {/* BOTTOM NAVIGATION BAR: ← Volver   X / 8   Siguiente →          */}
+      {/* BOTTOM NAVIGATION BAR: ← Volver   X / 8   Siguiente / Finalizar */}
       {/* ============================================================== */}
-      {step < 8 && (
-        <div className="max-w-2xl mx-auto w-full pt-8">
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={handleBack}
-              disabled={step === 1}
-              className={`text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer ${
-                step === 1 ? 'opacity-0 pointer-events-none' : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Volver</span>
-            </button>
+      <div className="max-w-2xl mx-auto w-full pt-8">
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={handleBack}
+            disabled={step === 1}
+            className={`text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer ${
+              step === 1 ? 'opacity-0 pointer-events-none' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Volver</span>
+          </button>
 
-            <span className="text-xs font-semibold text-gray-500">
-              {step} / 8
-            </span>
+          <span className="text-xs font-semibold text-gray-500">
+            {step} / 8
+          </span>
 
-            <button
-              type="button"
-              onClick={handleNext}
-              className="px-6 py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white font-bold text-xs tracking-wider transition-all shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1.5"
-            >
-              <span>Siguiente</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <div className="text-center mt-3">
-            <button
-              type="button"
-              onClick={handleNext}
-              className="text-xs text-[#008E88] hover:underline cursor-pointer"
-            >
-              Omitir este paso
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleNext}
+            className="px-6 py-2.5 rounded-xl bg-[#008E88] hover:bg-[#08736E] text-white font-bold text-xs tracking-wider transition-all shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1.5"
+          >
+            <span>{step === 8 ? 'Finalizar' : 'Siguiente'}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
-      )}
+
+        <div className="text-center mt-3">
+          <button
+            type="button"
+            onClick={step === 8 ? handleFinish : handleNext}
+            className="text-xs text-[#008E88] hover:underline cursor-pointer"
+          >
+            Omitir este paso
+          </button>
+        </div>
+      </div>
 
     </div>
   );

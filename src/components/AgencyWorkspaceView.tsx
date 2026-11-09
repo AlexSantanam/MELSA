@@ -227,9 +227,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
   const [isListeningVoice, setIsListeningVoice] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
   const speechRecognitionRef = useRef<any>(null);
-  const [multimodalTranscript, setMultimodalTranscript] = useState(
-    'Es un departamento impecable en Providencia a pasos del metro Manuel Montt, 2 dormitorios, 2 baños, 75 m² útiles, vista norte despejada hacia el cerro San Cristóbal, tasado en 5.200 UF con canon de arriendo estimado en $780.000 mensuales. Cuenta con estacionamiento subterráneo y bodega amplia. Falta pintura en el living y ajuste menor de gasfitería.'
-  );
+  const [multimodalTranscript, setMultimodalTranscript] = useState('');
   const [multimodalUrlInput, setMultimodalUrlInput] = useState('https://www.portalinmobiliario.com/venta/departamento/providencia-metropolitana/123456');
   const [isProcessingMultimodal, setIsProcessingMultimodal] = useState(false);
   const [extractedPropertyResult, setExtractedPropertyResult] = useState<ExtractedPropertyData | null>(null);
@@ -258,6 +256,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
       recognition.onstart = () => {
         setIsListeningVoice(true);
         setSpeechError(null);
+        setMultimodalTranscript(''); // Limpiar para captar tu voz en vivo desde cero
       };
 
       recognition.onresult = (event: any) => {
@@ -5216,9 +5215,26 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                         rows={4}
                         value={multimodalTranscript}
                         onChange={(e) => setMultimodalTranscript(e.target.value)}
-                        placeholder="Habla por micrófono o escribe los detalles del departamento/casa..."
+                        placeholder="Presiona '🎙️ Dictar por Micrófono' y habla (ej: 'Casa de 5 habitaciones en Las Condes...'), o escribe directamente aquí."
                         className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-700 leading-relaxed focus:outline-none focus:border-[#D02126]"
                       />
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span className="text-[10px] text-gray-400 font-medium">Ejemplos para probar:</span>
+                        <button
+                          type="button"
+                          onClick={() => setMultimodalTranscript('Casa de 5 habitaciones en Las Condes, 4 baños, 220 m², arriendo $2.400.000 con patio y quincho')}
+                          className="text-[10px] bg-white border border-gray-200 hover:border-[#D02126] text-gray-700 px-2.5 py-1 rounded-lg cursor-pointer transition-colors shadow-2xs"
+                        >
+                          🏡 Casa 5 Habitaciones
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMultimodalTranscript('Departamento de 2 dormitorios y 2 baños en Providencia cerca de Metro Manuel Montt, 75 m², $780.000 con estacionamiento')}
+                          className="text-[10px] bg-white border border-gray-200 hover:border-[#D02126] text-gray-700 px-2.5 py-1 rounded-lg cursor-pointer transition-colors shadow-2xs"
+                        >
+                          🏢 Depto 2D Providencia
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

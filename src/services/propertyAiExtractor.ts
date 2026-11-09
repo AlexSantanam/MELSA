@@ -1,5 +1,6 @@
 // propertyAiExtractor.ts
 // Servicio para ingesta multimodal e IA extractiva inmobiliaria con Groq (Qwen / Llama) y Web Speech API en Chile.
+// Fidelidad estricta a lo que dicta el usuario sin alterar tipología ni número de habitaciones.
 
 export interface ExtractedPropertyData {
   title: string;
@@ -17,168 +18,226 @@ export interface ExtractedPropertyData {
   generatedCopy: string;
 }
 
-const FALLBACK_DEFAULT: ExtractedPropertyData = {
-  title: 'Departamento Vista Despejada Manuel Montt',
-  address: 'Manuel Montt 890',
-  commune: 'Providencia, RM',
-  type: 'Depto',
-  bedrooms: 2,
-  bathrooms: 2,
-  surfaceM2: 75,
-  rentCLP: 780000,
-  priceUF: 5200,
-  parking: 1,
-  storage: 1,
-  maintenanceStatus: 'Falta pintura en living (Agendado)',
-  generatedCopy: '✨ VIVE EN EL CORAZÓN DE PROVIDENCIA ✨\n\nDepartamento en piso alto con privilegiada vista norte despejada hacia el Cerro San Cristóbal. A pasos del Metro Manuel Montt.\n\n• 2 Dormitorios amplios (principal en suite)\n• 2 Baños completos con finas terminaciones\n• 75 m² útiles con terraza privada\n• Incluye estacionamiento subterráneo y bodega amplia\n\n💰 Canon arriendo: $780.000 / mes · Disponibilidad inmediata.'
+const numWordsMap: Record<string, number> = {
+  un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5,
+  seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12
 };
 
 /**
  * Llama a la API de Groq con el modelo ultra-rápido qwen/qwen3.8-27b
- * para estructurar texto libre en variables inmobiliarias y generar copy publicitario.
+ * respetando con fidelidad matemática las características que el usuario dictó.
  */
 export async function extractPropertyWithGroq(inputText: string): Promise<ExtractedPropertyData> {
   const apiKey = import.meta.env.VITE_GROQ_API_KEY || (import.meta.env as any).VITE_GROK_API_KEY;
 
-  if (!apiKey || apiKey === 'TU_GROQ_API_KEY') {
-    console.warn('API key de Groq no configurada, usando extractor heurístico local.');
-    return extractPropertyHeuristic(inputText);
+  if (!inputText || inputText.trim().length === 0) {
+    return extractPropertyHeuristic('Casa de 3 dormitorios');
   }
 
-  try {
-    const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
-    const systemPrompt = `
+  if (apiKey && apiKey !== 'TU_GROQ_API_KEY') {
+    try {
+      const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+      const systemPrompt = `
 Eres el motor de IA inmobiliaria de MELSA Gestión Inmobiliaria (Chile).
-Tu misión es recibir una descripción, nota de voz transcrita o ficha técnica de un inmueble en Chile, extraer todas sus variables cuantitativas y redactar un copy comercial de alta conversión para portales (PortalInmobiliario, TocToc, Yapo).
+Tu trabajo es escuchar con FIDELIDAD MATEMÁTICA ABSOLUTA lo que el usuario describe y estructurarlo.
 
-Debes responder EXCLUSIVAMENTE con un JSON válido (sin etiquetas markdown adicionales ni explicaciones) con la siguiente estructura:
+REGLAS DE ORO OBLIGATORIAS:
+1. DORMITORIOS / HABITACIONES:
+   - Extrae el número EXACTO de habitaciones, dormitorios o piezas que el usuario mencionó.
+   - Si el usuario dice "casa de 5 habitaciones", bedrooms DEBE SER 5. Jamás pongas 2 ni inventes otro número.
+   - Si usa palabras (ej. "cinco habitaciones", "tres piezas"), convierte la palabra al número correspondiente (5, 3).
+2. TIPO DE INMUEBLE:
+   - Si dice "casa", type = "Casa".
+   - Si dice "depto" o "departamento", type = "Depto".
+   - Si dice "oficina", type = "Oficina".
+   - Si dice "parcela", type = "Parcela".
+3. BAÑOS Y SUPERFICIE (M2):
+   - Si el usuario los especifica, usa sus números exactos.
+   - Si NO los especifica, estima valores proporcionales reales según el número de habitaciones (ej. una casa de 5 habitaciones suele tener entre 3 a 4 baños y ~180 a 240 m² útiles; no pongas 70 m² para 5 dormitorios).
+4. PRECIOS (CLP / UF):
+   - Si el usuario menciona precio, extráelo con precisión ("800 lucas" = 800000 CLP, "5000 UF" = 5000 UF).
+   - Si NO menciona precio de arriendo o venta, puedes dejarlo en 0 o estimar un valor referencial coherente para esa comuna.
+5. TÍTULO Y COPY COMERCIAL:
+   - El título debe reflejar la tipología y cantidad real de habitaciones (ej: "Amplia Casa de 5 Habitaciones en ...").
+   - Redacta un copy persuasivo, profesional y elegante para portales inmobiliarios (PortalInmobiliario, TocToc).
+
+Debes responder EXCLUSIVAMENTE con un JSON válido con esta estructura:
 {
-  "title": "string representativo y atractivo del inmueble (ej: Depto 2D/2B con Vista Despejada en Providencia)",
-  "address": "string con la calle o dirección aproximada",
-  "commune": "string con la comuna y región (ej: Providencia, RM)",
-  "type": "Depto" | "Casa" | "Oficina" | "Comercial",
-  "bedrooms": number (dormitorios o piezas),
-  "bathrooms": number (baños),
-  "surfaceM2": number (metros cuadrados útiles o totales),
-  "rentCLP": number (canon mensual en pesos chilenos, entiende jerga como '800 lucas' = 800000),
-  "priceUF": number (valor en UF si se menciona, sino estimar según m2 y comuna o 0),
-  "parking": number (número de estacionamientos),
-  "storage": number (número de bodegas),
-  "maintenanceStatus": "string con reparaciones pendientes o 'Impecable'",
-  "generatedCopy": "string con la redacción comercial persuasiva, con emojis ejecutivos, viñetas de amenidades y llamado a la acción comercial chileno"
+  "title": string,
+  "address": string,
+  "commune": string,
+  "type": "Casa" | "Depto" | "Oficina" | "Parcela",
+  "bedrooms": number,
+  "bathrooms": number,
+  "surfaceM2": number,
+  "rentCLP": number,
+  "priceUF": number,
+  "parking": number,
+  "storage": number,
+  "maintenanceStatus": string,
+  "generatedCopy": string
 }
 `;
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'qwen/qwen3.8-27b',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: inputText }
-        ],
-        temperature: 0.1,
-        response_format: { type: 'json_object' }
-      })
-    });
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'qwen/qwen3.8-27b',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: inputText }
+          ],
+          temperature: 0.1,
+          response_format: { type: 'json_object' }
+        })
+      });
 
-    if (!response.ok) {
-      console.warn(`Groq API respondió ${response.status}. Usando extractor local.`);
-      return extractPropertyHeuristic(inputText);
+      if (response.ok) {
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        if (content) {
+          const parsed = JSON.parse(content);
+          return {
+            title: parsed.title || `${parsed.type || 'Inmueble'} de ${parsed.bedrooms || 3} Habitaciones`,
+            address: parsed.address || 'Sector residencial destacado',
+            commune: parsed.commune && parsed.commune !== 'No especificada' ? parsed.commune : 'Santiago, RM',
+            type: parsed.type || (inputText.toLowerCase().includes('casa') ? 'Casa' : 'Depto'),
+            bedrooms: Number(parsed.bedrooms) || 3,
+            bathrooms: Number(parsed.bathrooms) || 2,
+            surfaceM2: Number(parsed.surfaceM2) || 120,
+            rentCLP: Number(parsed.rentCLP) || 0,
+            priceUF: Number(parsed.priceUF) || 0,
+            parking: typeof parsed.parking === 'boolean' ? (parsed.parking ? 1 : 0) : Number(parsed.parking) || 0,
+            storage: typeof parsed.storage === 'boolean' ? (parsed.storage ? 1 : 0) : Number(parsed.storage) || 0,
+            maintenanceStatus: parsed.maintenanceStatus && parsed.maintenanceStatus !== 'null' ? parsed.maintenanceStatus : 'Impecable / Listo para habitar',
+            generatedCopy: parsed.generatedCopy || inputText
+          };
+        }
+      } else {
+        console.warn(`Groq API respondió ${response.status}. Usando extractor heurístico local.`);
+      }
+    } catch (error) {
+      console.error('Error al procesar con Groq:', error);
     }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) {
-      return extractPropertyHeuristic(inputText);
-    }
-
-    const parsed = JSON.parse(content);
-    return {
-      title: parsed.title || 'Propiedad Captada por IA',
-      address: parsed.address || 'Ubicación central',
-      commune: parsed.commune || 'Santiago, RM',
-      type: parsed.type || 'Depto',
-      bedrooms: Number(parsed.bedrooms) || 2,
-      bathrooms: Number(parsed.bathrooms) || 1,
-      surfaceM2: Number(parsed.surfaceM2) || 60,
-      rentCLP: Number(parsed.rentCLP) || 650000,
-      priceUF: Number(parsed.priceUF) || 4500,
-      parking: typeof parsed.parking === 'boolean' ? (parsed.parking ? 1 : 0) : Number(parsed.parking) || 0,
-      storage: typeof parsed.storage === 'boolean' ? (parsed.storage ? 1 : 0) : Number(parsed.storage) || 0,
-      maintenanceStatus: parsed.maintenanceStatus || 'Impecable / Listo para habitar',
-      generatedCopy: parsed.generatedCopy || inputText
-    };
-  } catch (error) {
-    console.error('Error al procesar con Groq:', error);
-    return extractPropertyHeuristic(inputText);
   }
+
+  return extractPropertyHeuristic(inputText);
 }
 
 /**
- * Extractor heurístico de respaldo local sin conexión
+ * Extractor heurístico local de alta fidelidad (para respaldo sin conexión)
  */
 export function extractPropertyHeuristic(text: string): ExtractedPropertyData {
-  if (!text || text.trim().length === 0) return FALLBACK_DEFAULT;
-
-  const lower = text.toLowerCase();
-  
-  // Dormitorios
-  const bedMatch = lower.match(/(\d+)\s*(?:dormitorio|dorm|habitación|pieza|d\b)/);
-  const bedrooms = bedMatch ? parseInt(bedMatch[1], 10) : 2;
-
-  // Baños
-  const bathMatch = lower.match(/(\d+)\s*(?:baño|bano|b\b)/);
-  const bathrooms = bathMatch ? parseInt(bathMatch[1], 10) : 2;
-
-  // Metros cuadrados
-  const m2Match = lower.match(/(\d+)\s*(?:m2|m²|metros)/);
-  const surfaceM2 = m2Match ? parseInt(m2Match[1], 10) : 70;
-
-  // Valor UF
-  const ufMatch = lower.match(/(\d+[\.\,]?\d*)\s*(?:uf|u\.f\.)/);
-  let priceUF = 5000;
-  if (ufMatch) {
-    priceUF = parseFloat(ufMatch[1].replace('.', '').replace(',', '.'));
+  if (!text || text.trim().length === 0) {
+    return {
+      title: 'Casa Residencial Amplia',
+      address: 'Sector residencial',
+      commune: 'Santiago, RM',
+      type: 'Casa',
+      bedrooms: 4,
+      bathrooms: 3,
+      surfaceM2: 180,
+      rentCLP: 1200000,
+      priceUF: 7500,
+      parking: 2,
+      storage: 1,
+      maintenanceStatus: 'Excelente estado general',
+      generatedCopy: 'Gran propiedad familiar con amplios espacios y conectividad.'
+    };
   }
 
-  // Arriendo CLP
-  let rentCLP = 750000;
-  const lucasMatch = lower.match(/(\d+)\s*(?:lucas|mil)/);
-  const clpMatch = lower.match(/\$\s*([\d\.]+)/);
+  // Normalización sin acentos para evitar descalces
+  const norm = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // 1. Tipo de inmueble
+  const isCasa = norm.includes('casa');
+  const isOficina = norm.includes('oficina');
+  const isParcela = norm.includes('parcela') || norm.includes('terreno');
+  const type = isCasa ? 'Casa' : isOficina ? 'Oficina' : isParcela ? 'Parcela' : 'Depto';
+
+  // 2. Dormitorios / Habitaciones (detecta números y palabras como cinco, tres, etc.)
+  let bedrooms = isCasa ? 4 : 2;
+  const bedNumMatch = norm.match(/(\d+)\s*(?:dormitorio|dorm|habitacion|pieza|cuarto|alcoba|d\b)/);
+  if (bedNumMatch) {
+    bedrooms = parseInt(bedNumMatch[1], 10);
+  } else {
+    const bedWordMatch = norm.match(/(un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s*(?:dormitorio|dorm|habitacion|pieza|cuarto)/);
+    if (bedWordMatch && numWordsMap[bedWordMatch[1]]) {
+      bedrooms = numWordsMap[bedWordMatch[1]];
+    }
+  }
+
+  // 3. Baños
+  let bathrooms = Math.max(1, Math.round(bedrooms * 0.7));
+  const bathNumMatch = norm.match(/(\d+)\s*(?:bano|baño|b\b)/);
+  if (bathNumMatch) {
+    bathrooms = parseInt(bathNumMatch[1], 10);
+  } else {
+    const bathWordMatch = norm.match(/(un|una|uno|dos|tres|cuatro|cinco)\s*(?:bano|baño)/);
+    if (bathWordMatch && numWordsMap[bathWordMatch[1]]) {
+      bathrooms = numWordsMap[bathWordMatch[1]];
+    }
+  }
+
+  // 4. Superficie m2 proporcional real
+  let surfaceM2 = isCasa ? Math.max(140, bedrooms * 36) : Math.max(45, bedrooms * 26);
+  const m2Match = norm.match(/(\d+)\s*(?:m2|m²|metro)/);
+  if (m2Match) {
+    surfaceM2 = parseInt(m2Match[1], 10);
+  }
+
+  // 5. Canon arriendo o precio UF
+  let rentCLP = 0;
+  const clpMatch = norm.match(/\$\s*([\d\.]+)/);
+  const lucasMatch = norm.match(/(\d+)\s*(?:lucas|mil)/);
   if (clpMatch) {
     rentCLP = parseInt(clpMatch[1].replace(/\./g, ''), 10);
   } else if (lucasMatch) {
     rentCLP = parseInt(lucasMatch[1], 10) * 1000;
+  } else {
+    // Estimación coherente si no se dice
+    rentCLP = isCasa ? bedrooms * 240000 : bedrooms * 320000;
   }
 
-  // Comuna
+  let priceUF = 0;
+  const ufMatch = norm.match(/(\d+[\.\,]?\d*)\s*(?:uf|u\.f\.)/);
+  if (ufMatch) {
+    priceUF = parseFloat(ufMatch[1].replace('.', '').replace(',', '.'));
+  } else {
+    priceUF = Math.round(surfaceM2 * 55);
+  }
+
+  // 6. Comuna
   let commune = 'Santiago, RM';
-  const communes = ['providencia', 'las condes', 'ñuñoa', 'vitacura', 'lo barnechea', 'santiago centro', 'macul', 'la reina', 'viña del mar', 'concepción'];
+  const communes = ['las condes', 'vitacura', 'lo barnechea', 'providencia', 'ñuñoa', 'la reina', 'chicureo', 'colina', 'viña del mar', 'concon', 'puerto varas', 'frutillar', 'concepcion'];
   for (const c of communes) {
-    if (lower.includes(c)) {
+    if (norm.includes(c)) {
       commune = c.charAt(0).toUpperCase() + c.slice(1) + ', Chile';
       break;
     }
   }
 
+  const parking = norm.includes('estacionamiento') || norm.includes('auto') || isCasa ? (bedrooms >= 4 ? 2 : 1) : 0;
+  const storage = norm.includes('bodega') ? 1 : 0;
+  const maintenanceStatus = norm.includes('pintura') ? 'Falta pintura menor' : 'Impecable / Excelente estado';
+
   return {
-    title: `Inmueble ${bedrooms}D/${bathrooms}B en ${commune.split(',')[0]}`,
-    address: 'Sector residencial destacado',
+    title: `${type} de ${bedrooms} Habitaciones en ${commune.split(',')[0]}`,
+    address: 'Sector residencial consolidado',
     commune,
-    type: lower.includes('casa') ? 'Casa' : 'Depto',
+    type,
     bedrooms,
     bathrooms,
     surfaceM2,
     rentCLP,
     priceUF,
-    parking: lower.includes('estacionamiento') || lower.includes('auto') ? 1 : 0,
-    storage: lower.includes('bodega') ? 1 : 0,
-    maintenanceStatus: lower.includes('pintura') ? 'Falta pintura menor' : 'En excelente estado',
-    generatedCopy: `🏙️ OPORTUNIDAD DESTACADA EN ${commune.toUpperCase()} 🏙️\n\nPropiedad de ${surfaceM2} m² con excelente conectividad.\n• ${bedrooms} Dormitorios\n• ${bathrooms} Baños\n• Incluye ${lower.includes('estacionamiento') ? 'estacionamiento' : 'sin estacionamiento'}\n\n💰 Valor: $${rentCLP.toLocaleString('es-CL')} / mes. ¡Contáctanos para agendar visita!`
+    parking,
+    storage,
+    maintenanceStatus,
+    generatedCopy: `🏡 DESTACADA ${type.toUpperCase()} DE ${bedrooms} HABITACIONES 🏡\n\nExcelente propiedad de ${surfaceM2} m² con amplios espacios familiares y gran luminosidad.\n\n• ${bedrooms} Habitaciones de excelente tamaño\n• ${bathrooms} Baños completos\n• ${parking > 0 ? `${parking} Estacionamiento(s)` : 'Sin estacionamiento'}\n• Entorno tranquilo y residencial en ${commune}\n\n💰 Valor referencial: $${rentCLP.toLocaleString('es-CL')} / mes. ¡Contáctanos para coordinar tu visita!`
   };
 }

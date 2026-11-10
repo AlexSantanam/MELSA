@@ -74,13 +74,7 @@ export const SellPropertySection: React.FC = () => {
   const [leadSubmitted, setLeadSubmitted] = useState(false);
 
   // Calles sugeridas según la comuna
-  const normalizedCommKey = commune.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const suggestedStreets = REAL_STREETS_BY_COMMUNE[normalizedCommKey]?.streets || [
-    'Av. Principal',
-    'Calle Central',
-    'Av. Los Parques',
-    'Sector Residencial'
-  ];
+  const suggestedStreets = getSuggestedStreetsForCommune(commune);
 
   // Radar de Plusvalía en tiempo real para el sector
   const previewUrbanPlusvalia = detectUrbanPlusvalia(commune, address);
@@ -370,14 +364,13 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
 
                   <div>
                     <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      Calle o Dirección Real
+                      Calle o Dirección Real (Búsqueda Activa)
                     </label>
-                    <input
-                      type="text"
+                    <AddressSearchAutocomplete
                       value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Ej. Valentín Letelier 693"
-                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
+                      onChange={(newAddr) => setAddress(newAddr)}
+                      commune={commune}
+                      placeholder="Ej. Valentín Letelier 693 o Av. Marga Marga"
                     />
                   </div>
                 </div>

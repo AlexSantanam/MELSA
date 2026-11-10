@@ -211,8 +211,8 @@ Generado con tecnología pericial MELSA.`;
 
           <form onSubmit={handleExecuteValuation} className="space-y-4">
             
-            {/* Tipo e Inmueble */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Tipo de Inmueble y Comuna */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
                   Tipo de Inmueble
@@ -231,28 +231,13 @@ Generado con tecnología pericial MELSA.`;
 
               <div>
                 <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                  Rol SII (Opcional)
+                  Comuna de Chile
                 </label>
-                <input
-                  type="text"
-                  value={rolSII}
-                  onChange={(e) => setRolSII(e.target.value)}
-                  placeholder="Ej. 1452-33"
-                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] outline-none focus:border-[#D02126]"
-                />
-              </div>
-            </div>
-
-            {/* Comuna Selector por Región */}
-            <div>
-              <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                Comuna de Chile
-              </label>
-              <select
-                value={commune}
-                onChange={(e) => setCommune(e.target.value)}
-                className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
-              >
+                <select
+                  value={commune}
+                  onChange={(e) => setCommune(e.target.value)}
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
+                >
                 <optgroup label="── Región de Valparaíso ──">
                   <option value="Villa Alemana">Villa Alemana</option>
                   <option value="Quilpué">Quilpué</option>
@@ -329,6 +314,7 @@ Generado con tecnología pericial MELSA.`;
                 </optgroup>
               </select>
             </div>
+          </div>
 
             {/* Dirección o Sector */}
             <div>

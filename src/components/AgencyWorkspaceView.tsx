@@ -628,7 +628,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
     setNewActivityTitle('');
   };
 
-  // Centro de Notificaciones en Vivo State
+  // Centro de Notificaciones en Vivo State con persistencia en localStorage
   const [notifications, setNotifications] = useState<Array<{
     id: string;
     category: 'valuation' | 'inbox' | 'sales' | 'contracts' | 'matching' | 'system';
@@ -640,68 +640,94 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
     targetTab: 'valuation' | 'inbox' | 'sales' | 'contracts' | 'matching' | 'dashboard';
     actionLabel: string;
     badge: string;
-  }>>([
-    {
-      id: 'notif-1',
-      category: 'valuation',
-      title: 'Tasación AVM: Megaproyecto Detectado',
-      description: 'Tasación calculada en Av. Marga Marga 1420, Villa Alemana (Rol 1245-68). Se indexó el Nuevo Hospital Provincial Marga Marga (+14% plusvalía).',
-      time: 'Hace 8 min',
-      read: false,
-      priority: 'urgent',
-      targetTab: 'valuation',
-      actionLabel: 'Ver Tasador AVM',
-      badge: 'Hospital Marga Marga'
-    },
-    {
-      id: 'notif-2',
-      category: 'inbox',
-      title: 'Lead VIP Calificado por IA (Score 96/100)',
-      description: 'Camila Zúñiga consultó vía WhatsApp por Depto en Las Condes ($850.000/mes). Aprobación crediticia pre-validada por IA.',
-      time: 'Hace 24 min',
-      read: false,
-      priority: 'high',
-      targetTab: 'inbox',
-      actionLabel: 'Abrir Chat WhatsApp',
-      badge: 'WhatsApp'
-    },
-    {
-      id: 'notif-3',
-      category: 'contracts',
-      title: 'Promesa de Compraventa lista para Firma',
-      description: 'Borrador para Casa en Peñablanca listo para firma electrónica de comprador y vendedor en Notaría Virtual.',
-      time: 'Hoy 16:30',
-      read: false,
-      priority: 'high',
-      targetTab: 'contracts',
-      actionLabel: 'Ver Documento',
-      badge: 'Notaría Virtual'
-    },
-    {
-      id: 'notif-4',
-      category: 'matching',
-      title: '3 Matches Automáticos Encontrados',
-      description: 'El motor Smart Matching vinculó 3 compradores calificados con subsidio DS19/crédito aprobado a tu propiedad en Quilpué.',
-      time: 'Hoy 12:15',
-      read: true,
-      priority: 'normal',
-      targetTab: 'matching',
-      actionLabel: 'Revisar Matches',
-      badge: 'Smart Match IA'
-    },
-    {
-      id: 'notif-5',
-      category: 'system',
-      title: 'Alerta Ley 21.442: Aviso de Suspensión',
-      description: 'Condominio Alturas: Unidad 402 acumuló 3 meses morosos. Se redactó notificación legal bajo Art. 20 para corte de suministro eléctrico.',
-      time: 'Ayer',
-      read: true,
-      priority: 'normal',
-      targetTab: 'dashboard',
-      actionLabel: 'Ver Gestión',
-      badge: 'Ley 21.442'
+  }>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('melsa_agency_notifications_v1');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch (err) {
+        console.warn('Error al leer notificaciones de localStorage:', err);
+      }
     }
-  ]);
+    return [
+      {
+        id: 'notif-1',
+        category: 'valuation',
+        title: 'Tasación AVM: Megaproyecto Detectado',
+        description: 'Tasación calculada en Av. Marga Marga 1420, Villa Alemana (Rol 1245-68). Se indexó el Nuevo Hospital Provincial Marga Marga (+14% plusvalía).',
+        time: 'Hace 8 min',
+        read: false,
+        priority: 'urgent',
+        targetTab: 'valuation',
+        actionLabel: 'Ver Tasador AVM',
+        badge: 'Hospital Marga Marga'
+      },
+      {
+        id: 'notif-2',
+        category: 'inbox',
+        title: 'Lead VIP Calificado por IA (Score 96/100)',
+        description: 'Camila Zúñiga consultó vía WhatsApp por Depto en Las Condes ($850.000/mes). Aprobación crediticia pre-validada por IA.',
+        time: 'Hace 24 min',
+        read: false,
+        priority: 'high',
+        targetTab: 'inbox',
+        actionLabel: 'Abrir Chat WhatsApp',
+        badge: 'WhatsApp'
+      },
+      {
+        id: 'notif-3',
+        category: 'contracts',
+        title: 'Promesa de Compraventa lista para Firma',
+        description: 'Borrador para Casa en Peñablanca listo para firma electrónica de comprador y vendedor en Notaría Virtual.',
+        time: 'Hoy 16:30',
+        read: false,
+        priority: 'high',
+        targetTab: 'contracts',
+        actionLabel: 'Ver Documento',
+        badge: 'Notaría Virtual'
+      },
+      {
+        id: 'notif-4',
+        category: 'matching',
+        title: '3 Matches Automáticos Encontrados',
+        description: 'El motor Smart Matching vinculó 3 compradores calificados con subsidio DS19/crédito aprobado a tu propiedad en Quilpué.',
+        time: 'Hoy 12:15',
+        read: true,
+        priority: 'normal',
+        targetTab: 'matching',
+        actionLabel: 'Revisar Matches',
+        badge: 'Smart Match IA'
+      },
+      {
+        id: 'notif-5',
+        category: 'system',
+        title: 'Alerta Ley 21.442: Aviso de Suspensión',
+        description: 'Condominio Alturas: Unidad 402 acumuló 3 meses morosos. Se redactó notificación legal bajo Art. 20 para corte de suministro eléctrico.',
+        time: 'Ayer',
+        read: true,
+        priority: 'normal',
+        targetTab: 'dashboard',
+        actionLabel: 'Ver Gestión',
+        badge: 'Ley 21.442'
+      }
+    ];
+  });
+
+  // Guardar en localStorage de forma persistente cada vez que cambia el estado
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('melsa_agency_notifications_v1', JSON.stringify(notifications));
+      } catch (err) {
+        console.warn('Error al guardar notificaciones en localStorage:', err);
+      }
+    }
+  }, [notifications]);
 
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState<'all' | 'unread'>('all');

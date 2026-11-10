@@ -32,6 +32,7 @@ import {
   CHILE_REGIONS,
   getRegionForCommune,
   querySiiCadastralProfile,
+  fetchLiveSiiCadastralProfile,
   SiiCadastralProfile,
   UF_CURRENT_CLP 
 } from '../services/propertyValuationEngine';
@@ -79,25 +80,31 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
   const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [addedToPortfolioSuccess, setAddedToPortfolioSuccess] = useState(false);
 
-  // Sincronizar Ficha Catastral del SII (Autocompleta m², material, tipología y avalúo)
-  const handleFetchSiiCadastralData = () => {
+  // Sincronizar Ficha Catastral del SII (Consulta en vivo al Web Service oficial)
+  const handleFetchSiiCadastralData = async () => {
     if (!rolManzana || !rolPredio) return;
     setIsQueryingSii(true);
 
-    setTimeout(() => {
-      const profile = querySiiCadastralProfile(commune, rolManzana, rolPredio);
-      setSiiCadastralResult(profile);
-      setPropertyType(profile.propertyType);
-      setUsefulM2(profile.usefulM2);
-      setTotalM2(profile.totalM2);
-      setConstructionMaterial(profile.constructionMaterial);
-      setBedrooms(profile.bedrooms);
-      setBathrooms(profile.bathrooms);
-      if (profile.officialAddress && (!address || address.length < 3)) {
-        setAddress(profile.officialAddress);
+    try {
+      const profile = await fetchLiveSiiCadastralProfile(commune, rolManzana, rolPredio);
+      if (profile) {
+        setSiiCadastralResult(profile);
+        setPropertyType(profile.propertyType);
+        if (profile.usefulM2 && (!usefulM2 || usefulM2 === '')) {
+          setUsefulM2(profile.usefulM2);
+        }
+        if (profile.totalM2 && (!totalM2 || totalM2 === '')) {
+          setTotalM2(profile.totalM2);
+        }
+        if (profile.officialAddress && (!address || address.length < 3)) {
+          setAddress(profile.officialAddress);
+        }
       }
+    } catch (err) {
+      console.warn('Error en consulta SII en vivo:', err);
+    } finally {
       setIsQueryingSii(false);
-    }, 600);
+    }
   };
 
   // Region and Commune Handlers (Filtro en cascada sin confusiones)
@@ -160,6 +167,18 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
     setIsAnalyzing(true);
     setAnalysisStep(1);
 
+    let activeSiiProfile = siiCadastralResult;
+    if (!activeSiiProfile && rolManzana && rolPredio) {
+      try {
+        activeSiiProfile = await fetchLiveSiiCadastralProfile(commune, rolManzana, rolPredio);
+        if (activeSiiProfile) {
+          setSiiCadastralResult(activeSiiProfile);
+        }
+      } catch (err) {
+        console.warn('Fallback al ejecutar tasación:', err);
+      }
+    }
+
     const inputData: ValuationInput = {
       propertyType,
       commune,
@@ -167,6 +186,7 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
       rolManzana,
       rolPredio,
       rolSII: rolManzana && rolPredio ? `${rolManzana}-${rolPredio}` : undefined,
+      siiCadastralData: activeSiiProfile || undefined,
       constructionMaterial,
       usefulM2: Number(usefulM2) || 100,
       totalM2: Number(totalM2) || Number(usefulM2) || 120,
@@ -410,7 +430,10 @@ Generado con tecnología pericial MELSA.`;
                   <input
                     type="text"
                     value={rolManzana}
-                    onChange={(e) => setRolManzana(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                    onChange={(e) => {
+                      setRolManzana(e.target.value.replace(/\D/g, '').slice(0, 5));
+                      setSiiCadastralResult(null);
+                    }}
                     placeholder="Ej. 433"
                     className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#0F1115] text-center focus:border-[#D02126] outline-none"
                   />
@@ -420,12 +443,63 @@ Generado con tecnología pericial MELSA.`;
                   <input
                     type="text"
                     value={rolPredio}
-                    onChange={(e) => setRolPredio(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                    onChange={(e) => {
+                      setRolPredio(e.target.value.replace(/\D/g, '').slice(0, 5));
+                      setSiiCadastralResult(null);
+                    }}
                     placeholder="Ej. 032"
                     className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#0F1115] text-center focus:border-[#D02126] outline-none"
                   />
                 </div>
               </div>
+
+              {/* Botón para consultar en vivo al SII */}
+              {rolManzana && rolPredio && (
+                <button
+                  type="button"
+                  onClick={handleFetchSiiCadastralData}
+                  disabled={isQueryingSii}
+                  className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold text-xs shadow-sm disabled:opacity-50 transition-all cursor-pointer"
+                >
+                  {isQueryingSii ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Consultando Web Service SII en vivo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🔍 Consultar Catastro Oficial SII ({rolManzana}-{rolPredio})</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* Ficha Catastral Sincronizada en Vivo */}
+              {siiCadastralResult && (
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1">
+                  <div className="flex items-center justify-between text-xs font-bold text-emerald-800">
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      ✓ Ficha Catastral SII en Vivo
+                    </span>
+                    <span className="text-[10px] font-mono bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">
+                      Rol {siiCadastralResult.rolFormatted}
+                    </span>
+                  </div>
+                  {siiCadastralResult.officialAddress && (
+                    <p className="text-[11px] text-gray-700 font-medium">
+                      📍 <span className="font-semibold text-gray-900">Dirección Oficial:</span> {siiCadastralResult.officialAddress}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between text-[11px] text-gray-700 pt-0.5">
+                    <span>Destino: <strong>{siiCadastralResult.destination}</strong></span>
+                    <span>Avalúo: <strong className="text-emerald-700">${siiCadastralResult.estimatedFiscalAssessmentCLP.toLocaleString('es-CL')} CLP</strong></span>
+                  </div>
+                  <div className="text-[10px] text-emerald-700 font-semibold">
+                    Contribuciones: {siiCadastralResult.contributionsStatus}
+                  </div>
+                </div>
+              )}
 
               <p className="text-[10px] text-gray-500 leading-tight">
                 Permite indexar la propiedad para la tasación pericial y asociar antecedentes en el Conservador de Bienes Raíces (CBR).
@@ -772,32 +846,48 @@ Generado con tecnología pericial MELSA.`;
                 {valuationResult.siiAssessment && (
                   <div className="p-4 bg-white rounded-2xl border border-gray-200 shadow-sm space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Avalúo Fiscal (Referencial)</span>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        {valuationResult.siiAssessment.isLiveVerified ? 'Avalúo Fiscal Oficial SII' : 'Avalúo Fiscal (Referencial)'}
+                      </span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        valuationResult.siiAssessment.hasValidRol ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'
+                        valuationResult.siiAssessment.isLiveVerified
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : valuationResult.siiAssessment.hasValidRol 
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : 'bg-gray-100 text-gray-600'
                       }`}>
-                        {valuationResult.siiAssessment.hasValidRol
-                          ? valuationResult.siiAssessment.contributionsStatus
-                          : 'Rol No Ingresado'}
+                        {valuationResult.siiAssessment.isLiveVerified
+                          ? '✓ Oficial SII en Vivo'
+                          : valuationResult.siiAssessment.hasValidRol
+                            ? valuationResult.siiAssessment.contributionsStatus
+                            : 'Rol No Ingresado'}
                       </span>
                     </div>
                     <div className="text-xs font-mono font-extrabold text-[#0F1115]">
                       {valuationResult.siiAssessment.hasValidRol ? (
-                        <>Rol: {valuationResult.siiAssessment.rolFormatted}</>
+                        <>Rol Oficial: {valuationResult.siiAssessment.rolFormatted}</>
                       ) : (
                         <span className="font-sans font-medium text-amber-700">
                           Sin Rol Asignado (Estimación Referencial)
                         </span>
                       )}
                     </div>
+                    {valuationResult.siiAssessment.officialAddress && (
+                      <div className="text-[11px] text-gray-700 font-medium">
+                        📍 {valuationResult.siiAssessment.officialAddress}
+                      </div>
+                    )}
                     <div className="text-xs text-gray-600">
-                      Avalúo Fiscal Estimado: <strong>${valuationResult.siiAssessment.estimatedFiscalAssessmentCLP.toLocaleString('es-CL')} CLP</strong>
+                      {valuationResult.siiAssessment.isLiveVerified ? 'Avalúo Fiscal Vigente:' : 'Avalúo Fiscal Estimado:'}{' '}
+                      <strong className="text-gray-900">${valuationResult.siiAssessment.estimatedFiscalAssessmentCLP.toLocaleString('es-CL')} CLP</strong>
                     </div>
-                    <div className="text-[10px] text-gray-400">
-                      {valuationResult.siiAssessment.destination}
+                    <div className="text-[10px] text-gray-500">
+                      Destino: <strong>{valuationResult.siiAssessment.destination}</strong> • Contribuciones: <strong>{valuationResult.siiAssessment.contributionsStatus}</strong>
                     </div>
                     <div className="text-[9px] text-gray-400 pt-0.5 border-t border-gray-100">
-                      *Estimación pericial referencial. El avalúo oficial legal se verifica en www.sii.cl.
+                      {valuationResult.siiAssessment.isLiveVerified
+                        ? '✓ Información catastral cotejada en vivo con el Servicio de Impuestos Internos (SII).'
+                        : '*Estimación pericial referencial. El avalúo oficial legal se verifica en www.sii.cl.'}
                     </div>
                   </div>
                 )}

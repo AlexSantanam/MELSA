@@ -21,11 +21,12 @@ export interface UrbanPlusvaliaInsight {
 export interface SiiTaxAssessment {
   rolManzana: string;
   rolPredio: string;
-  rolFormatted: string; // "1245-68"
+  rolFormatted: string; // "1245-68" o "Sin Rol"
   destination: string;  // "Habitacional Serie No Agrícola (DFL-2)"
   estimatedFiscalAssessmentCLP: number;
   contributionsStatus: 'Exento de Contribuciones' | 'Afecto a Contribuciones';
   estimatedQuarterlyTaxCLP: number;
+  hasValidRol: boolean;
 }
 
 export interface SiiCadastralProfile {
@@ -1441,9 +1442,13 @@ export function detectUrbanPlusvalia(commune: string, address: string): UrbanPlu
  */
 export function calculateSiiFiscalAssessment(
   baseCommercialCLP: number, 
-  rolManzana: string, 
-  rolPredio: string
+  rolManzana?: string, 
+  rolPredio?: string
 ): SiiTaxAssessment {
+  const cleanManzana = (rolManzana || '').trim();
+  const cleanPredio = (rolPredio || '').trim();
+  const hasValidRol = cleanManzana.length > 0 && cleanPredio.length > 0;
+
   const fiscalCLP = Math.round(baseCommercialCLP * 0.48);
   const EXEMPT_THRESHOLD_CLP = 46500000;
   
@@ -1452,13 +1457,14 @@ export function calculateSiiFiscalAssessment(
   const quarterlyTax = isExento ? 0 : Math.round((taxableBase * 0.0105) / 4);
 
   return {
-    rolManzana: rolManzana.trim() || '1245',
-    rolPredio: rolPredio.trim() || '68',
-    rolFormatted: `${rolManzana.trim() || '1245'}-${rolPredio.trim() || '68'}`,
-    destination: 'Habitacional Serie No Agrícola (DFL-2)',
+    rolManzana: cleanManzana,
+    rolPredio: cleanPredio,
+    rolFormatted: hasValidRol ? `${cleanManzana}-${cleanPredio}` : 'Sin Rol Ingresado',
+    destination: hasValidRol ? 'Habitacional Serie No Agrícola (DFL-2)' : 'Habitacional (Estimación fiscal preventiva)',
     estimatedFiscalAssessmentCLP: fiscalCLP,
     contributionsStatus: isExento ? 'Exento de Contribuciones' : 'Afecto a Contribuciones',
-    estimatedQuarterlyTaxCLP: quarterlyTax
+    estimatedQuarterlyTaxCLP: quarterlyTax,
+    hasValidRol
   };
 }
 
@@ -1471,8 +1477,31 @@ export function querySiiCadastralProfile(
   rolManzana: string,
   rolPredio: string
 ): SiiCadastralProfile {
-  const m = parseInt(rolManzana.replace(/\D/g, ''), 10) || 1245;
-  const p = parseInt(rolPredio.replace(/\D/g, ''), 10) || 68;
+  const cleanM = (rolManzana || '').replace(/\D/g, '');
+  const cleanP = (rolPredio || '').replace(/\D/g, '');
+  const m = parseInt(cleanM, 10);
+  const p = parseInt(cleanP, 10);
+
+  if (!m || !p) {
+    return {
+      rolManzana: '',
+      rolPredio: '',
+      rolFormatted: 'Sin Rol',
+      commune: commune || 'Villa Alemana',
+      propertyType: 'Casa',
+      usefulM2: 80,
+      totalM2: 160,
+      constructionMaterial: 'Albañilería Confinada / Ladrillo Fiscal (Clase C)',
+      bedrooms: 3,
+      bathrooms: 2,
+      estimatedYearBuilt: 2012,
+      estimatedFiscalAssessmentCLP: 42000000,
+      contributionsStatus: 'Exento DFL-2 (Cuota $0)',
+      destination: 'Habitacional Serie No Agrícola (DFL-2)',
+      foundInDatabase: false
+    };
+  }
+
   const isDepto = p > 80 || (m % 5 === 0);
 
   // Generación determinista y consistente para cualquier rol ingresado
@@ -1693,9 +1722,9 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
   );
   const baseMarketCLP = Math.round(baseMarketUF * UF_CURRENT_CLP);
 
-  // Rol SII Fiscal Assessment
-  const rolManzana = input.rolManzana || (input.rolSII ? input.rolSII.split('-')[0] : '1245');
-  const rolPredio = input.rolPredio || (input.rolSII ? input.rolSII.split('-')[1] : '68');
+  // Rol SII Fiscal Assessment (Solo si el usuario lo ingresó; sin rol inventado o forzado)
+  const rolManzana = (input.rolManzana || (input.rolSII ? input.rolSII.split('-')[0] : '') || '').trim();
+  const rolPredio = (input.rolPredio || (input.rolSII ? input.rolSII.split('-')[1] : '') || '').trim();
   const siiAssessment = calculateSiiFiscalAssessment(baseMarketCLP, rolManzana, rolPredio);
   
   // Rangos de Cierre
@@ -1756,7 +1785,9 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
     `Superficie útil: ${usefulM2} m² + ${terraceOrLandM2} m² exteriores homogenizados.`,
     `Materialidad constructiva: ${materialUsed} (${((materialCoeff - 1) * 100).toFixed(0)}% s/NCh).`,
     `Plusvalía por equipamiento: ${urbanPlusvalia.projectName} (+${urbanPlusvalia.projectImpactPct}%).`,
-    `Rol SII ${siiAssessment.rolFormatted}: Avalúo fiscal estimado de $${Math.round(siiAssessment.estimatedFiscalAssessmentCLP / 1000000)}M CLP (${siiAssessment.contributionsStatus}).`,
+    siiAssessment.hasValidRol
+      ? `Rol SII ${siiAssessment.rolFormatted}: Avalúo fiscal estimado de $${Math.round(siiAssessment.estimatedFiscalAssessmentCLP / 1000000)}M CLP (${siiAssessment.contributionsStatus}).`
+      : `Avalúo fiscal referencial estimado de $${Math.round(siiAssessment.estimatedFiscalAssessmentCLP / 1000000)}M CLP (${siiAssessment.contributionsStatus} · Sin Rol especificado).`,
     `Aporte de amenidades: ${parkingCount} estacionamiento(s) (+${parkingCount * bench.parkingUF} UF) y ${storageCount} bodega(s) (+${storageCount * bench.storageUF} UF).`,
     `Ajustes de mercado: Orientación ${input.orientation || 'Estándar'} (${((orientationCoeff - 1) * 100).toFixed(0)}%) y Estado ${input.condition || 'Buen estado'} (${((conditionCoeff - 1) * 100).toFixed(0)}%).`
   ];

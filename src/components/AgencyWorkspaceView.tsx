@@ -659,7 +659,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
         id: 'notif-1',
         category: 'valuation',
         title: 'Tasación AVM: Megaproyecto Detectado',
-        description: 'Tasación calculada en Av. Marga Marga 1420, Villa Alemana (Rol 1245-68). Se indexó el Nuevo Hospital Provincial Marga Marga (+14% plusvalía).',
+        description: 'Tasación calculada en Av. Marga Marga 2850, Villa Alemana (Rol 8520-44). Se indexó el Nuevo Hospital Provincial Marga Marga (+14% plusvalía).',
         time: 'Hace 8 min',
         read: false,
         priority: 'urgent',

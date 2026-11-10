@@ -398,7 +398,7 @@ Generado con tecnología pericial MELSA.`;
                 </div>
                 <button
                   type="button"
-                  onClick={() => handleLoadPreset('Villa Alemana', 'Av. Valparaíso 1420', '1245', '68', 120, 240, 3, 2)}
+                  onClick={() => handleLoadPreset('Villa Alemana', 'Av. Las Araucarias 950', '9999', '01', 120, 240, 3, 2)}
                   className="text-[10px] font-bold text-[#D02126] hover:underline cursor-pointer"
                 >
                   ⚡ Cargar Caso Ejemplo (Ficticio)
@@ -827,12 +827,22 @@ Generado con tecnología pericial MELSA.`;
                   <div className="p-4 bg-white rounded-2xl border border-gray-200 shadow-sm space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Certificación SII</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                        {valuationResult.siiAssessment.contributionsStatus}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        valuationResult.siiAssessment.hasValidRol ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {valuationResult.siiAssessment.hasValidRol
+                          ? valuationResult.siiAssessment.contributionsStatus
+                          : 'Rol No Ingresado'}
                       </span>
                     </div>
                     <div className="text-xs font-mono font-extrabold text-[#0F1115]">
-                      Rol: {valuationResult.siiAssessment.rolFormatted}
+                      {valuationResult.siiAssessment.hasValidRol ? (
+                        <>Rol: {valuationResult.siiAssessment.rolFormatted}</>
+                      ) : (
+                        <span className="font-sans font-medium text-amber-700">
+                          Sin Rol Asignado (Estimación Referencial)
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-gray-600">
                       Avalúo Fiscal Estimado: <strong>${valuationResult.siiAssessment.estimatedFiscalAssessmentCLP.toLocaleString('es-CL')} CLP</strong>

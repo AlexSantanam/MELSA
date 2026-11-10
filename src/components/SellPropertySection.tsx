@@ -132,9 +132,9 @@ export const SellPropertySection: React.FC = () => {
     setPropertyType('Casa');
     setSelectedRegionId('valparaiso');
     setCommune('Villa Alemana');
-    setAddress('Av. Valparaíso 1420');
-    setRolManzana('1245');
-    setRolPredio('68');
+    setAddress('Av. Las Araucarias 950');
+    setRolManzana('9999');
+    setRolPredio('01');
     setConstructionMaterial('Albañilería Confinada / Ladrillo Fiscal (Clase C)');
     setUsefulM2(120);
     setTotalM2(240);
@@ -210,7 +210,9 @@ Propiedad analizada en ${baseCalc.communeFormatted} (${baseCalc.regionName}) · 
 • Promedio zonal homogenizado: ${baseCalc.averageUfM2} UF/m² útil.
 • Materialidad: ${baseCalc.constructionMaterialUsed} (${baseCalc.materialityFactorPct >= 0 ? '+' : ''}${baseCalc.materialityFactorPct}%).
 • Impacto Territorial IA: ${baseCalc.urbanPlusvalia?.projectName} (+${baseCalc.urbanPlusvalia?.projectImpactPct}% de plusvalía estimada).
-• Rol SII ${baseCalc.siiAssessment?.rolFormatted}: Avalúo fiscal referencial de $${Math.round((baseCalc.siiAssessment?.estimatedFiscalAssessmentCLP || 0) / 1000000)}M CLP (${baseCalc.siiAssessment?.contributionsStatus}).
+${baseCalc.siiAssessment?.hasValidRol 
+  ? `• Rol SII ${baseCalc.siiAssessment.rolFormatted}: Avalúo fiscal referencial de $${Math.round(baseCalc.siiAssessment.estimatedFiscalAssessmentCLP / 1000000)}M CLP (${baseCalc.siiAssessment.contributionsStatus}).` 
+  : `• Avalúo Fiscal Referencial: $${Math.round((baseCalc.siiAssessment?.estimatedFiscalAssessmentCLP || 0) / 1000000)}M CLP (${baseCalc.siiAssessment?.contributionsStatus} · Sin Rol especificado).`}
 • Canon de arriendo mensual estimado: $${baseCalc.estimatedRentCLP.toLocaleString('es-CL')} CLP (Cap Rate anual ${baseCalc.capRateGrossPct}%).
 
 Nota pericial: Para coordinar una tasación presencial oficial con levantamiento planimétrico y verificación de títulos en el CBR, ingresa tus datos a continuación para que nuestro perito tasador te contacte.`;
@@ -371,7 +373,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                       type="button"
                       onClick={handleAutofillWithRol}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-[#D02126] text-xs font-bold transition-colors cursor-pointer border border-rose-200/60"
-                      title="Carga de ejemplo demostrativo: Av. Valparaíso 1420 (Rol 1245-68)"
+                      title="Carga de ejemplo demostrativo ficticio: Av. Las Araucarias 950 (Rol 9999-01)"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>⚡ Probar Ejemplo Demostrativo</span>
@@ -995,14 +997,20 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                           <Scale className="w-4 h-4 text-[#D02126]" />
                           <span>Certificación SII</span>
                         </span>
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-800">
-                          Rol {valuationResult.siiAssessment.rolFormatted}
+                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                          valuationResult.siiAssessment.hasValidRol ? 'bg-gray-200 text-gray-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {valuationResult.siiAssessment.hasValidRol
+                            ? `Rol ${valuationResult.siiAssessment.rolFormatted}`
+                            : 'Sin Rol Ingresado'}
                         </span>
                       </div>
                       <div className="text-[11px] text-gray-600 space-y-0.5 pt-1">
                         <div>Avalúo Fiscal Estimado: <strong>${(valuationResult.siiAssessment.estimatedFiscalAssessmentCLP).toLocaleString('es-CL')} CLP</strong></div>
                         <div>Destino: <strong>{valuationResult.siiAssessment.destination}</strong></div>
-                        <div className="text-emerald-700 font-bold">Estado: {valuationResult.siiAssessment.contributionsStatus}</div>
+                        <div className={`${valuationResult.siiAssessment.hasValidRol ? 'text-emerald-700' : 'text-gray-500'} font-bold`}>
+                          Estado: {valuationResult.siiAssessment.hasValidRol ? valuationResult.siiAssessment.contributionsStatus : 'Estimación referencial preliminar'}
+                        </div>
                       </div>
                     </div>
                   )}

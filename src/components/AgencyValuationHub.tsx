@@ -658,7 +658,9 @@ Generado con tecnología pericial MELSA.`;
               <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                 <span className="text-[10px] text-gray-400 font-semibold">Sugerencias:</span>
                 {[
-                  'Quincho techado',
+                  'Patio techado',
+                  'Reja con control',
+                  'Quincho con parrilla',
                   'Azotea amplia como bodega',
                   'Piscina',
                   'Paneles solares',

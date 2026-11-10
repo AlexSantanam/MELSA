@@ -1565,37 +1565,77 @@ export function analyzeSpecialAttributes(
   const norm = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const features: DetectedSpecialFeature[] = [];
 
-  // 1. Quincho techado / Parrilla / Terraza equipada
-  if (norm.includes('quincho') || norm.includes('asador') || norm.includes('parrilla') || norm.includes('patio techado')) {
+  // 1. Quincho & Parrilla (SOLO si el usuario explícitamente menciona quincho o parrilla)
+  if (norm.includes('quincho') || norm.includes('asador') || norm.includes('parrilla')) {
     features.push({
-      name: 'Quincho Techado & Área Social',
+      name: 'Quincho & Área de Parrilla',
       bonusPct: 3.5,
       bonusUF: Math.round(baseEstimateUF * 0.035),
-      description: 'Espacio de recreación techado con parrilla; uno de los atractivos más buscados en el mercado residencial familiar.'
+      description: 'Espacio de recreación y asados familiares; uno de los atractivos más buscados en el mercado residencial.'
     });
   }
 
-  // 2. Azotea / Mansarda / Altillo habilitado / Bodega amplia
+  // 2. Patio Techado / Terraza Cubierta / Cobertizo (Sin inventar quincho)
+  if (norm.includes('patio techado') || norm.includes('terraza techada') || norm.includes('patio cubierto') || norm.includes('cobertizo') || norm.includes('terraza cubierta')) {
+    features.push({
+      name: 'Patio Techado / Terraza Cubierta',
+      bonusPct: 2.5,
+      bonusUF: Math.round(baseEstimateUF * 0.025),
+      description: 'Superficie exterior techada protegida del sol y la lluvia, que amplía los espacios de esparcimiento familiar.'
+    });
+  }
+
+  // 3. Seguridad, Reja & Control de Acceso (Detecta reja con control, portón eléctrico, etc.)
+  if (norm.includes('reja') || norm.includes('porton electrico') || norm.includes('control') || norm.includes('camaras') || norm.includes('alarma') || norm.includes('cerco electrico') || norm.includes('domotica')) {
+    features.push({
+      name: 'Seguridad, Reja & Control de Acceso',
+      bonusPct: 2.0,
+      bonusUF: Math.round(baseEstimateUF * 0.02),
+      description: 'Cierre perimetral con control de apertura o sistema de seguridad que aporta tranquilidad y plusvalía.'
+    });
+  }
+
+  // 4. Áreas Verdes, Jardines & Plazas
+  if (norm.includes('zonas verdes') || norm.includes('areas verdes') || norm.includes('jardin') || norm.includes('plaza') || norm.includes('parque')) {
+    features.push({
+      name: 'Entorno de Áreas Verdes & Espacios Abiertos',
+      bonusPct: 2.0,
+      bonusUF: Math.round(baseEstimateUF * 0.02),
+      description: 'Proximidad a vegetación y recreación al aire libre, valorada positivamente por familias compradores.'
+    });
+  }
+
+  // 5. Cercanía a Hospitales / Salud (si lo menciona en atributos adicionales)
+  if (norm.includes('hospital') || norm.includes('clinica') || norm.includes('cesfam') || norm.includes('sapu')) {
+    features.push({
+      name: 'Cercanía a Equipamiento de Salud',
+      bonusPct: 2.5,
+      bonusUF: Math.round(baseEstimateUF * 0.025),
+      description: 'Conectividad directa y conveniencia asistencial con centros hospitalarios del sector.'
+    });
+  }
+
+  // 6. Azotea / Mansarda / Altillo habilitado / Bodega amplia
   if (norm.includes('azotea') || norm.includes('mansarda') || norm.includes('altillo') || norm.includes('entretecho') || (norm.includes('bodega') && (norm.includes('amplia') || norm.includes('grande')))) {
     features.push({
       name: 'Azotea / Mansarda Multiuso',
       bonusPct: 3.0,
       bonusUF: Math.round(baseEstimateUF * 0.03),
-      description: 'Superficie vertical aprovechada para bodega masiva, taller o sala de estar, optimizando los m² útiles sin pagar sobrecosto de contribuciones.'
+      description: 'Superficie vertical aprovechada para bodega masiva, taller o sala de estar, optimizando el espacio sin sobrecosto tributario.'
     });
   }
 
-  // 3. Piscina / Jacuzzi exterior
+  // 7. Piscina / Jacuzzi exterior
   if (norm.includes('piscina') || norm.includes('pileta') || norm.includes('jacuzzi') || norm.includes('hidromasaje')) {
     features.push({
       name: 'Piscina / Equipamiento Hídrico',
       bonusPct: 4.0,
       bonusUF: Math.round(baseEstimateUF * 0.04),
-      description: 'Amenidad de alta valoración en verano que acelera el tiempo de visita y decisión de compra.'
+      description: 'Amenidad de alta valoración recreativa que dinamiza las visitas y el atractivo estival.'
     });
   }
 
-  // 4. Paneles Solares / Eficiencia Energética
+  // 8. Paneles Solares / Eficiencia Energética
   if (norm.includes('solar') || norm.includes('fotovoltaico') || norm.includes('paneles')) {
     features.push({
       name: 'Sistema Solar & Eficiencia Energética',
@@ -1605,7 +1645,7 @@ export function analyzeSpecialAttributes(
     });
   }
 
-  // 5. Termopanel / Ventanas PVC
+  // 9. Termopanel / Ventanas PVC
   if (norm.includes('termopanel') || norm.includes('doble vidriado') || norm.includes('pvc')) {
     features.push({
       name: 'Aislación Térmica Termopanel',
@@ -1615,23 +1655,13 @@ export function analyzeSpecialAttributes(
     });
   }
 
-  // 6. Cocina Remodelada / Cubiertas de Cuarzo / Granito
+  // 10. Cocina Remodelada / Cubiertas de Cuarzo / Granito
   if (norm.includes('cuarzo') || norm.includes('granito') || norm.includes('cocina remodelada') || norm.includes('cocina isla') || norm.includes('remodelad')) {
     features.push({
       name: 'Cocina & Baños Modernizados',
       bonusPct: 3.5,
       bonusUF: Math.round(baseEstimateUF * 0.035),
       description: 'Equipamiento moderno y terminaciones de alto estándar listas para habitar sin inversión inicial de reforma.'
-    });
-  }
-
-  // 7. Portón Eléctrico / Domótica / Seguridad
-  if (norm.includes('porton electrico') || norm.includes('camaras') || norm.includes('alarma') || norm.includes('cerco electrico') || norm.includes('domotica')) {
-    features.push({
-      name: 'Seguridad & Portón Automático',
-      bonusPct: 1.5,
-      bonusUF: Math.round(baseEstimateUF * 0.015),
-      description: 'Protección perimetral y confort de acceso automatizado.'
     });
   }
 

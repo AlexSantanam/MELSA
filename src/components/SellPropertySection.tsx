@@ -772,7 +772,9 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-[10px] text-gray-400 font-bold">Agregar con un clic:</span>
                     {[
-                      'Quincho techado',
+                      'Patio techado',
+                      'Reja con control',
+                      'Quincho con parrilla',
                       'Azotea amplia como bodega',
                       'Piscina',
                       'Paneles solares',

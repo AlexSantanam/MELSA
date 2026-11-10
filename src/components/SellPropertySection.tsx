@@ -32,13 +32,16 @@ import {
   ConstructionMaterialType,
   REAL_STREETS_BY_COMMUNE,
   getSuggestedStreetsForCommune,
-  detectUrbanPlusvalia
+  detectUrbanPlusvalia,
+  CHILE_REGIONS,
+  getRegionForCommune
 } from '../services/propertyValuationEngine';
 import { AddressSearchAutocomplete } from './AddressSearchAutocomplete';
 
 export const SellPropertySection: React.FC = () => {
   // Estado del Formulario AVM (Inicialmente vacío para desplegar placeholders de ejemplo en gris)
   const [propertyType, setPropertyType] = useState<'Departamento' | 'Casa' | 'Oficina' | 'Parcela'>('Casa');
+  const [selectedRegionId, setSelectedRegionId] = useState<string>(() => getRegionForCommune('Villa Alemana'));
   const [commune, setCommune] = useState('Villa Alemana');
   const [address, setAddress] = useState('');
   
@@ -74,6 +77,24 @@ export const SellPropertySection: React.FC = () => {
   const [ownerEmail, setOwnerEmail] = useState('');
   const [leadSubmitted, setLeadSubmitted] = useState(false);
 
+  // Handlers para Región y Comuna en Cascada
+  const handleRegionChange = (newRegionId: string) => {
+    setSelectedRegionId(newRegionId);
+    const reg = CHILE_REGIONS.find((r) => r.id === newRegionId);
+    if (reg && reg.communes.length > 0) {
+      setCommune(reg.communes[0]);
+    }
+    setAddress('');
+  };
+
+  const handleCommuneChange = (newCommune: string) => {
+    setCommune(newCommune);
+    const regId = getRegionForCommune(newCommune);
+    if (regId && regId !== selectedRegionId) {
+      setSelectedRegionId(regId);
+    }
+  };
+
   // Calles sugeridas según la comuna
   const suggestedStreets = getSuggestedStreetsForCommune(commune);
 
@@ -83,6 +104,7 @@ export const SellPropertySection: React.FC = () => {
   // Autocompletar con Rol SII de ejemplo demostrativo
   const handleAutofillWithRol = () => {
     setPropertyType('Casa');
+    setSelectedRegionId('valparaiso');
     setCommune('Villa Alemana');
     setAddress('Av. Valparaíso 1420');
     setRolManzana('1245');
@@ -101,6 +123,7 @@ export const SellPropertySection: React.FC = () => {
   // Limpiar y resetear el formulario a blanco
   const handleResetForm = () => {
     setPropertyType('Casa');
+    setSelectedRegionId('valparaiso');
     setCommune('Villa Alemana');
     setAddress('');
     setRolManzana('');
@@ -326,8 +349,8 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                   </div>
                 </div>
 
-                {/* Grid 1: Tipología & Ubicación */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                {/* Grid 1: Tipología & Región / Comuna en Cascada */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   <div>
                     <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
                       Tipo de Inmueble
@@ -346,67 +369,53 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
 
                   <div>
                     <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      Comuna
+                      Región de Chile
                     </label>
                     <select
-                      value={commune}
-                      onChange={(e) => setCommune(e.target.value)}
+                      value={selectedRegionId}
+                      onChange={(e) => handleRegionChange(e.target.value)}
                       className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
                     >
-                      <optgroup label="── Región de Valparaíso ──">
-                        <option value="Villa Alemana">Villa Alemana</option>
-                        <option value="Quilpué">Quilpué</option>
-                        <option value="Viña del Mar">Viña del Mar</option>
-                        <option value="Concón">Concón</option>
-                        <option value="Valparaíso">Valparaíso</option>
-                        <option value="Limache">Limache</option>
-                        <option value="Olmué">Olmué</option>
-                        <option value="Quillota">Quillota</option>
-                        <option value="La Calera">La Calera / La Cruz</option>
-                        <option value="San Antonio">San Antonio / Santo Domingo</option>
-                        <option value="Algarrobo">Algarrobo / El Quisco</option>
-                        <option value="Maitencillo">Maitencillo / Zapallar / Papudo</option>
-                      </optgroup>
-
-                      <optgroup label="── Región Metropolitana ──">
-                        <option value="Las Condes">Las Condes</option>
-                        <option value="Vitacura">Vitacura</option>
-                        <option value="Lo Barnechea">Lo Barnechea / La Dehesa</option>
-                        <option value="Providencia">Providencia</option>
-                        <option value="Ñuñoa">Ñuñoa</option>
-                        <option value="La Reina">La Reina</option>
-                        <option value="Santiago">Santiago Centro</option>
-                        <option value="San Miguel">San Miguel</option>
-                        <option value="Macul">Macul</option>
-                        <option value="La Florida">La Florida</option>
-                        <option value="Peñalolén">Peñalolén</option>
-                        <option value="Chicureo">Chicureo / Colina</option>
-                        <option value="Puente Alto">Puente Alto</option>
-                        <option value="Maipú">Maipú</option>
-                      </optgroup>
-
-                      <optgroup label="── Otras Regiones ──">
-                        <option value="La Serena">La Serena / Coquimbo</option>
-                        <option value="Antofagasta">Antofagasta</option>
-                        <option value="Rancagua">Rancagua / Machalí</option>
-                        <option value="Concepción">Concepción / San Pedro</option>
-                        <option value="Temuco">Temuco</option>
-                        <option value="Puerto Varas">Puerto Varas / Llanquihue</option>
-                      </optgroup>
+                      {CHILE_REGIONS.map((reg) => (
+                        <option key={reg.id} value={reg.id}>
+                          {reg.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Comuna
+                    </label>
+                    <select
+                      value={commune}
+                      onChange={(e) => handleCommuneChange(e.target.value)}
+                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
+                    >
+                      {(CHILE_REGIONS.find((r) => r.id === selectedRegionId)?.communes || [commune]).map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Dirección con Autocompletado Reactivo */}
+                <div className="text-xs">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">
                       Calle o Dirección Real (Búsqueda Activa)
                     </label>
-                    <AddressSearchAutocomplete
-                      value={address}
-                      onChange={(newAddr) => setAddress(newAddr)}
-                      commune={commune}
-                      placeholder="Ej. Av. Los Pinos 1420"
-                    />
+                    <span className="text-[10px] text-gray-400">Autocompletado de calles chilenas</span>
                   </div>
+                  <AddressSearchAutocomplete
+                    value={address}
+                    onChange={(newAddr) => setAddress(newAddr)}
+                    commune={commune}
+                    placeholder="Ej. Av. Los Pinos 1420"
+                  />
                 </div>
 
                 {/* Calles sugeridas del sector */}

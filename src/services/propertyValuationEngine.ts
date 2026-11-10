@@ -728,6 +728,187 @@ export function normalizeCommuneKey(communeInput: string, addressInput: string =
   return 'nacional'; // Fallback nacional moderado (NUNCA Las Condes)
 }
 
+export interface ChileRegionItem {
+  id: string;
+  name: string;
+  shortName: string;
+  communes: string[];
+}
+
+export const CHILE_REGIONS: ChileRegionItem[] = [
+  {
+    id: 'valparaiso',
+    name: 'Región de Valparaíso (V)',
+    shortName: 'Valparaíso',
+    communes: [
+      'Villa Alemana',
+      'Quilpué',
+      'Viña del Mar',
+      'Concón',
+      'Valparaíso',
+      'Limache',
+      'Olmué',
+      'Quillota',
+      'La Calera',
+      'La Cruz',
+      'San Antonio',
+      'Santo Domingo',
+      'Algarrobo',
+      'El Quisco',
+      'Maitencillo',
+      'Zapallar',
+      'Papudo',
+      'Casablanca'
+    ]
+  },
+  {
+    id: 'metropolitana',
+    name: 'Región Metropolitana (RM)',
+    shortName: 'Metropolitana',
+    communes: [
+      'Las Condes',
+      'Vitacura',
+      'Lo Barnechea',
+      'Providencia',
+      'Ñuñoa',
+      'La Reina',
+      'Santiago Centro',
+      'San Miguel',
+      'Macul',
+      'La Florida',
+      'Peñalolén',
+      'Chicureo / Colina',
+      'Independencia',
+      'Recoleta',
+      'Estación Central',
+      'Maipú',
+      'Puente Alto',
+      'San Bernardo',
+      'Buin / Paine',
+      'Talagante / Peñaflor',
+      'Lampa',
+      'Huechuraba'
+    ]
+  },
+  {
+    id: 'coquimbo',
+    name: 'Región de Coquimbo (IV)',
+    shortName: 'Coquimbo',
+    communes: [
+      'La Serena',
+      'Coquimbo',
+      'Ovalle',
+      'Vicuña',
+      'Salamanca',
+      'Illapel',
+      'Los Vilos'
+    ]
+  },
+  {
+    id: 'antofagasta',
+    name: 'Región de Antofagasta (II)',
+    shortName: 'Antofagasta',
+    communes: [
+      'Antofagasta',
+      'Calama',
+      'Mejillones',
+      'San Pedro de Atacama',
+      'Tocopilla'
+    ]
+  },
+  {
+    id: 'ohiggins',
+    name: "Región de O'Higgins (VI)",
+    shortName: "O'Higgins",
+    communes: [
+      'Rancagua',
+      'Machalí',
+      'San Fernando',
+      'Rengo',
+      'Pichilemu',
+      'Santa Cruz'
+    ]
+  },
+  {
+    id: 'maule',
+    name: 'Región del Maule (VII)',
+    shortName: 'Maule',
+    communes: [
+      'Talca',
+      'Curicó',
+      'Linares',
+      'Constitución'
+    ]
+  },
+  {
+    id: 'biobio',
+    name: 'Región del Biobío (VIII)',
+    shortName: 'Biobío',
+    communes: [
+      'Concepción',
+      'San Pedro de la Paz',
+      'Chiguayante',
+      'Talcahuano',
+      'Hualpén',
+      'Los Ángeles',
+      'Coronel'
+    ]
+  },
+  {
+    id: 'araucania',
+    name: 'Región de La Araucanía (IX)',
+    shortName: 'La Araucanía',
+    communes: [
+      'Temuco',
+      'Pucón',
+      'Villarrica',
+      'Padre Las Casas'
+    ]
+  },
+  {
+    id: 'los_rios',
+    name: 'Región de Los Ríos (XIV)',
+    shortName: 'Los Ríos',
+    communes: [
+      'Valdivia',
+      'La Unión',
+      'Panguipulli'
+    ]
+  },
+  {
+    id: 'los_lagos',
+    name: 'Región de Los Lagos (X)',
+    shortName: 'Los Lagos',
+    communes: [
+      'Puerto Varas',
+      'Frutillar',
+      'Puerto Montt',
+      'Osorno',
+      'Castro',
+      'Ancud'
+    ]
+  },
+  {
+    id: 'magallanes',
+    name: 'Región de Magallanes (XII)',
+    shortName: 'Magallanes',
+    communes: [
+      'Punta Arenas',
+      'Puerto Natales'
+    ]
+  }
+];
+
+export function getRegionForCommune(commune: string): string {
+  const norm = (commune || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  for (const reg of CHILE_REGIONS) {
+    if (reg.communes.some(c => c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(norm) || norm.includes(c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')))) {
+      return reg.id;
+    }
+  }
+  return 'valparaiso';
+}
+
 export interface AddressSuggestion {
   address: string;
   streetOnly: string;
@@ -744,15 +925,24 @@ export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; center
     streets: [
       'Av. Valparaíso (Troncal Urbano)',
       'Av. Marga Marga',
+      'Valentín Letelier',
       'Huanhualí',
       'Peñablanca (Sector Estación)',
       'Maturana',
-      'San Martín',
       'Victoria',
       'Progreso',
       'Latorre',
       'Buenos Aires',
-      'Condominio Rincón del Sol'
+      'Troncos Viejos',
+      'Berlín',
+      'Patricio Lynch',
+      'Paul Harris',
+      'Condominio Rincón del Sol',
+      'Quinta',
+      'Sexta',
+      'Venecia',
+      'Enrique Costa',
+      'San Enrique'
     ],
     centerCoord: { lat: -33.0425, lng: -71.3741 }
   },
@@ -766,21 +956,27 @@ export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; center
       'Cumming',
       'Covadonga',
       'San Martín',
-      'El Belloto 2000'
+      'El Belloto 2000',
+      'Av. Centenario',
+      'Ramón Ángel Jara',
+      'Thompson',
+      'Baden Powell'
     ],
     centerCoord: { lat: -33.0478, lng: -71.4429 }
   },
   'las condes': {
     streets: [
       'Av. Las Condes',
+      'Av. Apoquindo',
+      'Av. Manquehue',
       'Av. Kennedy',
       'Camino El Golf',
       'Gerónimo de Alderete',
-      'Av. Apoquindo',
-      'Av. Manquehue',
       'Estoril',
       'Padre Hurtado',
-      'Isidora Goyenechea'
+      'Isidora Goyenechea',
+      'Av. Cristóbal Colón',
+      'Tomás Moro'
     ],
     centerCoord: { lat: -33.4116, lng: -70.5645 }
   },
@@ -794,7 +990,11 @@ export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; center
       'Av. Borgoño',
       'Los Castaños',
       '7 Norte',
-      'Miraflores Bajo'
+      '14 Norte (Mall Marina)',
+      'Miraflores Bajo',
+      'Gómez Carreño',
+      'Jardín del Mar',
+      'Agua Santa'
     ],
     centerCoord: { lat: -33.0245, lng: -71.5518 }
   },
@@ -806,7 +1006,9 @@ export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; center
       'Bosques de Montemar',
       'Costa de Montemar',
       'Av. Central',
-      'Los Pellines'
+      'Los Pellines',
+      'Av. Manantiales',
+      'Magallanes'
     ],
     centerCoord: { lat: -32.9238, lng: -71.5167 }
   },
@@ -819,7 +1021,10 @@ export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; center
       'Av. Errázuriz',
       'Av. Argentina',
       'Playa Ancha (Av. Playa Ancha)',
-      'Bellavista'
+      'Bellavista',
+      'Condell',
+      'Yungay',
+      'Av. Alemania'
     ],
     centerCoord: { lat: -33.0472, lng: -71.6127 }
   },
@@ -830,7 +1035,8 @@ export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; center
       'Urmeneta',
       'Av. Eastman',
       'San Francisco Limache',
-      'Condominio Los Aromos'
+      'Condominio Los Aromos',
+      'Colón'
     ],
     centerCoord: { lat: -32.9995, lng: -71.2667 }
   },
@@ -851,7 +1057,9 @@ export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; center
       '21 de Mayo',
       'San Martín',
       'Alberdi',
-      'Av. Valparaíso'
+      'Av. Valparaíso',
+      'Maipú',
+      'Chacabuco'
     ],
     centerCoord: { lat: -32.8800, lng: -71.2483 }
   },
@@ -863,7 +1071,9 @@ export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; center
       'Av. Los Leones',
       'Eliodoro Yáñez',
       'Manuel Montt',
-      'Pocuro'
+      'Pocuro',
+      'Antonio Varas',
+      'Ricardo Lyon'
     ],
     centerCoord: { lat: -33.4314, lng: -70.6093 }
   },
@@ -874,7 +1084,9 @@ export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; center
       'Simón Bolívar',
       'Sucre',
       'Plaza Ñuñoa',
-      'Pedro de Valdivia Sur'
+      'Pedro de Valdivia Sur',
+      'Av. Grecia',
+      'Dublé Almeyda'
     ],
     centerCoord: { lat: -33.4569, lng: -70.5975 }
   },
@@ -898,7 +1110,9 @@ export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; center
       'Parque Almagro',
       'Lord Cochrane',
       'Tarapacá',
-      'Mac Iver'
+      'Mac Iver',
+      'Alameda / Av. L. B. O\'Higgins',
+      'Santa Isabel'
     ],
     centerCoord: { lat: -33.4372, lng: -70.6506 }
   }
@@ -928,12 +1142,13 @@ export function getSuggestedStreetsForCommune(commune: string): string[] {
  */
 export function searchChileanAddresses(commune: string, query: string): AddressSuggestion[] {
   const normCommune = (commune || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const normQuery = (query || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const cleanQuery = (query || '').trim();
+  const normQuery = cleanQuery.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const streets = getSuggestedStreetsForCommune(commune);
   const results: AddressSuggestion[] = [];
 
   // Si el usuario escribió una numeración en la query (ej: "1420"), preservarla
-  const numMatch = query ? query.match(/\d+/) : null;
+  const numMatch = cleanQuery.match(/\d+/);
   const streetNum = numMatch ? ` ${numMatch[0]}` : '';
 
   // Coincidencia con calles de la comuna
@@ -972,7 +1187,18 @@ export function searchChileanAddresses(commune: string, query: string): AddressS
     }
   }
 
-  return results.slice(0, 6);
+  // Si el usuario escribió algo que no coincide exactamente, agregar como opción directa
+  if (cleanQuery.length >= 2 && !results.some(r => r.address.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(normQuery))) {
+    results.unshift({
+      address: cleanQuery,
+      streetOnly: cleanQuery.replace(/\d+.*$/, '').trim(),
+      commune,
+      sector: 'Dirección personalizada',
+      landmark: 'Ubicación seleccionada'
+    });
+  }
+
+  return results.slice(0, 8);
 }
 
 /**

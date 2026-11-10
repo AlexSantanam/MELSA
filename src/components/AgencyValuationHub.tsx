@@ -27,6 +27,8 @@ import {
   ValuationResult,
   ConstructionMaterialType,
   getSuggestedStreetsForCommune,
+  CHILE_REGIONS,
+  getRegionForCommune,
   UF_CURRENT_CLP 
 } from '../services/propertyValuationEngine';
 import { AddressSearchAutocomplete } from './AddressSearchAutocomplete';
@@ -46,6 +48,7 @@ interface AgencyValuationHubProps {
 export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPropertyToPortfolio }) => {
   // Form State (Inicialmente vacíos con placeholders de ejemplo en gris)
   const [propertyType, setPropertyType] = useState<'Departamento' | 'Casa' | 'Oficina' | 'Parcela'>('Casa');
+  const [selectedRegionId, setSelectedRegionId] = useState<string>(() => getRegionForCommune('Villa Alemana'));
   const [commune, setCommune] = useState('Villa Alemana');
   const [address, setAddress] = useState('');
   const [rolManzana, setRolManzana] = useState('');
@@ -67,8 +70,28 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
   const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [addedToPortfolioSuccess, setAddedToPortfolioSuccess] = useState(false);
 
+  // Region and Commune Handlers (Filtro en cascada sin confusiones)
+  const handleRegionChange = (newRegionId: string) => {
+    setSelectedRegionId(newRegionId);
+    const reg = CHILE_REGIONS.find((r) => r.id === newRegionId);
+    if (reg && reg.communes.length > 0) {
+      setCommune(reg.communes[0]);
+    }
+    setAddress('');
+  };
+
+  const handleCommuneChange = (newCommune: string) => {
+    setCommune(newCommune);
+    const regId = getRegionForCommune(newCommune);
+    if (regId && regId !== selectedRegionId) {
+      setSelectedRegionId(regId);
+    }
+  };
+
   // Quick preset helper
   const handleLoadPreset = (presetCommune: string, presetAddress: string, manzana: string, predio: string, m2: number, totM2: number, beds: number, baths: number) => {
+    const regId = getRegionForCommune(presetCommune);
+    setSelectedRegionId(regId);
     setCommune(presetCommune);
     setAddress(presetAddress);
     setRolManzana(manzana);
@@ -82,6 +105,7 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
   // Limpiar y resetear el formulario a blanco
   const handleResetForm = () => {
     setPropertyType('Casa');
+    setSelectedRegionId('valparaiso');
     setCommune('Villa Alemana');
     setAddress('');
     setRolManzana('');
@@ -248,16 +272,16 @@ Generado con tecnología pericial MELSA.`;
 
           <form onSubmit={handleExecuteValuation} autoComplete="off" className="space-y-4">
             
-            {/* Tipo de Inmueble y Comuna */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Tipo de Inmueble, Región y Comuna (Filtro en cascada sin confusiones) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                  Tipo de Inmueble
+                  Tipo Inmueble
                 </label>
                 <select
                   value={propertyType}
                   onChange={(e) => setPropertyType(e.target.value as any)}
-                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-2.5 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
                 >
                   <option value="Casa">Casa</option>
                   <option value="Departamento">Departamento</option>
@@ -268,90 +292,38 @@ Generado con tecnología pericial MELSA.`;
 
               <div>
                 <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                  Comuna de Chile
+                  Región de Chile
+                </label>
+                <select
+                  value={selectedRegionId}
+                  onChange={(e) => handleRegionChange(e.target.value)}
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-2.5 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
+                >
+                  {CHILE_REGIONS.map((reg) => (
+                    <option key={reg.id} value={reg.id}>
+                      {reg.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Comuna
                 </label>
                 <select
                   value={commune}
-                  onChange={(e) => setCommune(e.target.value)}
-                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
+                  onChange={(e) => handleCommuneChange(e.target.value)}
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-2.5 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
                 >
-                <optgroup label="── Región de Valparaíso ──">
-                  <option value="Villa Alemana">Villa Alemana</option>
-                  <option value="Quilpué">Quilpué</option>
-                  <option value="Viña del Mar">Viña del Mar</option>
-                  <option value="Concón">Concón</option>
-                  <option value="Valparaíso">Valparaíso</option>
-                  <option value="Limache">Limache</option>
-                  <option value="Olmué">Olmué</option>
-                  <option value="Quillota">Quillota</option>
-                  <option value="La Calera">La Calera / La Cruz</option>
-                  <option value="San Antonio">San Antonio / Santo Domingo</option>
-                  <option value="Algarrobo">Algarrobo / El Quisco</option>
-                  <option value="Maitencillo">Maitencillo / Zapallar / Papudo</option>
-                </optgroup>
-
-                <optgroup label="── Región Metropolitana ──">
-                  <option value="Las Condes">Las Condes</option>
-                  <option value="Vitacura">Vitacura</option>
-                  <option value="Lo Barnechea">Lo Barnechea / La Dehesa</option>
-                  <option value="Providencia">Providencia</option>
-                  <option value="Ñuñoa">Ñuñoa</option>
-                  <option value="La Reina">La Reina</option>
-                  <option value="Santiago">Santiago Centro</option>
-                  <option value="San Miguel">San Miguel</option>
-                  <option value="Macul">Macul</option>
-                  <option value="La Florida">La Florida</option>
-                  <option value="Peñalolén">Peñalolén</option>
-                  <option value="Independencia">Independencia / Recoleta</option>
-                  <option value="Estación Central">Estación Central</option>
-                  <option value="Maipú">Maipú</option>
-                  <option value="Puente Alto">Puente Alto</option>
-                  <option value="San Bernardo">San Bernardo</option>
-                  <option value="Chicureo">Chicureo / Colina</option>
-                  <option value="Buin">Buin / Paine</option>
-                  <option value="Talagante">Talagante / Peñaflor</option>
-                </optgroup>
-
-                <optgroup label="── Región de Coquimbo ──">
-                  <option value="La Serena">La Serena</option>
-                  <option value="Coquimbo">Coquimbo</option>
-                  <option value="Ovalle">Ovalle</option>
-                </optgroup>
-
-                <optgroup label="── Región de Antofagasta ──">
-                  <option value="Antofagasta">Antofagasta</option>
-                  <option value="Calama">Calama</option>
-                </optgroup>
-
-                <optgroup label="── Región de O'Higgins y Maule ──">
-                  <option value="Rancagua">Rancagua / Machalí</option>
-                  <option value="Talca">Talca</option>
-                  <option value="Curicó">Curicó</option>
-                </optgroup>
-
-                <optgroup label="── Región del Biobío ──">
-                  <option value="Concepción">Concepción</option>
-                  <option value="San Pedro de la Paz">San Pedro de la Paz</option>
-                  <option value="Chiguayante">Chiguayante</option>
-                  <option value="Talcahuano">Talcahuano / Hualpén</option>
-                  <option value="Los Ángeles">Los Ángeles</option>
-                </optgroup>
-
-                <optgroup label="── Región de La Araucanía y Los Ríos ──">
-                  <option value="Temuco">Temuco</option>
-                  <option value="Pucón">Pucón / Villarrica</option>
-                  <option value="Valdivia">Valdivia</option>
-                </optgroup>
-
-                <optgroup label="── Región de Los Lagos y Magallanes ──">
-                  <option value="Puerto Varas">Puerto Varas / Frutillar</option>
-                  <option value="Puerto Montt">Puerto Montt</option>
-                  <option value="Osorno">Osorno</option>
-                  <option value="Punta Arenas">Punta Arenas</option>
-                </optgroup>
-              </select>
+                  {(CHILE_REGIONS.find((r) => r.id === selectedRegionId)?.communes || [commune]).map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
 
             {/* Dirección o Sector con Búsqueda Reactiva Inteligente */}
             <div>

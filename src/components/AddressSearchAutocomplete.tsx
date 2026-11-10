@@ -119,7 +119,7 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
 
       {/* Dropdown Flotante de Coincidencias */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-2xl border border-gray-200/90 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-80 overflow-y-auto">
+        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-2xl border border-gray-200/90 z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-80 overflow-y-auto">
           {/* Header del Autocomplete */}
           <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between text-[10px] text-gray-500 font-bold">
             <span className="flex items-center gap-1">

@@ -62,6 +62,7 @@ export const SellPropertySection: React.FC = () => {
   const [storage, setStorage] = useState<number>(0);
   const [orientation, setOrientation] = useState<'Nor-Oriente' | 'Nor-Poniente' | 'Sur-Oriente' | 'Sur-Poniente' | 'Despejada / Todas'>('Nor-Oriente');
   const [condition, setCondition] = useState<'Remodelado / Impecable' | 'Buen estado general' | 'Regular / Original' | 'Para refaccionar'>('Buen estado general');
+  const [specialAttributes, setSpecialAttributes] = useState('');
 
   // Mapa Interactivo & Sugerencias de Calle
   const [showMap, setShowMap] = useState(true);
@@ -118,6 +119,7 @@ export const SellPropertySection: React.FC = () => {
     setStorage(0);
     setOrientation('Nor-Oriente');
     setCondition('Buen estado general');
+    setSpecialAttributes('Patio techado con quincho, azotea amplia como bodega y ventanas termopanel');
   };
 
   // Limpiar y resetear el formulario a blanco
@@ -137,6 +139,7 @@ export const SellPropertySection: React.FC = () => {
     setStorage(0);
     setOrientation('Nor-Oriente');
     setCondition('Buen estado general');
+    setSpecialAttributes('');
     setValuationResult(null);
   };
 
@@ -161,7 +164,8 @@ export const SellPropertySection: React.FC = () => {
       parking: Number(parking) || 0,
       storage: Number(storage) || 0,
       orientation,
-      condition
+      condition,
+      specialAttributes: specialAttributes.trim() || undefined
     };
 
     // Animación de los 4 pasos del motor de datos
@@ -697,6 +701,50 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                   </div>
                 </div>
 
+                {/* Atributos Singulares / ¿Algo especial que debamos saber? */}
+                <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-200/80 space-y-2.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-black text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                      <span>¿Algo especial que debamos saber de la propiedad?</span>
+                    </label>
+                    <span className="text-[10px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded-full">
+                      Plusvalía IA
+                    </span>
+                  </div>
+
+                  <textarea
+                    value={specialAttributes}
+                    onChange={(e) => setSpecialAttributes(e.target.value)}
+                    rows={2}
+                    placeholder="Ej. Patio techado con quincho y parrilla, azotea amplia como bodega/estudio, piscina, paneles solares o cocina recién remodelada con cuarzo..."
+                    className="w-full bg-white border border-amber-200 rounded-xl p-3 text-xs text-[#0F1115] outline-none focus:border-amber-500 placeholder-gray-400 resize-none font-medium leading-relaxed"
+                  />
+
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] text-gray-400 font-bold">Agregar con un clic:</span>
+                    {[
+                      'Quincho techado',
+                      'Azotea amplia como bodega',
+                      'Piscina',
+                      'Paneles solares',
+                      'Ventanas termopanel',
+                      'Cocina remodelada con cuarzo'
+                    ].map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => {
+                          setSpecialAttributes((prev) => (prev ? `${prev}, ${tag}` : tag));
+                        }}
+                        className="text-[10px] px-2.5 py-1 rounded-lg bg-white hover:bg-amber-100 text-gray-700 hover:text-amber-900 border border-amber-200 font-semibold transition-colors cursor-pointer"
+                      >
+                        + {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* CTA Ejecutar Tasación */}
                 <button
                   type="submit"
@@ -856,6 +904,37 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                       <span>Distancia: <strong>{valuationResult.urbanPlusvalia.distanceDescription}</strong></span>
                       <span>•</span>
                       <span>Impacto en Arriendos: <strong>Alta Demanda Médica / Profesional</strong></span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tarjeta Destacada: Reconocimiento de Atributos Singulares (Quincho, Azotea, Piscina, etc.) */}
+                {valuationResult.specialFeaturesDetected && valuationResult.specialFeaturesDetected.length > 0 && (
+                  <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent border border-amber-300/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-amber-600" />
+                        <h4 className="font-extrabold text-sm text-[#0F1115]">
+                          Atributos Singulares Reconocidos por IA
+                        </h4>
+                      </div>
+                      <span className="text-xs font-black text-amber-900 bg-amber-100 px-2.5 py-1 rounded-full border border-amber-300">
+                        +{valuationResult.specialFeaturesBonusPct}% Plus Comercial (+{valuationResult.specialFeaturesBonusUF} UF)
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                      {valuationResult.specialFeaturesDetected.map((feat, idx) => (
+                        <div key={idx} className="bg-white/90 p-3 rounded-xl border border-amber-200 space-y-1 shadow-2xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-gray-900">{feat.name}</span>
+                            <span className="text-[10px] font-extrabold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded-md">
+                              +{feat.bonusPct}%
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-600 leading-snug">{feat.description}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

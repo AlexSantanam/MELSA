@@ -45,6 +45,14 @@ export interface ValuationInput {
   orientation?: 'Nor-Oriente' | 'Nor-Poniente' | 'Sur-Oriente' | 'Sur-Poniente' | 'Despejada / Todas';
   condition?: 'Remodelado / Impecable' | 'Buen estado general' | 'Regular / Original' | 'Para refaccionar';
   metroDistanceMinutes?: number;
+  specialAttributes?: string; // Mejoras singulares: quincho, azotea amplia, piscina, paneles solares, etc.
+}
+
+export interface DetectedSpecialFeature {
+  name: string;
+  bonusPct: number;
+  bonusUF: number;
+  description: string;
 }
 
 export interface ValuationWitnessComp {
@@ -77,6 +85,9 @@ export interface ValuationResult {
   materialityFactorPct?: number;
   urbanPlusvalia?: UrbanPlusvaliaInsight;
   siiAssessment?: SiiTaxAssessment;
+  specialFeaturesDetected?: DetectedSpecialFeature[];
+  specialFeaturesBonusPct?: number;
+  specialFeaturesBonusUF?: number;
   methodologyNotes: string[];
   comparableComps: ValuationWitnessComp[];
   executiveReportCMA: string;
@@ -1421,6 +1432,112 @@ export function calculateSiiFiscalAssessment(
 }
 
 /**
+ * Analizador Semántico de Atributos Singulares y Mejoras Relevantes
+ * Reconoce quincho, azotea/mansarda, piscina, paneles solares, termopanel, etc.
+ */
+export function analyzeSpecialAttributes(
+  text: string | undefined, 
+  baseEstimateUF: number
+): { 
+  features: DetectedSpecialFeature[]; 
+  totalBonusPct: number; 
+  totalBonusUF: number; 
+} {
+  if (!text || text.trim().length < 3) {
+    return { features: [], totalBonusPct: 0, totalBonusUF: 0 };
+  }
+
+  const norm = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const features: DetectedSpecialFeature[] = [];
+
+  // 1. Quincho techado / Parrilla / Terraza equipada
+  if (norm.includes('quincho') || norm.includes('asador') || norm.includes('parrilla') || norm.includes('patio techado')) {
+    features.push({
+      name: 'Quincho Techado & Área Social',
+      bonusPct: 3.5,
+      bonusUF: Math.round(baseEstimateUF * 0.035),
+      description: 'Espacio de recreación techado con parrilla; uno de los atractivos más buscados en el mercado residencial familiar.'
+    });
+  }
+
+  // 2. Azotea / Mansarda / Altillo habilitado / Bodega amplia
+  if (norm.includes('azotea') || norm.includes('mansarda') || norm.includes('altillo') || norm.includes('entretecho') || (norm.includes('bodega') && (norm.includes('amplia') || norm.includes('grande')))) {
+    features.push({
+      name: 'Azotea / Mansarda Multiuso',
+      bonusPct: 3.0,
+      bonusUF: Math.round(baseEstimateUF * 0.03),
+      description: 'Superficie vertical aprovechada para bodega masiva, taller o sala de estar, optimizando los m² útiles sin pagar sobrecosto de contribuciones.'
+    });
+  }
+
+  // 3. Piscina / Jacuzzi exterior
+  if (norm.includes('piscina') || norm.includes('pileta') || norm.includes('jacuzzi') || norm.includes('hidromasaje')) {
+    features.push({
+      name: 'Piscina / Equipamiento Hídrico',
+      bonusPct: 4.0,
+      bonusUF: Math.round(baseEstimateUF * 0.04),
+      description: 'Amenidad de alta valoración en verano que acelera el tiempo de visita y decisión de compra.'
+    });
+  }
+
+  // 4. Paneles Solares / Eficiencia Energética
+  if (norm.includes('solar') || norm.includes('fotovoltaico') || norm.includes('paneles')) {
+    features.push({
+      name: 'Sistema Solar & Eficiencia Energética',
+      bonusPct: 3.5,
+      bonusUF: Math.round(baseEstimateUF * 0.035),
+      description: 'Generación limpia y ahorro sostenido en cuentas de electricidad (Net Billing).'
+    });
+  }
+
+  // 5. Termopanel / Ventanas PVC
+  if (norm.includes('termopanel') || norm.includes('doble vidriado') || norm.includes('pvc')) {
+    features.push({
+      name: 'Aislación Térmica Termopanel',
+      bonusPct: 2.5,
+      bonusUF: Math.round(baseEstimateUF * 0.025),
+      description: 'Aislamiento térmico y acústico superior, reduciendo el gasto invernal de calefacción.'
+    });
+  }
+
+  // 6. Cocina Remodelada / Cubiertas de Cuarzo / Granito
+  if (norm.includes('cuarzo') || norm.includes('granito') || norm.includes('cocina remodelada') || norm.includes('cocina isla') || norm.includes('remodelad')) {
+    features.push({
+      name: 'Cocina & Baños Modernizados',
+      bonusPct: 3.5,
+      bonusUF: Math.round(baseEstimateUF * 0.035),
+      description: 'Equipamiento moderno y terminaciones de alto estándar listas para habitar sin inversión inicial de reforma.'
+    });
+  }
+
+  // 7. Portón Eléctrico / Domótica / Seguridad
+  if (norm.includes('porton electrico') || norm.includes('camaras') || norm.includes('alarma') || norm.includes('cerco electrico') || norm.includes('domotica')) {
+    features.push({
+      name: 'Seguridad & Portón Automático',
+      bonusPct: 1.5,
+      bonusUF: Math.round(baseEstimateUF * 0.015),
+      description: 'Protección perimetral y confort de acceso automatizado.'
+    });
+  }
+
+  // Si escribió texto largo descriptivo y no se emparejó con ninguna regla fija, dar un reconocimiento general
+  if (features.length === 0 && text.trim().length >= 10) {
+    features.push({
+      name: 'Mejoras y Atributos Particulares',
+      bonusPct: 2.0,
+      bonusUF: Math.round(baseEstimateUF * 0.02),
+      description: 'Atributos particulares declarados por el propietario que incrementan el diferencial frente a la oferta estándar.'
+    });
+  }
+
+  // Sumar con un tope prudente del 12% para evitar sobretasaciones irreales
+  const totalBonusPct = Math.min(12, features.reduce((acc, f) => acc + f.bonusPct, 0));
+  const totalBonusUF = Math.round(baseEstimateUF * (totalBonusPct / 100));
+
+  return { features, totalBonusPct, totalBonusUF };
+}
+
+/**
  * Calcula la tasación AVM con precisión cuantitativa ajustada por comuna real
  */
 export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResult, 'executiveReportCMA'> {
@@ -1474,6 +1591,10 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
   const urbanPlusvalia = detectUrbanPlusvalia(input.commune, input.address);
   const plusvaliaCoeff = 1 + (urbanPlusvalia.projectImpactPct / 100);
 
+  // Reconocimiento de Atributos Singulares y Mejoras (Quincho, Azotea, Piscina, Paneles, etc.)
+  const specialFeatures = analyzeSpecialAttributes(input.specialAttributes, (surfaceValueUF + amenitiesValueUF));
+  const specialFeaturesCoeff = 1 + (specialFeatures.totalBonusPct / 100);
+
   // Cálculo de Base de Mercado Homogenizado con todas las capas
   const baseMarketUF = Math.round(
     (surfaceValueUF + amenitiesValueUF) * 
@@ -1481,7 +1602,8 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
     conditionCoeff * 
     metroCoeff * 
     materialCoeff * 
-    plusvaliaCoeff
+    plusvaliaCoeff *
+    specialFeaturesCoeff
   );
   const baseMarketCLP = Math.round(baseMarketUF * UF_CURRENT_CLP);
 
@@ -1553,6 +1675,12 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
     `Ajustes de mercado: Orientación ${input.orientation || 'Estándar'} (${((orientationCoeff - 1) * 100).toFixed(0)}%) y Estado ${input.condition || 'Buen estado'} (${((conditionCoeff - 1) * 100).toFixed(0)}%).`
   ];
 
+  if (specialFeatures.features.length > 0) {
+    methodologyNotes.push(
+      `Atributos singulares declarados (+${specialFeatures.totalBonusPct}% / +${specialFeatures.totalBonusUF} UF): ${specialFeatures.features.map(f => f.name).join(', ')}.`
+    );
+  }
+
   return {
     baseMarketUF,
     baseMarketCLP,
@@ -1570,6 +1698,9 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
     materialityFactorPct: Math.round((materialCoeff - 1) * 100),
     urbanPlusvalia,
     siiAssessment,
+    specialFeaturesDetected: specialFeatures.features,
+    specialFeaturesBonusPct: specialFeatures.totalBonusPct,
+    specialFeaturesBonusUF: specialFeatures.totalBonusUF,
     methodologyNotes,
     comparableComps
   };
@@ -1595,6 +1726,7 @@ MUY IMPORTANTE: La propiedad está en ${calc.communeFormatted} (${calc.regionNam
 Estructura requerida (2 párrafos ejecutivos y claros):
 1. Veredicto del valor comercial en UF y CLP, indicando el rango de liquidez (< 45 días) y precio de paciencia.
 2. Argumentación técnica de la microzona de ${calc.communeFormatted} (valor de la UF/m², aporte de estacionamiento, orientación y estado de conservación).
+${input.specialAttributes ? '3. Destaca de forma explícita las mejoras y atributos especiales informados por el cliente (' + input.specialAttributes + '), explicando el valor agregado y plusvalía que aportan para acelerar el cierre comercial.' : ''}
 `;
 
       const userContent = `
@@ -1602,6 +1734,7 @@ Inmueble: ${input.propertyType} en ${calc.communeFormatted}, ${calc.regionName} 
 Distribución: ${input.bedrooms}D / ${input.bathrooms}B · ${input.usefulM2} m² útiles (Total ${input.totalM2 || input.usefulM2} m²).
 Amenidades: ${input.parking} estacionamiento(s), ${input.storage} bodega(s).
 Orientación: ${input.orientation || 'Estándar'} · Estado: ${input.condition || 'Buen estado'}.
+${input.specialAttributes ? `Atributos singulares declarados: "${input.specialAttributes}" (Aporte estimado: +${calc.specialFeaturesBonusPct || 0}% / +${calc.specialFeaturesBonusUF || 0} UF).` : ''}
 Tasación AVM:
 • Valor Mercado Sugerido: ${calc.baseMarketUF.toLocaleString('es-CL')} UF ($${calc.baseMarketCLP.toLocaleString('es-CL')} CLP).
 • Rango de Liquidez (< 45 días): ${calc.liquidityUF.toLocaleString('es-CL')} UF ($${calc.liquidityCLP.toLocaleString('es-CL')} CLP).
@@ -1637,7 +1770,11 @@ Tasación AVM:
   }
 
   // Fallback local elegante
+  const bonusSnippet = input.specialAttributes && calc.specialFeaturesBonusUF
+    ? `\n\nAdicionalmente, destacamos de forma especial los atributos singulares informados (**${input.specialAttributes}**). En el mercado actual de ${calc.communeFormatted}, estas comodidades diferencian de manera sobresaliente el inmueble frente a la oferta tradicional de la zona, aportando un plus comercial de **+${calc.specialFeaturesBonusUF.toLocaleString('es-CL')} UF** y acelerando notablemente la tasa de interés de compradores calificados.`
+    : '';
+
   return `Estimado propietario, tras evaluar los antecedentes técnicos y transacciones inscritas en el sector de ${calc.communeFormatted} (${calc.regionName}), valoramos su ${input.propertyType.toLowerCase()} en un precio de mercado objetivo de **${calc.baseMarketUF.toLocaleString('es-CL')} UF** (aproximadamente $${calc.baseMarketCLP.toLocaleString('es-CL')} CLP), con un rango de negociación entre **${calc.liquidityUF.toLocaleString('es-CL')} UF** (estrategia de liquidez para cierre ágil en menos de 45 días) y **${calc.premiumUF.toLocaleString('es-CL')} UF** (precio de paciencia patrimonial).
 
-Este valor se fundamenta en un promedio de **${calc.averageUfM2} UF/m² útil** para el sector de ${calc.communeFormatted}, complementado por sus amenidades (${input.parking} estacionamiento(s) y ${input.storage} bodega(s)), orientación y estado de conservación. En MELSA recomendamos este rango para maximizar el valor efectivo de su activo sin riesgo de estancamiento prolongado en portales.`;
+Este valor se fundamenta en un promedio de **${calc.averageUfM2} UF/m² útil** para el sector de ${calc.communeFormatted}, complementado por sus amenidades (${input.parking} estacionamiento(s) y ${input.storage} bodega(s)), orientación y estado de conservación.${bonusSnippet} En MELSA recomendamos este rango para maximizar el valor efectivo de su activo sin riesgo de estancamiento prolongado en portales.`;
 }

@@ -62,6 +62,7 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
   const [storage, setStorage] = useState<number>(0);
   const [orientation, setOrientation] = useState<'Nor-Oriente' | 'Nor-Poniente' | 'Sur-Oriente' | 'Sur-Poniente' | 'Despejada / Todas'>('Nor-Oriente');
   const [condition, setCondition] = useState<'Remodelado / Impecable' | 'Buen estado general' | 'Regular / Original' | 'Para refaccionar'>('Buen estado general');
+  const [specialAttributes, setSpecialAttributes] = useState('');
 
   // Execution State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -119,6 +120,7 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
     setStorage(0);
     setOrientation('Nor-Oriente');
     setCondition('Buen estado general');
+    setSpecialAttributes('');
     setValuationResult(null);
   };
 
@@ -143,7 +145,8 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
       parking: Number(parking) || 1,
       storage: Number(storage) || 0,
       orientation,
-      condition
+      condition,
+      specialAttributes: specialAttributes.trim() || undefined
     };
 
     setTimeout(() => setAnalysisStep(2), 500);
@@ -546,6 +549,53 @@ Generado con tecnología pericial MELSA.`;
               </div>
             </div>
 
+            {/* Atributos Singulares / ¿Algo especial que debamos saber? */}
+            <div className="p-3.5 bg-amber-50/50 rounded-2xl border border-amber-200/70 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                  <label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide">
+                    ¿Algo que debamos saber sobre la propiedad?
+                  </label>
+                </div>
+                <span className="text-[10px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded-full">
+                  Reconocimiento IA
+                </span>
+              </div>
+
+              <textarea
+                value={specialAttributes}
+                onChange={(e) => setSpecialAttributes(e.target.value)}
+                rows={2}
+                placeholder="Ej. Patio techado con quincho y parrilla, azotea amplia como bodega/estudio, piscina, paneles solares o cocina recién remodelada con cuarzo..."
+                className="w-full bg-white border border-amber-200 rounded-xl p-2.5 text-xs text-[#0F1115] outline-none focus:border-amber-500 placeholder-gray-400 resize-none font-medium leading-relaxed shadow-2xs"
+              />
+
+              {/* Sugerencias rápidas para agregar con un clic */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <span className="text-[10px] text-gray-400 font-semibold">Sugerencias:</span>
+                {[
+                  'Quincho techado',
+                  'Azotea amplia como bodega',
+                  'Piscina',
+                  'Paneles solares',
+                  'Ventanas termopanel',
+                  'Cocina remodelada con cuarzo'
+                ].map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => {
+                      setSpecialAttributes((prev) => (prev ? `${prev}, ${tag}` : tag));
+                    }}
+                    className="text-[10px] px-2 py-0.5 rounded-lg bg-white hover:bg-amber-100 text-gray-700 hover:text-amber-900 border border-amber-200 font-medium transition-colors cursor-pointer"
+                  >
+                    + {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Submit Button */}
             <button
               type="submit"
@@ -726,6 +776,35 @@ Generado con tecnología pericial MELSA.`;
                   </div>
                 </div>
               </div>
+
+              {/* Card 1.9: Reconocimiento IA de Atributos Singulares (Quincho, Azotea, Piscina, etc.) */}
+              {valuationResult.specialFeaturesDetected && valuationResult.specialFeaturesDetected.length > 0 && (
+                <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent p-5 rounded-3xl border border-amber-300/60 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-amber-600" />
+                      <span>Atributos Singulares & Mejoras Reconocidas por IA</span>
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-600 text-white">
+                      +{valuationResult.specialFeaturesBonusPct}% Plus Comercial (+{valuationResult.specialFeaturesBonusUF} UF)
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    {valuationResult.specialFeaturesDetected.map((feat, idx) => (
+                      <div key={idx} className="bg-white/90 p-3 rounded-2xl border border-amber-200 shadow-xs space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-gray-900">{feat.name}</span>
+                          <span className="text-[10px] font-extrabold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-md">
+                            +{feat.bonusPct}%
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-600 leading-snug">{feat.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Card 2: AI Executive CMA Narrative */}
               <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-sm space-y-4 text-xs">

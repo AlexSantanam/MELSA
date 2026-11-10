@@ -34,26 +34,26 @@ import {
 } from '../services/propertyValuationEngine';
 
 export const SellPropertySection: React.FC = () => {
-  // Estado del Formulario AVM
+  // Estado del Formulario AVM (Inicialmente vacío para desplegar placeholders de ejemplo en gris)
   const [propertyType, setPropertyType] = useState<'Departamento' | 'Casa' | 'Oficina' | 'Parcela'>('Casa');
   const [commune, setCommune] = useState('Villa Alemana');
-  const [address, setAddress] = useState('Valentín Letelier 693');
+  const [address, setAddress] = useState('');
   
   // Rol SII en 2 Campos Independientes (Formato Manzana - Predio)
-  const [rolManzana, setRolManzana] = useState('433');
-  const [rolPredio, setRolPredio] = useState('032');
+  const [rolManzana, setRolManzana] = useState('');
+  const [rolPredio, setRolPredio] = useState('');
 
   // Material de Construcción (NCh 3658 / MINVU)
   const [constructionMaterial, setConstructionMaterial] = useState<ConstructionMaterialType>(
     'Albañilería Confinada / Ladrillo Fiscal (Clase C)'
   );
 
-  const [usefulM2, setUsefulM2] = useState<number>(150);
-  const [totalM2, setTotalM2] = useState<number>(300);
-  const [bedrooms, setBedrooms] = useState<number>(5);
-  const [bathrooms, setBathrooms] = useState<number>(3);
-  const [parking, setParking] = useState<number>(2);
-  const [storage, setStorage] = useState<number>(1);
+  const [usefulM2, setUsefulM2] = useState<number | ''>('');
+  const [totalM2, setTotalM2] = useState<number | ''>('');
+  const [bedrooms, setBedrooms] = useState<number>(3);
+  const [bathrooms, setBathrooms] = useState<number>(2);
+  const [parking, setParking] = useState<number>(1);
+  const [storage, setStorage] = useState<number>(0);
   const [orientation, setOrientation] = useState<'Nor-Oriente' | 'Nor-Poniente' | 'Sur-Oriente' | 'Sur-Poniente' | 'Despejada / Todas'>('Nor-Oriente');
   const [condition, setCondition] = useState<'Remodelado / Impecable' | 'Buen estado general' | 'Regular / Original' | 'Para refaccionar'>('Buen estado general');
 
@@ -113,10 +113,10 @@ export const SellPropertySection: React.FC = () => {
       address,
       rolManzana,
       rolPredio,
-      rolSII: `${rolManzana}-${rolPredio}`,
+      rolSII: rolManzana && rolPredio ? `${rolManzana}-${rolPredio}` : undefined,
       constructionMaterial,
       usefulM2: Number(usefulM2) || 80,
-      totalM2: Number(totalM2) || usefulM2,
+      totalM2: Number(totalM2) || Number(usefulM2) || 120,
       bedrooms: Number(bedrooms) || 2,
       bathrooms: Number(bathrooms) || 2,
       parking: Number(parking) || 0,
@@ -464,11 +464,10 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                         <span className="text-[10px] text-gray-500 block mb-0.5">Manzana:</span>
                         <input
                           type="text"
-                          required
                           value={rolManzana}
                           onChange={(e) => setRolManzana(e.target.value.replace(/\D/g, ''))}
-                          placeholder="433"
-                          className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-center font-mono font-bold text-xs text-[#0F1115] outline-none focus:border-[#D02126]"
+                          placeholder="Ej. 433"
+                          className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-center font-mono font-bold text-xs text-[#0F1115] placeholder-gray-400 outline-none focus:border-[#D02126]"
                         />
                       </div>
 
@@ -478,11 +477,10 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                         <span className="text-[10px] text-gray-500 block mb-0.5">Predio:</span>
                         <input
                           type="text"
-                          required
                           value={rolPredio}
                           onChange={(e) => setRolPredio(e.target.value.replace(/\D/g, ''))}
-                          placeholder="032"
-                          className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-center font-mono font-bold text-xs text-[#0F1115] outline-none focus:border-[#D02126]"
+                          placeholder="Ej. 032"
+                          className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-center font-mono font-bold text-xs text-[#0F1115] placeholder-gray-400 outline-none focus:border-[#D02126]"
                         />
                       </div>
                     </div>
@@ -538,8 +536,9 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                     <input
                       type="number"
                       value={usefulM2}
-                      onChange={(e) => setUsefulM2(Number(e.target.value))}
-                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-bold text-[#0F1115] outline-none focus:border-[#D02126]"
+                      onChange={(e) => setUsefulM2(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="Ej. 150"
+                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-bold text-[#0F1115] placeholder-gray-400 outline-none focus:border-[#D02126]"
                     />
                   </div>
 
@@ -550,8 +549,9 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                     <input
                       type="number"
                       value={totalM2}
-                      onChange={(e) => setTotalM2(Number(e.target.value))}
-                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-bold text-[#0F1115] outline-none focus:border-[#D02126]"
+                      onChange={(e) => setTotalM2(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="Ej. 300"
+                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-bold text-[#0F1115] placeholder-gray-400 outline-none focus:border-[#D02126]"
                     />
                   </div>
 

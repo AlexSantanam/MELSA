@@ -42,19 +42,19 @@ interface AgencyValuationHubProps {
 }
 
 export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPropertyToPortfolio }) => {
-  // Form State
+  // Form State (Inicialmente vacíos con placeholders de ejemplo en gris)
   const [propertyType, setPropertyType] = useState<'Departamento' | 'Casa' | 'Oficina' | 'Parcela'>('Casa');
   const [commune, setCommune] = useState('Villa Alemana');
-  const [address, setAddress] = useState('Valentín Letelier 693');
-  const [rolManzana, setRolManzana] = useState('433');
-  const [rolPredio, setRolPredio] = useState('032');
+  const [address, setAddress] = useState('');
+  const [rolManzana, setRolManzana] = useState('');
+  const [rolPredio, setRolPredio] = useState('');
   const [constructionMaterial, setConstructionMaterial] = useState<ConstructionMaterialType>('Albañilería Confinada / Ladrillo Fiscal (Clase C)');
-  const [usefulM2, setUsefulM2] = useState<number>(150);
-  const [totalM2, setTotalM2] = useState<number>(300);
-  const [bedrooms, setBedrooms] = useState<number>(5);
-  const [bathrooms, setBathrooms] = useState<number>(3);
-  const [parking, setParking] = useState<number>(2);
-  const [storage, setStorage] = useState<number>(1);
+  const [usefulM2, setUsefulM2] = useState<number | ''>('');
+  const [totalM2, setTotalM2] = useState<number | ''>('');
+  const [bedrooms, setBedrooms] = useState<number>(3);
+  const [bathrooms, setBathrooms] = useState<number>(2);
+  const [parking, setParking] = useState<number>(1);
+  const [storage, setStorage] = useState<number>(0);
   const [orientation, setOrientation] = useState<'Nor-Oriente' | 'Nor-Poniente' | 'Sur-Oriente' | 'Sur-Poniente' | 'Despejada / Todas'>('Nor-Oriente');
   const [condition, setCondition] = useState<'Remodelado / Impecable' | 'Buen estado general' | 'Regular / Original' | 'Para refaccionar'>('Buen estado general');
 
@@ -92,7 +92,7 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
       rolSII: rolManzana && rolPredio ? `${rolManzana}-${rolPredio}` : undefined,
       constructionMaterial,
       usefulM2: Number(usefulM2) || 100,
-      totalM2: Number(totalM2) || usefulM2,
+      totalM2: Number(totalM2) || Number(usefulM2) || 120,
       bedrooms: Number(bedrooms) || 3,
       bathrooms: Number(bathrooms) || 2,
       parking: Number(parking) || 1,
@@ -161,7 +161,7 @@ Generado con tecnología pericial MELSA.`;
       commune: valuationResult.communeFormatted,
       bedrooms,
       bathrooms,
-      surfaceM2: usefulM2,
+      surfaceM2: Number(usefulM2) || 100,
       priceUF: valuationResult.baseMarketUF,
       rentCLP: valuationResult.estimatedRentCLP
     });
@@ -434,7 +434,8 @@ Generado con tecnología pericial MELSA.`;
                   min="20"
                   max="2000"
                   value={usefulM2}
-                  onChange={(e) => setUsefulM2(Number(e.target.value))}
+                  onChange={(e) => setUsefulM2(e.target.value === '' ? '' : Number(e.target.value))}
+                  placeholder="Ej. 150"
                   className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
                 />
               </div>
@@ -448,7 +449,8 @@ Generado con tecnología pericial MELSA.`;
                   min="20"
                   max="50000"
                   value={totalM2}
-                  onChange={(e) => setTotalM2(Number(e.target.value))}
+                  onChange={(e) => setTotalM2(e.target.value === '' ? '' : Number(e.target.value))}
+                  placeholder="Ej. 300"
                   className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
                 />
               </div>

@@ -1148,6 +1148,19 @@ export function getSuggestedStreetsForCommune(commune: string): string[] {
 }
 
 /**
+ * Obtener coordenadas centrales referenciales de una comuna
+ */
+export function getCommuneCenterCoord(commune: string): { lat: number; lng: number } {
+  const norm = (commune || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  for (const [key, data] of Object.entries(REAL_STREETS_BY_COMMUNE)) {
+    if (norm.includes(key) || key.includes(norm)) {
+      return data.centerCoord;
+    }
+  }
+  return { lat: -33.0425, lng: -71.3741 }; // Default central Valparaíso / Marga Marga
+}
+
+/**
  * Búsqueda inteligente de direcciones chilenas con georreferenciación y plusvalía
  * 100% instantáneo y sin latencia externa
  */

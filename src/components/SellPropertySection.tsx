@@ -441,55 +441,21 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                   ))}
                 </div>
 
-                {/* Visualizador de Mapa Interactivo con Pin y Radar de Megaproyecto */}
-                {showMap && (
-                  <div className="bg-[#0F1115] rounded-2xl p-4 text-white space-y-3 relative overflow-hidden border border-gray-800">
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <Map className="w-4 h-4 text-[#D02126]" />
-                        <span className="font-extrabold">Ubicación Territorial & Radar de Megaproyectos</span>
+                {/* Radar de Plusvalía si se detecta un megaproyecto en la dirección */}
+                {previewUrbanPlusvalia.hasKeyInfrastructure && (
+                  <div className="p-3 bg-purple-950/20 border border-purple-300 rounded-2xl text-xs text-purple-900 flex items-start gap-2.5">
+                    <Sparkles className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-extrabold text-[#0F1115] flex items-center gap-1.5">
+                        <span>{previewUrbanPlusvalia.projectName}</span>
+                        <span className="text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full font-bold">
+                          +{previewUrbanPlusvalia.projectImpactPct}% Plusvalía
+                        </span>
                       </div>
-                      <span className="text-[10px] text-emerald-400 font-mono bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                        GPS: {commune}
-                      </span>
+                      <p className="text-[11px] text-gray-600 mt-0.5">
+                        {previewUrbanPlusvalia.description}
+                      </p>
                     </div>
-
-                    {/* Styled Map Graphic Canvas */}
-                    <div className="relative h-28 bg-[#181D26] rounded-xl overflow-hidden border border-gray-700 flex items-center justify-center">
-                      {/* Grid Lines */}
-                      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:16px_16px]" />
-                      
-                      {/* Radio de Plusvalía (Circle) */}
-                      <div className="absolute w-44 h-44 rounded-full border border-[#D02126]/30 bg-[#D02126]/5 animate-pulse pointer-events-none" />
-
-                      {/* Property Pin */}
-                      <div className="relative z-10 flex flex-col items-center">
-                        <div className="px-2.5 py-1 rounded-lg bg-[#D02126] text-white text-[10px] font-black shadow-lg flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-white" />
-                          <span>{address || commune}</span>
-                        </div>
-                        <div className="w-1.5 h-3 bg-[#D02126]" />
-                        <div className="w-2.5 h-1 bg-black/40 rounded-full" />
-                      </div>
-
-                      {/* Megaproject Pin Indicator */}
-                      {previewUrbanPlusvalia.hasKeyInfrastructure && (
-                        <div className="absolute right-4 top-3 z-10 px-2.5 py-1 rounded-lg bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[10px] font-bold shadow-md flex items-center gap-1.5">
-                          <Hospital className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>{previewUrbanPlusvalia.projectName.split('(')[0]} (+{previewUrbanPlusvalia.projectImpactPct}%)</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Urban Intelligence Alert Banner (Solo si hay megaproyecto detectado en esa dirección) */}
-                    {previewUrbanPlusvalia.hasKeyInfrastructure && (
-                      <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/30 text-[11px] text-purple-200 flex items-start gap-2">
-                        <Sparkles className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
-                        <div>
-                          <strong>Radar de Plusvalía Detectado:</strong> {previewUrbanPlusvalia.description}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 

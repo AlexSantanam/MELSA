@@ -390,32 +390,28 @@ Generado con tecnología pericial MELSA.`;
               </div>
             </div>
 
-            {/* Rol de Avalúo SII Funcional (Dos campos independientes: Manzana - Predio) */}
-            <div className="p-3 bg-red-50/50 rounded-2xl border border-red-100 space-y-2">
+            {/* Rol de Avalúo Fiscal (Opcional · Referencia CBR) */}
+            <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-[#D02126]" />
                   <label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide">
-                    Rol de Avalúo SII (Formato Oficial)
+                    Rol de Avalúo Fiscal (Opcional · Referencia CBR)
                   </label>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleLoadPreset('Villa Alemana', 'Av. Las Araucarias 950', '9999', '01', 120, 240, 3, 2)}
-                  className="text-[10px] font-bold text-[#D02126] hover:underline cursor-pointer"
-                >
-                  ⚡ Cargar Caso Ejemplo (Ficticio)
-                </button>
+                <span className="text-[10px] text-gray-500 font-medium">
+                  {rolManzana && rolPredio ? `Rol: ${rolManzana}-${rolPredio}` : 'Opcional'}
+                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <span className="text-[10px] text-gray-500 font-medium block mb-1">Manzana (SII)</span>
+                  <span className="text-[10px] text-gray-500 font-medium block mb-1">Manzana</span>
                   <input
                     type="text"
                     value={rolManzana}
                     onChange={(e) => setRolManzana(e.target.value.replace(/\D/g, '').slice(0, 5))}
-                    placeholder="Ej. 1245"
+                    placeholder="Ej. 433"
                     className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#0F1115] text-center focus:border-[#D02126] outline-none"
                   />
                 </div>
@@ -425,97 +421,14 @@ Generado con tecnología pericial MELSA.`;
                     type="text"
                     value={rolPredio}
                     onChange={(e) => setRolPredio(e.target.value.replace(/\D/g, '').slice(0, 5))}
-                    placeholder="Ej. 68"
+                    placeholder="Ej. 032"
                     className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#0F1115] text-center focus:border-[#D02126] outline-none"
                   />
                 </div>
               </div>
 
-              {/* Botón Pro de Carga Catastral SII */}
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={handleFetchSiiCadastralData}
-                  disabled={!rolManzana || !rolPredio || isQueryingSii}
-                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white font-bold text-[11px] shadow-sm hover:shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {isQueryingSii ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-                      <span>Consultando Catastro Fiscal SII...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Search className="w-3.5 h-3.5 text-rose-200" />
-                      <span>🔍 Cargar Datos Catastrales del Rol ({rolManzana || '---'}-{rolPredio || '---'})</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Ficha Catastral Sincronizada */}
-              {siiCadastralResult && (
-                <div className={`p-2.5 rounded-xl border text-xs space-y-1.5 animate-in fade-in duration-200 ${
-                  siiCadastralResult.foundInDatabase
-                    ? 'bg-emerald-50 border-emerald-300'
-                    : 'bg-amber-50/70 border-amber-200'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <span className={`font-bold flex items-center gap-1 text-[11px] ${
-                      siiCadastralResult.foundInDatabase ? 'text-emerald-900' : 'text-amber-900'
-                    }`}>
-                      <CheckCircle2 className={`w-3.5 h-3.5 ${siiCadastralResult.foundInDatabase ? 'text-emerald-600' : 'text-amber-600'}`} />
-                      <span>
-                        {siiCadastralResult.foundInDatabase
-                          ? 'Ficha Catastral Oficial SII Verificada'
-                          : 'Estimación Catastral Paramétrica (No Indexado)'}
-                      </span>
-                    </span>
-                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${
-                      siiCadastralResult.foundInDatabase
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-amber-100 text-amber-800'
-                    }`}>
-                      Rol {siiCadastralResult.rolFormatted}
-                    </span>
-                  </div>
-
-                  {siiCadastralResult.officialAddress && (
-                    <div className="text-[10px] font-medium text-emerald-900 bg-white/90 p-1.5 rounded-lg border border-emerald-200">
-                      📍 <strong>Dirección SII:</strong> {siiCadastralResult.officialAddress}
-                    </div>
-                  )}
-                  
-                  <div className="flex flex-wrap gap-1 text-[10px] text-gray-700">
-                    <span className="px-2 py-0.5 rounded-md bg-white border border-gray-200 font-semibold">
-                      📐 {siiCadastralResult.usefulM2} m² útiles
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md bg-white border border-gray-200 font-semibold">
-                      🌳 {siiCadastralResult.totalM2} m² terreno
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md bg-white border border-gray-200 font-semibold">
-                      🧱 {siiCadastralResult.constructionMaterial.split('(')[0].trim()}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-md font-bold ${
-                      siiCadastralResult.contributionsStatus.includes('Exento')
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-amber-100 text-amber-800'
-                    }`}>
-                      {siiCadastralResult.contributionsStatus}
-                    </span>
-                  </div>
-
-                  <div className={`text-[10px] font-medium pt-1 border-t flex items-center justify-between ${
-                    siiCadastralResult.foundInDatabase ? 'text-emerald-800 border-emerald-200/60' : 'text-amber-800 border-amber-200/60'
-                  }`}>
-                    <span>Avalúo Fiscal Oficial: <strong>${siiCadastralResult.estimatedFiscalAssessmentCLP.toLocaleString('es-CL')} CLP</strong></span>
-                    <span className="font-bold">{siiCadastralResult.destination}</span>
-                  </div>
-                </div>
-              )}
-
-              <p className="text-[10px] text-gray-500 italic">
-                Formato SII: <span className="font-mono font-semibold text-gray-700">{rolManzana || '---'}-{rolPredio || '---'}</span> • Calcula avalúo fiscal y exención DFL-2.
+              <p className="text-[10px] text-gray-500 leading-tight">
+                Permite indexar la propiedad para la tasación pericial y asociar antecedentes en el Conservador de Bienes Raíces (CBR).
               </p>
             </div>
 
@@ -853,13 +766,13 @@ Generado con tecnología pericial MELSA.`;
                 </div>
               )}
 
-              {/* Card 1.8: Certificación SII y Materialidad NCh 3658 */}
+              {/* Card 1.8: Avalúo Fiscal Referencial y Materialidad NCh 3658 */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* SII Assessment */}
                 {valuationResult.siiAssessment && (
                   <div className="p-4 bg-white rounded-2xl border border-gray-200 shadow-sm space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Certificación SII</span>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Avalúo Fiscal (Referencial)</span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         valuationResult.siiAssessment.hasValidRol ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'
                       }`}>
@@ -882,6 +795,9 @@ Generado con tecnología pericial MELSA.`;
                     </div>
                     <div className="text-[10px] text-gray-400">
                       {valuationResult.siiAssessment.destination}
+                    </div>
+                    <div className="text-[9px] text-gray-400 pt-0.5 border-t border-gray-100">
+                      *Estimación pericial referencial. El avalúo oficial legal se verifica en www.sii.cl.
                     </div>
                   </div>
                 )}

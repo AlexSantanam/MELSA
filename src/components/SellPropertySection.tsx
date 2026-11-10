@@ -493,12 +493,17 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                 {/* Grid 2: Rol SII Funcional (Manzana - Predio) & Materialidad */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   
-                  {/* Rol SII en 2 Campos Independientes */}
+                  {/* Rol de Avalúo Fiscal (Opcional · Referencia CBR) */}
                   <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-2xl space-y-2">
-                    <label className="block text-[11px] font-black text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
-                      <Scale className="w-3.5 h-3.5 text-[#D02126]" />
-                      <span>Rol de Avalúo SII (Formato Manzana - Predio)</span>
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-black text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <Scale className="w-3.5 h-3.5 text-[#D02126]" />
+                        <span>Rol de Avalúo Fiscal (Opcional · Referencia CBR)</span>
+                      </label>
+                      <span className="text-[10px] text-gray-500 font-medium">
+                        {rolManzana && rolPredio ? `Rol ${rolManzana}-${rolPredio}` : 'Opcional'}
+                      </span>
+                    </div>
 
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
@@ -507,7 +512,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                           type="text"
                           value={rolManzana}
                           onChange={(e) => setRolManzana(e.target.value.replace(/\D/g, ''))}
-                          placeholder="Ej. 1245"
+                          placeholder="Ej. 433"
                           className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-center font-mono font-bold text-xs text-[#0F1115] placeholder-gray-400 outline-none focus:border-[#D02126]"
                         />
                       </div>
@@ -520,92 +525,15 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                           type="text"
                           value={rolPredio}
                           onChange={(e) => setRolPredio(e.target.value.replace(/\D/g, ''))}
-                          placeholder="Ej. 68"
+                          placeholder="Ej. 032"
                           className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-center font-mono font-bold text-xs text-[#0F1115] placeholder-gray-400 outline-none focus:border-[#D02126]"
                         />
                       </div>
                     </div>
 
-                    <div className="text-[10px] text-gray-500 pt-1 flex items-center justify-between border-t border-gray-200/60">
-                      <span>Rol: <strong>{rolManzana || '---'}-{rolPredio || '---'}</strong></span>
-                      <span className="text-emerald-700 font-bold">✓ Formato SII Válido</span>
-                    </div>
-
-                    {/* Botón Pro de Carga Catastral SII */}
-                    <div className="pt-1">
-                      <button
-                        type="button"
-                        onClick={handleFetchSiiCadastralData}
-                        disabled={!rolManzana || !rolPredio || isQueryingSii}
-                        className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white font-bold text-[11px] shadow-sm hover:shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        {isQueryingSii ? (
-                          <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-                            <span>Consultando Ficha SII...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Search className="w-3.5 h-3.5 text-rose-200" />
-                            <span>🔍 Cargar Datos Catastrales del Rol ({rolManzana || '---'}-{rolPredio || '---'})</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Ficha Catastral Sincronizada */}
-                    {siiCadastralResult && (
-                      <div className={`p-2.5 rounded-xl border text-xs space-y-1.5 animate-in fade-in duration-200 ${
-                        siiCadastralResult.foundInDatabase
-                          ? 'bg-emerald-50 border-emerald-300'
-                          : 'bg-amber-50/70 border-amber-200'
-                      }`}>
-                        <div className="flex items-center justify-between">
-                          <span className={`font-bold flex items-center gap-1 text-[11px] ${
-                            siiCadastralResult.foundInDatabase ? 'text-emerald-900' : 'text-amber-900'
-                          }`}>
-                            <CheckCircle2 className={`w-3.5 h-3.5 ${siiCadastralResult.foundInDatabase ? 'text-emerald-600' : 'text-amber-600'}`} />
-                            <span>
-                              {siiCadastralResult.foundInDatabase
-                                ? 'Ficha Catastral Oficial SII Verificada'
-                                : 'Estimación Catastral Paramétrica'}
-                            </span>
-                          </span>
-                          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${
-                            siiCadastralResult.foundInDatabase
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            Rol {siiCadastralResult.rolFormatted}
-                          </span>
-                        </div>
-
-                        {siiCadastralResult.officialAddress && (
-                          <div className="text-[10px] font-medium text-emerald-900 bg-white/90 p-1.5 rounded-lg border border-emerald-200">
-                            📍 <strong>Dirección SII:</strong> {siiCadastralResult.officialAddress}
-                          </div>
-                        )}
-                        
-                        <div className="flex flex-wrap gap-1 text-[10px] text-gray-700">
-                          <span className="px-2 py-0.5 rounded-md bg-white border border-gray-200 font-semibold">
-                            📐 {siiCadastralResult.usefulM2} m² útiles
-                          </span>
-                          <span className="px-2 py-0.5 rounded-md bg-white border border-gray-200 font-semibold">
-                            🏡 {siiCadastralResult.totalM2} m² terreno
-                          </span>
-                          <span className="px-2 py-0.5 rounded-md bg-white border border-gray-200 font-semibold">
-                            🧱 {siiCadastralResult.constructionMaterial.split('/')[0]}
-                          </span>
-                        </div>
-
-                        <div className={`text-[10px] font-medium pt-0.5 border-t flex items-center justify-between ${
-                          siiCadastralResult.foundInDatabase ? 'text-emerald-800 border-emerald-200/60' : 'text-amber-800 border-amber-200/60'
-                        }`}>
-                          <span>Avalúo Fiscal Oficial: <strong>${siiCadastralResult.estimatedFiscalAssessmentCLP.toLocaleString('es-CL')} CLP</strong></span>
-                          <span className="font-bold">{siiCadastralResult.contributionsStatus}</span>
-                        </div>
-                      </div>
-                    )}
+                    <p className="text-[10px] text-gray-500 pt-1 border-t border-gray-200/60 leading-tight">
+                      Indexa el inmueble para el estudio de títulos en el Conservador de Bienes Raíces (CBR) y estimación referencial de contribuciones.
+                    </p>
                   </div>
 
                   {/* Material de Construcción (NCh 3658) */}
@@ -1016,13 +944,13 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
 
                 {/* Desglose Técnico: SII + Materialidad */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  {/* Tarjeta SII */}
+                  {/* Tarjeta Avalúo Fiscal Referencial */}
                   {valuationResult.siiAssessment && (
                     <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-gray-900 flex items-center gap-1.5">
                           <Scale className="w-4 h-4 text-[#D02126]" />
-                          <span>Certificación SII</span>
+                          <span>Avalúo Fiscal (Referencial)</span>
                         </span>
                         <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
                           valuationResult.siiAssessment.hasValidRol ? 'bg-gray-200 text-gray-800' : 'bg-amber-100 text-amber-800'
@@ -1034,9 +962,12 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                       </div>
                       <div className="text-[11px] text-gray-600 space-y-0.5 pt-1">
                         <div>Avalúo Fiscal Estimado: <strong>${(valuationResult.siiAssessment.estimatedFiscalAssessmentCLP).toLocaleString('es-CL')} CLP</strong></div>
-                        <div>Destino: <strong>{valuationResult.siiAssessment.destination}</strong></div>
+                        <div>Destino Predial: <strong>{valuationResult.siiAssessment.destination}</strong></div>
                         <div className={`${valuationResult.siiAssessment.hasValidRol ? 'text-emerald-700' : 'text-gray-500'} font-bold`}>
-                          Estado: {valuationResult.siiAssessment.hasValidRol ? valuationResult.siiAssessment.contributionsStatus : 'Estimación referencial preliminar'}
+                          Contribuciones: {valuationResult.siiAssessment.contributionsStatus}
+                        </div>
+                        <div className="text-[9px] text-gray-400 pt-0.5 border-t border-gray-200/60">
+                          *Cálculo estimativo s/NCh 3658. El avalúo oficial se verifica en www.sii.cl.
                         </div>
                       </div>
                     </div>

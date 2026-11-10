@@ -1462,7 +1462,7 @@ export function calculateSiiFiscalAssessment(
     rolManzana: cleanManzana,
     rolPredio: cleanPredio,
     rolFormatted: hasValidRol ? `${cleanManzana}-${cleanPredio}` : 'Sin Rol Ingresado',
-    destination: hasValidRol ? 'Habitacional Serie No Agrícola (DFL-2)' : 'Habitacional (Estimación fiscal preventiva)',
+    destination: hasValidRol ? 'Habitacional (Estimación Referencial)' : 'Habitacional (Estimación sin Rol informado)',
     estimatedFiscalAssessmentCLP: fiscalCLP,
     contributionsStatus: isExento ? 'Exento de Contribuciones' : 'Afecto a Contribuciones',
     estimatedQuarterlyTaxCLP: quarterlyTax,

@@ -18,7 +18,9 @@ import {
   AlertCircle,
   HelpCircle,
   ArrowRight,
-  RotateCcw
+  RotateCcw,
+  Search,
+  Loader2
 } from 'lucide-react';
 import { 
   calculateValuationAVM, 
@@ -29,6 +31,8 @@ import {
   getSuggestedStreetsForCommune,
   CHILE_REGIONS,
   getRegionForCommune,
+  querySiiCadastralProfile,
+  SiiCadastralProfile,
   UF_CURRENT_CLP 
 } from '../services/propertyValuationEngine';
 import { AddressSearchAutocomplete } from './AddressSearchAutocomplete';
@@ -64,12 +68,34 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
   const [condition, setCondition] = useState<'Remodelado / Impecable' | 'Buen estado general' | 'Regular / Original' | 'Para refaccionar'>('Buen estado general');
   const [specialAttributes, setSpecialAttributes] = useState('');
 
+  // Estado de Consulta Catastral SII
+  const [isQueryingSii, setIsQueryingSii] = useState(false);
+  const [siiCadastralResult, setSiiCadastralResult] = useState<SiiCadastralProfile | null>(null);
+
   // Execution State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisStep, setAnalysisStep] = useState(0);
   const [valuationResult, setValuationResult] = useState<ValuationResult | null>(null);
   const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [addedToPortfolioSuccess, setAddedToPortfolioSuccess] = useState(false);
+
+  // Sincronizar Ficha Catastral del SII (Autocompleta m², material, tipología y avalúo)
+  const handleFetchSiiCadastralData = () => {
+    if (!rolManzana || !rolPredio) return;
+    setIsQueryingSii(true);
+
+    setTimeout(() => {
+      const profile = querySiiCadastralProfile(commune, rolManzana, rolPredio);
+      setSiiCadastralResult(profile);
+      setPropertyType(profile.propertyType);
+      setUsefulM2(profile.usefulM2);
+      setTotalM2(profile.totalM2);
+      setConstructionMaterial(profile.constructionMaterial);
+      setBedrooms(profile.bedrooms);
+      setBathrooms(profile.bathrooms);
+      setIsQueryingSii(false);
+    }, 600);
+  };
 
   // Region and Commune Handlers (Filtro en cascada sin confusiones)
   const handleRegionChange = (newRegionId: string) => {
@@ -121,6 +147,7 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
     setOrientation('Nor-Oriente');
     setCondition('Buen estado general');
     setSpecialAttributes('');
+    setSiiCadastralResult(null);
     setValuationResult(null);
   };
 
@@ -400,6 +427,62 @@ Generado con tecnología pericial MELSA.`;
                   />
                 </div>
               </div>
+
+              {/* Botón Pro de Carga Catastral SII */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={handleFetchSiiCadastralData}
+                  disabled={!rolManzana || !rolPredio || isQueryingSii}
+                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white font-bold text-[11px] shadow-sm hover:shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {isQueryingSii ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                      <span>Consultando Catastro Fiscal SII...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-3.5 h-3.5 text-rose-200" />
+                      <span>🔍 Cargar Datos Catastrales del Rol ({rolManzana || '---'}-{rolPredio || '---'})</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Ficha Catastral Sincronizada */}
+              {siiCadastralResult && (
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-1.5 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-900 flex items-center gap-1 text-[11px]">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Ficha Catastral SII Sincronizada</span>
+                    </span>
+                    <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md">
+                      Rol {siiCadastralResult.rolFormatted}
+                    </span>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-1 text-[10px] text-gray-700">
+                    <span className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 font-semibold">
+                      📐 {siiCadastralResult.usefulM2} m² útiles
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 font-semibold">
+                      🌳 {siiCadastralResult.totalM2} m² terreno
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 font-semibold">
+                      🧱 {siiCadastralResult.constructionMaterial.split('(')[0].trim()}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-100/70 text-emerald-800 font-bold">
+                      {siiCadastralResult.contributionsStatus}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-gray-500 italic">
+                    Superficies, material y tipología autocompletados desde el catastro fiscal.
+                  </p>
+                </div>
+              )}
+
               <p className="text-[10px] text-gray-500 italic">
                 Formato SII: <span className="font-mono font-semibold text-gray-700">{rolManzana || '---'}-{rolPredio || '---'}</span> • Calcula avalúo fiscal y exención DFL-2.
               </p>

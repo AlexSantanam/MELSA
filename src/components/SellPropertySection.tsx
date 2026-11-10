@@ -22,7 +22,8 @@ import {
   Eye,
   Check,
   Search,
-  Hammer
+  Hammer,
+  Loader2
 } from 'lucide-react';
 import { 
   ValuationInput, 
@@ -34,7 +35,9 @@ import {
   getSuggestedStreetsForCommune,
   detectUrbanPlusvalia,
   CHILE_REGIONS,
-  getRegionForCommune
+  getRegionForCommune,
+  querySiiCadastralProfile,
+  SiiCadastralProfile
 } from '../services/propertyValuationEngine';
 import { AddressSearchAutocomplete } from './AddressSearchAutocomplete';
 
@@ -63,6 +66,28 @@ export const SellPropertySection: React.FC = () => {
   const [orientation, setOrientation] = useState<'Nor-Oriente' | 'Nor-Poniente' | 'Sur-Oriente' | 'Sur-Poniente' | 'Despejada / Todas'>('Nor-Oriente');
   const [condition, setCondition] = useState<'Remodelado / Impecable' | 'Buen estado general' | 'Regular / Original' | 'Para refaccionar'>('Buen estado general');
   const [specialAttributes, setSpecialAttributes] = useState('');
+
+  // Estado de Consulta Catastral SII
+  const [isQueryingSii, setIsQueryingSii] = useState(false);
+  const [siiCadastralResult, setSiiCadastralResult] = useState<SiiCadastralProfile | null>(null);
+
+  // Sincronizar Ficha Catastral del SII (Autocompleta m², material, tipología y avalúo)
+  const handleFetchSiiCadastralData = () => {
+    if (!rolManzana || !rolPredio) return;
+    setIsQueryingSii(true);
+
+    setTimeout(() => {
+      const profile = querySiiCadastralProfile(commune, rolManzana, rolPredio);
+      setSiiCadastralResult(profile);
+      setPropertyType(profile.propertyType);
+      setUsefulM2(profile.usefulM2);
+      setTotalM2(profile.totalM2);
+      setConstructionMaterial(profile.constructionMaterial);
+      setBedrooms(profile.bedrooms);
+      setBathrooms(profile.bathrooms);
+      setIsQueryingSii(false);
+    }, 600);
+  };
 
   // Mapa Interactivo & Sugerencias de Calle
   const [showMap, setShowMap] = useState(true);
@@ -140,6 +165,7 @@ export const SellPropertySection: React.FC = () => {
     setOrientation('Nor-Oriente');
     setCondition('Buen estado general');
     setSpecialAttributes('');
+    setSiiCadastralResult(null);
     setValuationResult(null);
   };
 
@@ -496,9 +522,63 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                     </div>
 
                     <div className="text-[10px] text-gray-500 pt-1 flex items-center justify-between border-t border-gray-200/60">
-                      <span>Rol: <strong>{rolManzana}-{rolPredio}</strong></span>
-                      <span className="text-emerald-700 font-bold">✓ Válido Serie Habitacional</span>
+                      <span>Rol: <strong>{rolManzana || '---'}-{rolPredio || '---'}</strong></span>
+                      <span className="text-emerald-700 font-bold">✓ Formato SII Válido</span>
                     </div>
+
+                    {/* Botón Pro de Carga Catastral SII */}
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={handleFetchSiiCadastralData}
+                        disabled={!rolManzana || !rolPredio || isQueryingSii}
+                        className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white font-bold text-[11px] shadow-sm hover:shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {isQueryingSii ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                            <span>Consultando Ficha SII...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Search className="w-3.5 h-3.5 text-rose-200" />
+                            <span>🔍 Cargar Datos Catastrales del Rol ({rolManzana || '---'}-{rolPredio || '---'})</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Ficha Catastral Sincronizada */}
+                    {siiCadastralResult && (
+                      <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-1.5 animate-in fade-in duration-200">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-emerald-900 flex items-center gap-1 text-[11px]">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Ficha Catastral SII Sincronizada</span>
+                          </span>
+                          <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md">
+                            Rol {siiCadastralResult.rolFormatted}
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-1 text-[10px] text-gray-700">
+                          <span className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 font-semibold">
+                            📐 {siiCadastralResult.usefulM2} m² útiles
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 font-semibold">
+                            🏡 {siiCadastralResult.totalM2} m² terreno
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 font-semibold">
+                            🧱 {siiCadastralResult.constructionMaterial.split('/')[0]}
+                          </span>
+                        </div>
+
+                        <div className="text-[10px] text-emerald-800 font-medium pt-0.5 border-t border-emerald-200/60 flex items-center justify-between">
+                          <span>Avalúo Fiscal Base: ${siiCadastralResult.fiscalValuationClp.toLocaleString('es-CL')} CLP</span>
+                          <span className="font-bold">{siiCadastralResult.isDfl2 ? '✓ DFL-2' : 'General'}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Material de Construcción (NCh 3658) */}

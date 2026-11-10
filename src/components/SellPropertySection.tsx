@@ -80,20 +80,20 @@ export const SellPropertySection: React.FC = () => {
   // Radar de Plusvalía en tiempo real para el sector
   const previewUrbanPlusvalia = detectUrbanPlusvalia(commune, address);
 
-  // Autocompletar con Rol SII de ejemplo en Villa Alemana
+  // Autocompletar con Rol SII de ejemplo demostrativo
   const handleAutofillWithRol = () => {
     setPropertyType('Casa');
     setCommune('Villa Alemana');
-    setAddress('Valentín Letelier 693');
-    setRolManzana('433');
-    setRolPredio('032');
+    setAddress('Av. Valparaíso 1420');
+    setRolManzana('1245');
+    setRolPredio('68');
     setConstructionMaterial('Albañilería Confinada / Ladrillo Fiscal (Clase C)');
-    setUsefulM2(150);
-    setTotalM2(300);
-    setBedrooms(5);
-    setBathrooms(3);
-    setParking(2);
-    setStorage(1);
+    setUsefulM2(120);
+    setTotalM2(240);
+    setBedrooms(3);
+    setBathrooms(2);
+    setParking(1);
+    setStorage(0);
     setOrientation('Nor-Oriente');
     setCondition('Buen estado general');
   };
@@ -318,10 +318,10 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                       type="button"
                       onClick={handleAutofillWithRol}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-[#D02126] text-xs font-bold transition-colors cursor-pointer border border-rose-200/60"
-                      title="Carga de ejemplo real: Valentín Letelier 693, Villa Alemana (Rol 433-032)"
+                      title="Carga de ejemplo demostrativo: Av. Valparaíso 1420 (Rol 1245-68)"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
-                      <span>⚡ Probar con Rol SII Ejemplo (Villa Alemana)</span>
+                      <span>⚡ Probar Ejemplo Demostrativo</span>
                     </button>
                   </div>
                 </div>
@@ -404,7 +404,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                       value={address}
                       onChange={(newAddr) => setAddress(newAddr)}
                       commune={commune}
-                      placeholder="Ej. Valentín Letelier 693 o Av. Marga Marga"
+                      placeholder="Ej. Av. Los Pinos 1420"
                     />
                   </div>
                 </div>
@@ -497,7 +497,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                           type="text"
                           value={rolManzana}
                           onChange={(e) => setRolManzana(e.target.value.replace(/\D/g, ''))}
-                          placeholder="Ej. 433"
+                          placeholder="Ej. 1245"
                           className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-center font-mono font-bold text-xs text-[#0F1115] placeholder-gray-400 outline-none focus:border-[#D02126]"
                         />
                       </div>
@@ -510,7 +510,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                           type="text"
                           value={rolPredio}
                           onChange={(e) => setRolPredio(e.target.value.replace(/\D/g, ''))}
-                          placeholder="Ej. 032"
+                          placeholder="Ej. 68"
                           className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-center font-mono font-bold text-xs text-[#0F1115] placeholder-gray-400 outline-none focus:border-[#D02126]"
                         />
                       </div>

@@ -19,18 +19,17 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
   value,
   onChange,
   commune,
-  placeholder = 'Ej. Valentín Letelier 693 o Av. Marga Marga',
+  placeholder = 'Ej. Av. Los Pinos 1420',
   className = '',
   onSelectSuggestion
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Calles sugeridas base para la comuna seleccionada
+  // Calles y sugerencias instantáneas en tiempo real (0ms latencia)
+  const suggestions = searchChileanAddresses(commune, value);
   const popularStreets = getSuggestedStreetsForCommune(commune);
 
   // Cerrar al hacer clic fuera del componente
@@ -44,42 +43,12 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Efecto de búsqueda reactiva al cambiar el texto o la comuna
-  useEffect(() => {
-    let isCancelled = false;
-
-    const performSearch = async () => {
-      setIsLoading(true);
-      try {
-        const results = await searchChileanAddresses(commune, value);
-        if (!isCancelled) {
-          setSuggestions(results);
-          setHighlightedIndex(-1);
-        }
-      } catch (err) {
-        console.error('Error buscando direcciones:', err);
-      } finally {
-        if (!isCancelled) setIsLoading(false);
-      }
-    };
-
-    const timer = setTimeout(() => {
-      performSearch();
-    }, 180);
-
-    return () => {
-      isCancelled = true;
-      clearTimeout(timer);
-    };
-  }, [value, commune]);
-
   const handleSelect = (item: AddressSuggestion) => {
     onChange(item.address);
     if (onSelectSuggestion) {
       onSelectSuggestion(item);
     }
     setIsOpen(false);
-    inputRef.current?.blur();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -128,12 +97,8 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
         />
 
         {/* Icono de Lupa / Pin */}
-        <div className="absolute left-3 text-gray-400 pointer-events-none flex items-center">
-          {isLoading ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-[#D02126]" />
-          ) : (
-            <Search className="w-3.5 h-3.5 text-gray-400" />
-          )}
+        <div className="absolute left-3 text-[#D02126] pointer-events-none flex items-center">
+          <MapPin className="w-3.5 h-3.5" />
         </div>
 
         {/* Botón para Limpiar */}

@@ -644,7 +644,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
       id: 'notif-1',
       category: 'valuation',
       title: 'Tasación AVM: Megaproyecto Detectado',
-      description: 'Tasación calculada en Valentín Letelier 693, Villa Alemana (Rol 433-032). Se indexó el Nuevo Hospital Provincial Marga Marga (+16% plusvalía).',
+      description: 'Tasación calculada en Av. Marga Marga 1420, Villa Alemana (Rol 1245-68). Se indexó el Nuevo Hospital Provincial Marga Marga (+14% plusvalía).',
       time: 'Hace 8 min',
       read: false,
       priority: 'urgent',
@@ -5972,7 +5972,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                       type="text"
                       value={extractedPropertyResult.address}
                       onChange={(e) => setExtractedPropertyResult({ ...extractedPropertyResult, address: e.target.value })}
-                      placeholder="Ej. Valentín Letelier 693, Villa Alemana"
+                      placeholder="Ej. Av. Los Pinos 1420, Villa Alemana"
                       className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 font-bold text-[#0F1115] text-xs outline-none focus:border-[#D02126]"
                     />
                   </div>

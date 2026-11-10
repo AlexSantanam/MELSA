@@ -21,7 +21,7 @@ export interface UrbanPlusvaliaInsight {
 export interface SiiTaxAssessment {
   rolManzana: string;
   rolPredio: string;
-  rolFormatted: string; // "433-032"
+  rolFormatted: string; // "1245-68"
   destination: string;  // "Habitacional Serie No Agrícola (DFL-2)"
   estimatedFiscalAssessmentCLP: number;
   contributionsStatus: 'Exento de Contribuciones' | 'Afecto a Contribuciones';
@@ -742,11 +742,10 @@ export interface AddressSuggestion {
 export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; centerCoord: { lat: number; lng: number } }> = {
   'villa alemana': {
     streets: [
-      'Valentín Letelier',
-      'Av. Marga Marga',
       'Av. Valparaíso (Troncal Urbano)',
+      'Av. Marga Marga',
       'Huanhualí',
-      'Peñablanca',
+      'Peñablanca (Sector Estación)',
       'Maturana',
       'San Martín',
       'Victoria',
@@ -925,30 +924,28 @@ export function getSuggestedStreetsForCommune(commune: string): string[] {
 
 /**
  * Búsqueda inteligente de direcciones chilenas con georreferenciación y plusvalía
+ * 100% instantáneo y sin latencia externa
  */
-export async function searchChileanAddresses(commune: string, query: string): Promise<AddressSuggestion[]> {
-  const normCommune = commune.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const normQuery = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+export function searchChileanAddresses(commune: string, query: string): AddressSuggestion[] {
+  const normCommune = (commune || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const normQuery = (query || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   const streets = getSuggestedStreetsForCommune(commune);
   const results: AddressSuggestion[] = [];
 
-  // 1. Coincidencia con calles locales conocidas
+  // Si el usuario escribió una numeración en la query (ej: "1420"), preservarla
+  const numMatch = query ? query.match(/\d+/) : null;
+  const streetNum = numMatch ? ` ${numMatch[0]}` : '';
+
+  // Coincidencia con calles de la comuna
   for (const st of streets) {
     const normSt = st.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const isMatch = normQuery === '' || normSt.includes(normQuery) || normQuery.includes(normSt);
 
     if (isMatch) {
-      // Si el usuario escribió un número en la query (ej: "Letelier 693"), preservarlo
-      const numMatch = query.match(/\d+/);
-      const streetNum = numMatch ? ` ${numMatch[0]}` : '';
-
       let plusvaliaTag: string | undefined = undefined;
       let landmark: string | undefined = undefined;
 
-      if (normCommune.includes('villa alemana') && (normSt.includes('letelier') || normSt.includes('valentin'))) {
-        landmark = 'A 2 a 4 cuadras del Nuevo Hospital Marga Marga';
-        plusvaliaTag = '+16% Plusvalía Megaproyecto';
-      } else if (normCommune.includes('villa alemana') && normSt.includes('marga marga')) {
+      if (normCommune.includes('villa alemana') && normSt.includes('marga marga')) {
         landmark = 'A 500m del Hospital Marga Marga';
         plusvaliaTag = '+14% Plusvalía';
       } else if (normCommune.includes('villa alemana') && (normSt.includes('maturana') || normSt.includes('victoria') || normSt.includes('latorre') || normSt.includes('buenos aires'))) {
@@ -962,7 +959,7 @@ export async function searchChileanAddresses(commune: string, query: string): Pr
         plusvaliaTag = '+11% Plusvalía';
       }
 
-      const displayAddress = `${st}${streetNum || (normSt.includes('letelier') ? ' 693' : '')}`;
+      const displayAddress = streetNum ? `${st}${streetNum}` : st;
 
       results.push({
         address: displayAddress,
@@ -975,45 +972,9 @@ export async function searchChileanAddresses(commune: string, query: string): Pr
     }
   }
 
-  // 2. Si hay query específica y estamos en el navegador, intentar geocodificación online en paralelo
-  if (normQuery.length >= 3 && typeof window !== 'undefined' && window.fetch) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1200); // Rápido timeout de 1.2s para no frenar la UI
-      
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', ' + commune + ', Chile')}&addressdetails=1&countrycodes=cl&limit=4`;
-      const response = await fetch(url, { signal: controller.signal, headers: { 'Accept-Language': 'es' } });
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        const data = await response.json();
-        for (const item of data) {
-          const road = item.address?.road || item.display_name.split(',')[0];
-          const fullAddr = `${road}${item.address?.house_number ? ' ' + item.address.house_number : ''}`;
-          
-          if (!results.some(r => r.address.toLowerCase() === fullAddr.toLowerCase())) {
-            results.push({
-              address: fullAddr,
-              streetOnly: road,
-              commune,
-              sector: item.address?.suburb || item.address?.neighbourhood || 'Chile',
-              lat: parseFloat(item.lat),
-              lng: parseFloat(item.lon)
-            });
-          }
-        }
-      }
-    } catch {
-      // Silencioso fallback local
-    }
-  }
-
   return results.slice(0, 6);
 }
 
-/**
- * Detector Agéntico de Plusvalía Territorial & Megaproyectos Urbanos
- */
 /**
  * Detector Agéntico de Plusvalía Territorial & Megaproyectos Urbanos
  * Discrimina con alta precisión por calle y cuadrante exacto, NO por comuna completa.
@@ -1234,9 +1195,9 @@ export function calculateSiiFiscalAssessment(
   const quarterlyTax = isExento ? 0 : Math.round((taxableBase * 0.0105) / 4);
 
   return {
-    rolManzana: rolManzana.trim() || '433',
-    rolPredio: rolPredio.trim() || '032',
-    rolFormatted: `${rolManzana.trim() || '433'}-${rolPredio.trim() || '032'}`,
+    rolManzana: rolManzana.trim() || '1245',
+    rolPredio: rolPredio.trim() || '68',
+    rolFormatted: `${rolManzana.trim() || '1245'}-${rolPredio.trim() || '68'}`,
     destination: 'Habitacional Serie No Agrícola (DFL-2)',
     estimatedFiscalAssessmentCLP: fiscalCLP,
     contributionsStatus: isExento ? 'Exento de Contribuciones' : 'Afecto a Contribuciones',
@@ -1310,8 +1271,8 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
   const baseMarketCLP = Math.round(baseMarketUF * UF_CURRENT_CLP);
 
   // Rol SII Fiscal Assessment
-  const rolManzana = input.rolManzana || (input.rolSII ? input.rolSII.split('-')[0] : '433');
-  const rolPredio = input.rolPredio || (input.rolSII ? input.rolSII.split('-')[1] : '032');
+  const rolManzana = input.rolManzana || (input.rolSII ? input.rolSII.split('-')[0] : '1245');
+  const rolPredio = input.rolPredio || (input.rolSII ? input.rolSII.split('-')[1] : '68');
   const siiAssessment = calculateSiiFiscalAssessment(baseMarketCLP, rolManzana, rolPredio);
   
   // Rangos de Cierre

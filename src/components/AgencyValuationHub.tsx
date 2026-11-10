@@ -366,7 +366,7 @@ Generado con tecnología pericial MELSA.`;
                 value={address}
                 onChange={(newAddr) => setAddress(newAddr)}
                 commune={commune}
-                placeholder="Ej. Valentín Letelier 693 o Av. Marga Marga"
+                placeholder="Ej. Av. Los Pinos 1420"
               />
 
               {/* Sugerencias de calles principales de la comuna */}
@@ -396,10 +396,10 @@ Generado con tecnología pericial MELSA.`;
                 </div>
                 <button
                   type="button"
-                  onClick={() => handleLoadPreset('Villa Alemana', 'Valentín Letelier 693', '433', '032', 150, 300, 5, 3)}
-                  className="text-[10px] font-bold text-[#D02126] hover:underline"
+                  onClick={() => handleLoadPreset('Villa Alemana', 'Av. Valparaíso 1420', '1245', '68', 120, 240, 3, 2)}
+                  className="text-[10px] font-bold text-[#D02126] hover:underline cursor-pointer"
                 >
-                  ⚡ Ejemplo Hospital V. Alemana (433-032)
+                  ⚡ Cargar Caso Ejemplo (Ficticio)
                 </button>
               </div>
 
@@ -410,7 +410,7 @@ Generado con tecnología pericial MELSA.`;
                     type="text"
                     value={rolManzana}
                     onChange={(e) => setRolManzana(e.target.value.replace(/\D/g, '').slice(0, 5))}
-                    placeholder="Ej. 433"
+                    placeholder="Ej. 1245"
                     className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#0F1115] text-center focus:border-[#D02126] outline-none"
                   />
                 </div>
@@ -420,7 +420,7 @@ Generado con tecnología pericial MELSA.`;
                     type="text"
                     value={rolPredio}
                     onChange={(e) => setRolPredio(e.target.value.replace(/\D/g, '').slice(0, 5))}
-                    placeholder="Ej. 032"
+                    placeholder="Ej. 68"
                     className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#0F1115] text-center focus:border-[#D02126] outline-none"
                   />
                 </div>

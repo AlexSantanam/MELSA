@@ -35,16 +35,16 @@ const createCustomPinIcon = () => {
   return L.divIcon({
     className: 'custom-melsa-pin',
     html: `
-      <div style="position: relative; width: 36px; height: 42px; transform: translate(-50%, -100%);">
-        <svg viewBox="0 0 24 24" width="36" height="42" fill="#D02126" stroke="#ffffff" stroke-width="1.5" style="filter: drop-shadow(0 3px 6px rgba(208,33,38,0.4));">
+      <div style="width: 32px; height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; user-select: none;">
+        <svg viewBox="0 0 24 24" width="32" height="38" fill="#D02126" stroke="#ffffff" stroke-width="1.5" style="filter: drop-shadow(0 3px 5px rgba(208,33,38,0.45));">
           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
           <circle cx="12" cy="9" r="2.8" fill="#ffffff"/>
         </svg>
-        <div style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 12px; height: 4px; background: rgba(0,0,0,0.3); border-radius: 50%; filter: blur(1px);"></div>
+        <div style="width: 10px; height: 3px; background: rgba(0,0,0,0.35); border-radius: 50%; filter: blur(1px); margin-top: 1px;"></div>
       </div>
     `,
-    iconSize: [36, 42],
-    iconAnchor: [18, 42]
+    iconSize: [32, 42],
+    iconAnchor: [16, 42]
   });
 };
 
@@ -73,6 +73,7 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerInstanceRef = useRef<L.Marker | null>(null);
+  const isDraggingMapRef = useRef<boolean>(false);
 
   // Actualizar coordenadas cuando cambia la comuna
   useEffect(() => {
@@ -173,6 +174,31 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Geocodificar texto a coordenadas y posicionar el mapa directamente
+  const geocodeAddressToMap = async (addressQuery: string) => {
+    const clean = addressQuery.trim();
+    if (!clean || clean.length < 3) return;
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(clean + ', ' + commune + ', Chile')}&addressdetails=1&limit=1&countrycodes=cl`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
+          setCoords({ lat, lng });
+          if (mapInstanceRef.current && markerInstanceRef.current) {
+            mapInstanceRef.current.setView([lat, lng], 16);
+            markerInstanceRef.current.setLatLng([lat, lng]);
+          }
+          setPinAddressNote(data[0].display_name);
+        }
+      }
+    } catch (e) {
+      console.warn('Geocodificación al buscar mapa falló:', e);
+    }
+  };
+
   // Inicializar o sincronizar el mapa Leaflet interactivo
   useEffect(() => {
     if (!showMap || !mapContainerRef.current) return;
@@ -194,14 +220,28 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
         icon: createCustomPinIcon()
       }).addTo(map);
 
-      // Evento al arrastrar el pin
+      // Control de arrastre del mapa:
+      // Cuando el usuario mueve el mapa, NO se debe mover el pin
+      map.on('movestart', () => {
+        isDraggingMapRef.current = true;
+      });
+
+      map.on('moveend', () => {
+        // Bloquear click residual por 120ms tras soltar el mapa
+        setTimeout(() => {
+          isDraggingMapRef.current = false;
+        }, 120);
+      });
+
+      // Evento al arrastrar el pin directamente
       marker.on('dragend', () => {
         const pos = marker.getLatLng();
         handleMapPositionChange(pos.lat, pos.lng);
       });
 
-      // Evento al hacer clic en cualquier parte del mapa
+      // Evento al hacer clic directo en el mapa (SOLO si NO se estaba arrastrando el mapa)
       map.on('click', (e: L.LeafletMouseEvent) => {
+        if (isDraggingMapRef.current) return;
         marker.setLatLng(e.latlng);
         handleMapPositionChange(e.latlng.lat, e.latlng.lng);
       });
@@ -214,14 +254,9 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
         map.invalidateSize();
       }, 200);
     } else {
-      mapInstanceRef.current.setView([coords.lat, coords.lng], 16);
-      markerInstanceRef.current?.setLatLng([coords.lat, coords.lng]);
+      mapInstanceRef.current.invalidateSize();
     }
-
-    return () => {
-      // Dejar que el mapa viva mientras showMap sea true
-    };
-  }, [showMap, coords.lat, coords.lng]);
+  }, [showMap]);
 
   // Manejo cuando el usuario mueve el pin en el mapa
   const handleMapPositionChange = async (lat: number, lng: number) => {
@@ -251,6 +286,10 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
     onChange(item.address);
     if (item.lat && item.lng) {
       setCoords({ lat: item.lat, lng: item.lng });
+      if (mapInstanceRef.current && markerInstanceRef.current) {
+        mapInstanceRef.current.setView([item.lat, item.lng], 16);
+        markerInstanceRef.current.setLatLng([item.lat, item.lng]);
+      }
     }
     if (onSelectSuggestion) {
       onSelectSuggestion(item);
@@ -271,6 +310,10 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
       async (pos) => {
         const { latitude, longitude } = pos.coords;
         setCoords({ lat: latitude, lng: longitude });
+        if (mapInstanceRef.current && markerInstanceRef.current) {
+          mapInstanceRef.current.setView([latitude, longitude], 16);
+          markerInstanceRef.current.setLatLng([latitude, longitude]);
+        }
         setShowMap(true);
 
         try {
@@ -407,13 +450,17 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
         <button
           type="button"
           onClick={() => {
-            setShowMap(true);
+            const nextShow = !showMap;
+            setShowMap(nextShow);
             setIsOpen(false);
+            if (nextShow && value && value.trim().length >= 3) {
+              geocodeAddressToMap(value);
+            }
           }}
           className="px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs rounded-xl border border-gray-200 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
         >
           <MapIcon className="w-3.5 h-3.5 text-[#D02126]" />
-          <span>{showMap ? 'Ver Mapa' : 'Buscar / Pin'}</span>
+          <span>{showMap ? 'Ocultar Mapa' : 'Ver Mapa'}</span>
         </button>
       </div>
 
@@ -527,17 +574,28 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-[#D02126]" />
-              <span className="font-extrabold text-[#0F1115]">Confirma la ubicación exacta</span>
+              <span className="font-extrabold text-[#0F1115]">Ubicación del Pin en el Mapa</span>
             </div>
             
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-400 font-mono">
-                {pinAddressNote || `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`}
-              </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  if (mapInstanceRef.current) {
+                    mapInstanceRef.current.panTo([coords.lat, coords.lng]);
+                  }
+                }}
+                className="text-[10px] text-gray-700 bg-gray-100 hover:bg-gray-200 font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                title="Centrar mapa en la posición del pin"
+              >
+                <Compass className="w-3 h-3 text-[#D02126]" />
+                <span>Centrar en Pin</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setShowMap(false)}
-                className="text-[10px] text-gray-400 hover:text-gray-600 font-bold px-1.5 py-0.5 rounded hover:bg-gray-100"
+                className="text-[10px] text-gray-400 hover:text-gray-600 font-bold px-1.5 py-0.5 rounded hover:bg-gray-100 cursor-pointer"
               >
                 Ocultar
               </button>

@@ -73,3 +73,15 @@
   border-radius: 9999px;
 }
 
+/* Leaflet Pin Marker Styles (Transparent wrapper, solid vector pin) */
+.custom-melsa-pin {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.custom-melsa-pin:focus {
+  outline: none !important;
+}
+
+

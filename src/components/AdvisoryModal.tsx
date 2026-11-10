@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, User, Phone, Mail, Send, CheckCircle2 } from 'lucide-react';
 import { TEAM_MEMBERS } from '../data/mockData';
+import { addLeadFromAdvisory } from '../services/leadTriageService';
 
 interface AdvisoryModalProps {
   isOpen: boolean;
@@ -34,8 +35,20 @@ export const AdvisoryModal: React.FC<AdvisoryModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      await addLeadFromAdvisory({
+        name: fullName,
+        phone,
+        email,
+        topic: interestType,
+        preferredTime: `${preferredDate} ${preferredTime}`,
+        notes: message
+      });
+    } catch (err) {
+      console.warn('Error registrando lead de asesoría:', err);
+    }
     setIsSubmitted(true);
   };
 

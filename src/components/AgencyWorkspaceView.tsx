@@ -88,6 +88,13 @@ import { extractPropertyWithGroq, ExtractedPropertyData } from '../services/prop
 import { AgencyDevelopmentsHub } from './AgencyDevelopmentsHub';
 import { AgencyValuationHub } from './AgencyValuationHub';
 import { UF_CURRENT_CLP } from '../services/propertyValuationEngine';
+import { 
+  getStoredLeads, 
+  markLeadAsRead, 
+  deleteLead, 
+  createManualLiveLead, 
+  OmnichannelLead 
+} from '../services/leadTriageService';
 
 interface AgencyWorkspaceViewProps {
   currentUser: AuthUser;
@@ -141,69 +148,37 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
   >('dashboard');
 
   // Superpoder 1: Inbox Omnicanal & Triage IA State
-  const [inboxFilter, setInboxFilter] = useState<'all' | 'whatsapp' | 'instagram' | 'portales'>('all');
-  const [selectedLeadId, setSelectedLeadId] = useState<string>('lead-1');
-  const [inboxLeads, setInboxLeads] = useState([
-    {
-      id: 'lead-1',
-      name: 'Camila Zúñiga Valdés',
-      phone: '+56 9 8456 7890',
-      channel: 'whatsapp',
-      time: 'Hace 4 min',
-      unread: true,
-      lastMessage: 'Hola! Vi el departamento en Parque Araucano, ¿sigue disponible para visitar este sábado?',
-      aiTriage: {
-        intent: 'Arriendo',
-        budget: '$850.000 / mes',
-        commune: 'Las Condes',
-        typology: '2D / 2B',
-        urgency: 'Alta (Muda fin de mes)',
-        qualificationScore: 96,
-        summary: 'Lead altamente calificado. Cumple 3x renta con aval bancario listo.'
-      },
-      matchedPropertyId: 'prop-1'
-    },
-    {
-      id: 'lead-2',
-      name: 'Matías Edwards Larraín',
-      phone: '+56 9 9234 5678',
-      channel: 'portal_inmobiliario',
-      time: 'Hace 28 min',
-      unread: true,
-      lastMessage: 'Estimados, me interesa agendar orden de visita para la casa en Los Pinos.',
-      aiTriage: {
-        intent: 'Compra',
-        budget: '6.500 a 7.200 UF',
-        commune: 'Lo Barnechea',
-        typology: '4D / 4B',
-        urgency: 'Media (Aprobación bancaria Scotia)',
-        qualificationScore: 92,
-        summary: 'Preaprobación hipotecaria activa en Scotiabank por 6.800 UF.'
-      },
-      matchedPropertyId: 'prop-3'
-    },
-    {
-      id: 'lead-3',
-      name: 'Ignacia Fontaine R.',
-      phone: '+56 9 7321 0987',
-      channel: 'instagram',
-      time: 'Hace 1 hora',
-      unread: false,
-      lastMessage: 'Hola buenas tardes, ¿cuál es el gasto común del dúplex en El Golf?',
-      aiTriage: {
-        intent: 'Arriendo',
-        budget: '$1.600.000 / mes',
-        commune: 'Las Condes (El Golf)',
-        typology: '3D / 3B Dúplex',
-        urgency: 'Media',
-        qualificationScore: 88,
-        summary: 'Consulta específica de GGCC (~$280.000). Perfil profesional idóneo.'
-      },
-      matchedPropertyId: 'prop-2'
-    }
-  ]);
+  const [inboxFilter, setInboxFilter] = useState<'all' | 'whatsapp' | 'tasacion_avm' | 'web_form' | 'instagram'>('all');
+  const [inboxLeads, setInboxLeads] = useState<OmnichannelLead[]>(() => getStoredLeads());
+  const [selectedLeadId, setSelectedLeadId] = useState<string>(() => {
+    const list = getStoredLeads();
+    return list[0]?.id || '';
+  });
   const [chatReplyText, setChatReplyText] = useState('');
   const [chatSuccessNotice, setChatSuccessNotice] = useState<string | null>(null);
+
+  // Modal para Simulación / Prueba de Entrada de Lead en Vivo
+  const [isSimulateModalOpen, setIsSimulateModalOpen] = useState(false);
+  const [simName, setSimName] = useState('Rodrigo Morales Silva');
+  const [simPhone, setSimPhone] = useState('+56 9 9876 5432');
+  const [simChannel, setSimChannel] = useState<'whatsapp' | 'web_form' | 'instagram'>('whatsapp');
+  const [simMessage, setSimMessage] = useState('Hola Alexis, busco comprar casa en Peñablanca de 3 dormitorios hasta 3.800 UF con subsidio o crédito aprobado.');
+  const [isProcessingSim, setIsProcessingSim] = useState(false);
+
+  // Sincronización en tiempo real de leads almacenados (Formularios Web + Tasaciones)
+  useEffect(() => {
+    const handleUpdate = (e: any) => {
+      const updatedList = e.detail || getStoredLeads();
+      setInboxLeads(updatedList);
+      if (updatedList.length > 0 && (!selectedLeadId || !updatedList.some((l: OmnichannelLead) => l.id === selectedLeadId))) {
+        setSelectedLeadId(updatedList[0].id);
+        setChatReplyText(updatedList[0].aiSuggestedReply || '');
+      }
+    };
+
+    window.addEventListener('melsa_leads_updated', handleUpdate);
+    return () => window.removeEventListener('melsa_leads_updated', handleUpdate);
+  }, [selectedLeadId]);
 
   // Superpoder 2: Smart Matching State
   const [matchingFilterProp, setMatchingFilterProp] = useState<string>('all');
@@ -1065,7 +1040,13 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
               <div className="space-y-0.5 pt-1">
                 {[
                   { id: 'dashboard', label: 'Panel General', icon: LayoutDashboard },
-                  { id: 'inbox', label: 'Inbox Omnicanal (IA)', icon: MessageCircle, badge: '3 leads', badgeStyle: 'bg-[#D02126] text-white' },
+                  { 
+                    id: 'inbox', 
+                    label: 'Inbox Omnicanal (IA)', 
+                    icon: MessageCircle, 
+                    badge: inboxLeads.filter(l => l.unread).length > 0 ? `${inboxLeads.filter(l => l.unread).length} nuevos` : undefined, 
+                    badgeStyle: 'bg-[#D02126] text-white' 
+                  },
                   { id: 'matching', label: 'Smart Matching (IA)', icon: Sparkles, badge: 'Auto', badgeStyle: 'bg-white/10 text-amber-300' },
                   { id: 'valuation', label: 'Tasación AVM & CMA (IA)', icon: Compass, badge: 'Pro', badgeStyle: 'bg-rose-500/20 text-[#ff6b6e]' }
                 ].map((item) => {
@@ -1727,9 +1708,16 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsSimulateModalOpen(true)}
+                      className="px-3.5 py-1.5 rounded-full bg-[#D02126] hover:bg-[#b01b20] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Probar Lead con IA</span>
+                    </button>
                     <span className="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>Agente IA Activo · 24/7</span>
+                      <span>Triage IA Activo · 24/7</span>
                     </span>
                   </div>
                 </div>
@@ -1748,7 +1736,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                   <div className="lg:col-span-5 bg-white rounded-3xl p-5 border border-gray-200/90 shadow-2xs space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                       <span className="text-xs font-bold text-gray-700">Conversaciones entrantes ({inboxLeads.length})</span>
-                      <div className="flex items-center gap-1 text-[11px]">
+                      <div className="flex flex-wrap items-center gap-1 text-[11px]">
                         <button
                           onClick={() => setInboxFilter('all')}
                           className={`px-2 py-0.5 rounded-lg font-bold cursor-pointer transition-colors ${
@@ -1756,6 +1744,22 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                           }`}
                         >
                           Todos
+                        </button>
+                        <button
+                          onClick={() => setInboxFilter('tasacion_avm')}
+                          className={`px-2 py-0.5 rounded-lg font-bold cursor-pointer transition-colors ${
+                            inboxFilter === 'tasacion_avm' ? 'bg-red-50 text-[#D02126]' : 'text-gray-400 hover:text-gray-600'
+                          }`}
+                        >
+                          Tasador AVM
+                        </button>
+                        <button
+                          onClick={() => setInboxFilter('web_form')}
+                          className={`px-2 py-0.5 rounded-lg font-bold cursor-pointer transition-colors ${
+                            inboxFilter === 'web_form' ? 'bg-blue-50 text-blue-700' : 'text-gray-400 hover:text-gray-600'
+                          }`}
+                        >
+                          Web
                         </button>
                         <button
                           onClick={() => setInboxFilter('whatsapp')}
@@ -1769,66 +1773,123 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     </div>
 
                     <div className="space-y-2">
-                      {inboxLeads
-                        .filter(l => inboxFilter === 'all' || l.channel === inboxFilter)
-                        .map((lead) => {
-                          const isSelected = lead.id === selectedLeadId;
-                          return (
-                            <div
-                              key={lead.id}
-                              onClick={() => {
-                                setSelectedLeadId(lead.id);
-                                setChatReplyText(`Hola ${lead.name.split(' ')[0]}! Sí, la propiedad sigue disponible. ¿Te acomoda visitarla este sábado a las 11:30 hrs? Te comparto el enlace con la ficha técnica completa.`);
-                              }}
-                              className={`p-3.5 rounded-2xl border transition-all cursor-pointer space-y-2 ${
-                                isSelected
-                                  ? 'bg-[#F4F9F8] border-[#D02126] shadow-xs ring-1 ring-[#D02126]/20'
-                                  : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50/50'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-[#FDE8E9] text-[#D02126] font-bold flex items-center justify-center text-xs">
-                                    {lead.name.charAt(0)}
+                      {inboxLeads.length === 0 ? (
+                        <div className="p-8 text-center space-y-2 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+                          <MessageCircle className="w-8 h-8 text-gray-300 mx-auto" />
+                          <p className="text-xs text-gray-500 font-medium">Bandeja vacía en este filtro.</p>
+                          <p className="text-[11px] text-gray-400">Genera una tasación en la web o haz clic en "Probar Lead con IA".</p>
+                        </div>
+                      ) : (
+                        inboxLeads
+                          .filter(l => inboxFilter === 'all' || l.channel === inboxFilter)
+                          .map((lead) => {
+                            const isSelected = lead.id === selectedLeadId;
+                            return (
+                              <div
+                                key={lead.id}
+                                onClick={() => {
+                                  setSelectedLeadId(lead.id);
+                                  markLeadAsRead(lead.id);
+                                  setChatReplyText(lead.aiSuggestedReply || '');
+                                }}
+                                className={`p-3.5 rounded-2xl border transition-all cursor-pointer space-y-2 relative group ${
+                                  isSelected
+                                    ? 'bg-[#F4F9F8] border-[#D02126] shadow-xs ring-1 ring-[#D02126]/20'
+                                    : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50/50'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-[#FDE8E9] text-[#D02126] font-bold flex items-center justify-center text-xs relative">
+                                      {lead.name.charAt(0)}
+                                      {lead.unread && (
+                                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#D02126] rounded-full ring-2 ring-white" />
+                                      )}
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="font-bold text-xs text-[#0F1115] block">{lead.name}</span>
+                                        {lead.unread && (
+                                          <span className="text-[9px] bg-red-100 text-[#D02126] font-extrabold px-1 rounded">NUEVO</span>
+                                        )}
+                                      </div>
+                                      <span className="text-[10px] text-gray-400 font-mono">{lead.phone}</span>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <span className="font-bold text-xs text-[#0F1115] block">{lead.name}</span>
-                                    <span className="text-[10px] text-gray-400 font-mono">{lead.phone}</span>
+                                  <div className="text-right flex items-center gap-1.5">
+                                    <div>
+                                      <span className="text-[10px] text-gray-400 block">{lead.time}</span>
+                                      <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                                        lead.channel === 'whatsapp' ? 'bg-emerald-100 text-emerald-800' :
+                                        lead.channel === 'tasacion_avm' ? 'bg-red-100 text-[#D02126]' :
+                                        lead.channel === 'web_form' ? 'bg-blue-100 text-blue-800' :
+                                        lead.channel === 'portal_inmobiliario' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800'
+                                      }`}>
+                                        {lead.channel === 'whatsapp' ? 'WhatsApp' : 
+                                         lead.channel === 'tasacion_avm' ? 'Tasador AVM' :
+                                         lead.channel === 'web_form' ? 'Web Form' :
+                                         lead.channel === 'portal_inmobiliario' ? 'Portal' : 'Instagram'}
+                                      </span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (confirm(`¿Eliminar la conversación de ${lead.name}?`)) {
+                                          deleteLead(lead.id);
+                                        }
+                                      }}
+                                      title="Eliminar lead"
+                                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 transition-opacity cursor-pointer"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
                                   </div>
                                 </div>
-                                <div className="text-right">
-                                  <span className="text-[10px] text-gray-400 block">{lead.time}</span>
-                                  <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
-                                    lead.channel === 'whatsapp' ? 'bg-emerald-100 text-emerald-800' :
-                                    lead.channel === 'portal_inmobiliario' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800'
-                                  }`}>
-                                    {lead.channel === 'whatsapp' ? 'WhatsApp' : lead.channel === 'portal_inmobiliario' ? 'Portal Inmob' : 'Instagram'}
+
+                                <p className="text-xs text-gray-600 line-clamp-2 font-light">
+                                  "{lead.lastMessage}"
+                                </p>
+
+                                {/* AI Triage Mini Tag */}
+                                <div className="pt-2 border-t border-gray-100/60 flex items-center justify-between text-[11px]">
+                                  <span className="text-gray-500 font-medium">
+                                    {lead.aiTriage.intent} · {lead.aiTriage.typology}
+                                  </span>
+                                  <span className="font-bold text-[#D02126] bg-emerald-50 px-2 py-0.5 rounded-full">
+                                    {lead.aiTriage.qualificationScore}% Score
                                   </span>
                                 </div>
                               </div>
-
-                              <p className="text-xs text-gray-600 line-clamp-2 font-light">
-                                "{lead.lastMessage}"
-                              </p>
-
-                              {/* AI Triage Mini Tag */}
-                              <div className="pt-2 border-t border-gray-100/60 flex items-center justify-between text-[11px]">
-                                <span className="text-gray-500 font-medium">
-                                  {lead.aiTriage.intent} · {lead.aiTriage.typology}
-                                </span>
-                                <span className="font-bold text-[#D02126] bg-emerald-50 px-2 py-0.5 rounded-full">
-                                  {lead.aiTriage.qualificationScore}% Score
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
+                            );
+                          })
+                      )}
                   </div>
 
                   {/* Right Column: AI Triage Copilot + Conversation Thread */}
                   {(() => {
                     const activeLead = inboxLeads.find(l => l.id === selectedLeadId) || inboxLeads[0];
+                    if (!activeLead) {
+                      return (
+                        <div className="lg:col-span-7 bg-white rounded-3xl p-12 border border-gray-200/90 shadow-2xs text-center space-y-3">
+                          <div className="w-12 h-12 rounded-2xl bg-red-50 text-[#D02126] flex items-center justify-center mx-auto">
+                            <MessageCircle className="w-6 h-6" />
+                          </div>
+                          <h3 className="text-base font-bold text-gray-900">Selecciona o ingresa una conversación</h3>
+                          <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                            Los clientes que llenen la tasación en la web o escriban por WhatsApp aparecerán aquí calificados automáticamente por la IA.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setIsSimulateModalOpen(true)}
+                            className="px-4 py-2 rounded-xl bg-[#D02126] text-white text-xs font-bold hover:bg-[#b01b20] transition-colors cursor-pointer"
+                          >
+                            Probar Lead con IA
+                          </button>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div className="lg:col-span-7 space-y-5">
                         
@@ -1850,6 +1911,33 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                               </span>
                             </div>
                           </div>
+
+                          {/* Ficha de Propiedad Asociada a la Tasación */}
+                          {activeLead.propertyContext && (
+                            <div className="p-3 bg-red-50/70 border border-red-200/60 rounded-2xl text-xs space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-gray-900 flex items-center gap-1.5">
+                                  <Home className="w-3.5 h-3.5 text-[#D02126]" />
+                                  <span>Propiedad Ingresada en Tasador AVM</span>
+                                </span>
+                                {activeLead.propertyContext.rolSII && (
+                                  <span className="font-mono text-[10px] font-bold bg-white text-gray-800 px-2 py-0.5 rounded border border-gray-200">
+                                    Rol SII: {activeLead.propertyContext.rolSII}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-gray-700">
+                                <strong>{activeLead.propertyContext.propertyType}</strong> en {activeLead.propertyContext.commune}
+                                {activeLead.propertyContext.address ? ` · ${activeLead.propertyContext.address}` : ''}
+                                {activeLead.propertyContext.usefulM2 ? ` (${activeLead.propertyContext.usefulM2} m² útiles)` : ''}
+                              </div>
+                              {activeLead.propertyContext.priceUF && (
+                                <div className="text-gray-600 text-[11px] pt-0.5">
+                                  Valor sugerido: <strong className="text-[#D02126]">{activeLead.propertyContext.priceUF.toLocaleString('es-CL')} UF</strong> (${activeLead.propertyContext.priceCLP?.toLocaleString('es-CL')} CLP)
+                                </div>
+                              )}
+                            </div>
+                          )}
 
                           {/* Hard Variables Extracted by AI */}
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
@@ -1887,17 +1975,28 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                           <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                             <div>
                               <span className="font-bold text-xs text-[#0F1115] block">{activeLead.name}</span>
-                              <span className="text-[11px] text-gray-400 font-mono">{activeLead.phone}</span>
+                              <div className="flex items-center gap-2 text-[11px] text-gray-400 font-mono">
+                                <span>{activeLead.phone}</span>
+                                {activeLead.email && <span>• {activeLead.email}</span>}
+                              </div>
                             </div>
-                            <a
-                              href={`https://wa.me/${activeLead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(chatReplyText || activeLead.lastMessage)}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
-                            >
-                              <Phone className="w-3.5 h-3.5" />
-                              <span>Abrir en WhatsApp</span>
-                            </a>
+                            <div className="flex items-center gap-1.5">
+                              <a
+                                href={`https://wa.me/${activeLead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(chatReplyText || activeLead.aiSuggestedReply || activeLead.lastMessage)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+                              >
+                                <Phone className="w-3.5 h-3.5" />
+                                <span>WhatsApp</span>
+                              </a>
+                              <a
+                                href={`tel:${activeLead.phone}`}
+                                className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs transition-colors"
+                              >
+                                Llamar
+                              </a>
+                            </div>
                           </div>
 
                           {/* Message Bubble Incoming */}
@@ -1913,19 +2012,19 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                             <div className="flex items-center justify-between text-xs">
                               <span className="font-bold text-gray-700 flex items-center gap-1">
                                 <Sparkles className="w-3.5 h-3.5 text-[#D02126]" />
-                                <span>Respuesta Sugerida por Copiloto de Ventas</span>
+                                <span>Respuesta Sugerida por Copiloto IA</span>
                               </span>
                               <button
-                                onClick={() => setChatReplyText(`Hola ${activeLead.name.split(' ')[0]}! Sí, la propiedad sigue disponible. ¿Te acomoda visitarla este sábado a las 11:30 hrs? Te comparto el enlace con la ficha técnica completa.`)}
+                                onClick={() => setChatReplyText(activeLead.aiSuggestedReply || '')}
                                 className="text-[#D02126] hover:underline font-bold cursor-pointer"
                               >
-                                Regenerar con IA
+                                Restaurar sugerencia IA
                               </button>
                             </div>
 
                             <textarea
                               rows={3}
-                              value={chatReplyText || `Hola ${activeLead.name.split(' ')[0]}! Sí, la propiedad sigue disponible. ¿Te acomoda visitarla este sábado a las 11:30 hrs? Te comparto el enlace con la ficha técnica completa.`}
+                              value={chatReplyText || activeLead.aiSuggestedReply || ''}
                               onChange={(e) => setChatReplyText(e.target.value)}
                               className="w-full bg-[#FAF9F8] border border-gray-200 rounded-2xl p-3.5 text-xs text-gray-700 focus:outline-none focus:border-[#D02126] leading-relaxed"
                             />
@@ -1956,12 +2055,13 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                               <button
                                 onClick={() => {
                                   setChatSuccessNotice(`¡Respuesta enviada a ${activeLead.name} vía WhatsApp y registrada en el CRM!`);
+                                  window.open(`https://wa.me/${activeLead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(chatReplyText || activeLead.aiSuggestedReply || '')}`, '_blank');
                                   setTimeout(() => setChatSuccessNotice(null), 3500);
                                 }}
                                 className="px-5 py-2.5 rounded-xl bg-[#D02126] hover:bg-[#B81B1F] text-white font-bold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-2"
                               >
                                 <Send className="w-3.5 h-3.5" />
-                                <span>Enviar Respuesta & Registrar</span>
+                                <span>Enviar Respuesta & Abrir WhatsApp</span>
                               </button>
                             </div>
                           </div>
@@ -1970,6 +2070,157 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                       </div>
                     );
                   })()}
+
+                </div>
+
+                {/* MODAL PARA PROBAR ENTRADA DE LEAD EN VIVO */}
+                {isSimulateModalOpen && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 border border-gray-200 space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                        <div className="flex items-center gap-2">
+                          <Bot className="w-5 h-5 text-[#D02126]" />
+                          <h3 className="text-base font-bold text-gray-900">Probar Entrada de Lead con IA en Vivo</h3>
+                        </div>
+                        <button
+                          onClick={() => setIsSimulateModalOpen(false)}
+                          className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Escribe un mensaje como si fueras un cliente en WhatsApp o la web. El motor de IA analizará la intención, presupuesto, comuna y calculará el score en tiempo real.
+                      </p>
+
+                      <div className="space-y-3 text-xs">
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">Nombre del Lead</label>
+                          <input
+                            type="text"
+                            value={simName}
+                            onChange={(e) => setSimName(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-gray-900 focus:border-[#D02126] outline-none font-medium"
+                            placeholder="Ej. Rodrigo Morales"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">Teléfono / WhatsApp</label>
+                            <input
+                              type="text"
+                              value={simPhone}
+                              onChange={(e) => setSimPhone(e.target.value)}
+                              className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-gray-900 focus:border-[#D02126] outline-none font-mono"
+                              placeholder="+56 9 1234 5678"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">Canal de Entrada</label>
+                            <select
+                              value={simChannel}
+                              onChange={(e) => setSimChannel(e.target.value as any)}
+                              className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-gray-900 focus:border-[#D02126] outline-none font-medium"
+                            >
+                              <option value="whatsapp">WhatsApp</option>
+                              <option value="web_form">Formulario Web</option>
+                              <option value="instagram">Instagram DM</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">Mensaje del Cliente</label>
+                          <textarea
+                            rows={3}
+                            value={simMessage}
+                            onChange={(e) => setSimMessage(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-300 rounded-xl p-3 text-gray-900 focus:border-[#D02126] outline-none leading-relaxed"
+                            placeholder="Escribe lo que consulta el cliente..."
+                          />
+                        </div>
+
+                        {/* Ejemplos rápidos */}
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block">O prueba con estos casos:</span>
+                          <div className="flex flex-wrap gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSimName('Matías Albornoz');
+                                setSimChannel('whatsapp');
+                                setSimMessage('Hola Alexis, busco una casa en Peñablanca o Villa Alemana con 3 dormitorios hasta 3.600 UF con crédito Santander aprobado.');
+                              }}
+                              className="text-[10px] px-2 py-1 rounded-lg bg-gray-100 hover:bg-red-50 hover:text-[#D02126] text-gray-600 transition-colors cursor-pointer"
+                            >
+                              + Compra 3.600 UF Peñablanca
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSimName('Marcela Valenzuela');
+                                setSimChannel('web_form');
+                                setSimMessage('Estimados, quiero entregar en arriendo mi departamento de 2 dormitorios en Quilpué centro. ¿Cuánto cobran de comisión de administración?');
+                              }}
+                              className="text-[10px] px-2 py-1 rounded-lg bg-gray-100 hover:bg-red-50 hover:text-[#D02126] text-gray-600 transition-colors cursor-pointer"
+                            >
+                              + Propietaria Arriendo Quilpué
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+                        <button
+                          type="button"
+                          onClick={() => setIsSimulateModalOpen(false)}
+                          className="px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 text-xs font-semibold cursor-pointer"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isProcessingSim || !simMessage.trim()}
+                          onClick={async () => {
+                            setIsProcessingSim(true);
+                            try {
+                              const newLead = await createManualLiveLead({
+                                name: simName,
+                                phone: simPhone,
+                                channel: simChannel,
+                                message: simMessage
+                              });
+                              setSelectedLeadId(newLead.id);
+                              setChatReplyText(newLead.aiSuggestedReply || '');
+                              setIsSimulateModalOpen(false);
+                              setChatSuccessNotice(`¡Lead de ${newLead.name} procesado y perfilado con éxito por la IA!`);
+                              setTimeout(() => setChatSuccessNotice(null), 4000);
+                            } catch (err) {
+                              console.error(err);
+                            } finally {
+                              setIsProcessingSim(false);
+                            }
+                          }}
+                          className="px-5 py-2 rounded-xl bg-[#D02126] hover:bg-[#b01b20] text-white text-xs font-bold flex items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
+                        >
+                          {isProcessingSim ? (
+                            <>
+                              <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              <span>Procesando con IA...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4" />
+                              <span>Analizar & Recibir en Bandeja</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 </div>
               </div>

@@ -40,6 +40,7 @@ import {
   fetchLiveSiiCadastralProfile,
   SiiCadastralProfile
 } from '../services/propertyValuationEngine';
+import { addLeadFromValuation } from '../services/leadTriageService';
 import { AddressSearchAutocomplete } from './AddressSearchAutocomplete';
 
 export const SellPropertySection: React.FC = () => {
@@ -249,9 +250,32 @@ Nota pericial: Para coordinar una tasación presencial oficial con levantamiento
     }, 1500);
   };
 
-  // Enviar tasación al WhatsApp del Perito Tasador de Melsa
-  const handleSendToWhatsApp = () => {
+  // Enviar tasación al WhatsApp del Perito Tasador de Melsa y registrar en Inbox Omnicanal
+  const handleSendToWhatsApp = async () => {
     if (!valuationResult) return;
+
+    // 1. Registro automático en el Inbox Omnicanal con Triage IA
+    try {
+      await addLeadFromValuation({
+        name: ownerName || 'Propietario Interesado',
+        phone: ownerPhone || '+56 9 9989 9421',
+        email: ownerEmail || undefined,
+        propertyType,
+        commune,
+        address,
+        rolSII: rolManzana && rolPredio ? `${rolManzana}-${rolPredio}` : undefined,
+        usefulM2: Number(usefulM2) || 80,
+        totalM2: Number(totalM2) || Number(usefulM2) || 120,
+        bedrooms: Number(bedrooms) || 2,
+        bathrooms: Number(bathrooms) || 2,
+        baseMarketUF: valuationResult.baseMarketUF,
+        baseMarketCLP: valuationResult.baseMarketCLP,
+        specialAttributes
+      });
+    } catch (err) {
+      console.warn('Error registrando lead en Inbox Omnicanal:', err);
+    }
+
     const text = `Hola equipo MELSA, acabo de generar la tasación de mi propiedad en su plataforma:
 • Propiedad: ${propertyType} en ${commune} (${address || 'Sector residencial'})
 • Rol SII: ${rolManzana}-${rolPredio}

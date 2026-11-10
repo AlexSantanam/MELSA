@@ -1223,37 +1223,26 @@ export function detectUrbanPlusvalia(commune: string, address: string): UrbanPlu
 
   // 1. VILLA ALEMANA / PEÑABLANCA
   if (normCommune.includes('villa alemana') || normCommune.includes('penablanca')) {
-    // Eje directo e inmediato del Nuevo Hospital Provincial Marga Marga (cuadrante Letelier / Marga Marga)
-    if (normAddress.includes('letelier') || normAddress.includes('valentin')) {
-      return {
-        hasKeyInfrastructure: true,
-        projectName: 'Nuevo Hospital Provincial Marga Marga (En Entrega)',
-        projectCategory: 'Salud & Hospitales',
-        distanceDescription: 'A 2 a 4 cuadras del sector (650 metros)',
-        projectImpactPct: 16,
-        description: 'Uno de los complejos hospitalarios de alta complejidad más modernos de Latinoamérica (282 camas, 50 boxes y helipuerto). Su inminente entrega dinamiza la demanda de arriendos para personal médico y especialistas, generando una plusvalía directa de +14% a +18% en el cuadrante residencial.'
-      };
-    }
-
-    if (normAddress.includes('marga marga') || normAddress.includes('berlin') || normAddress.includes('san enrique')) {
+    // Eje directo e inmediato del Nuevo Hospital Provincial Marga Marga (Solo calles en su cuadrante sur real)
+    if (normAddress.includes('marga marga') || normAddress.includes('san enrique')) {
       return {
         hasKeyInfrastructure: true,
         projectName: 'Nuevo Hospital Provincial Marga Marga (Sector Av. Marga Marga)',
         projectCategory: 'Salud & Hospitales',
-        distanceDescription: 'A 500 metros del complejo hospitalario',
+        distanceDescription: 'A 300 a 500 metros del complejo hospitalario',
         projectImpactPct: 14,
-        description: 'Acceso directo al polo de salud provincial e interconexión expedita hacia Troncal Sur.'
+        description: 'Ubicado en el cuadrante sur de Av. Marga Marga / San Enrique. Uno de los complejos hospitalarios más modernos de la región (282 camas y helipuerto), dinamizando la demanda médica y habitacional directa.'
       };
     }
 
-    if (normAddress.includes('penablanca') || normAddress.includes('rincon del sol')) {
+    if (normAddress.includes('rincon del sol')) {
       return {
         hasKeyInfrastructure: true,
-        projectName: 'Nuevo Hospital Provincial Marga Marga (Sector Peñablanca)',
+        projectName: 'Nuevo Hospital Provincial Marga Marga (Sector Peñablanca Sur)',
         projectCategory: 'Salud & Hospitales',
         distanceDescription: 'A 850 metros de acceso hospitalario',
-        projectImpactPct: 11,
-        description: 'Sector residencial consolidado beneficiado por la nueva conectividad vial del hospital provincial.'
+        projectImpactPct: 9,
+        description: 'Sector residencial de Peñablanca beneficiado por la nueva conectividad vial hacia el hospital provincial.'
       };
     }
 

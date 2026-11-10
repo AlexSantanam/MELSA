@@ -434,13 +434,15 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                       )}
                     </div>
 
-                    {/* Urban Intelligence Alert Banner */}
-                    <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/30 text-[11px] text-purple-200 flex items-start gap-2">
-                      <Sparkles className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
-                      <div>
-                        <strong>Radar de Plusvalía Detectado:</strong> {previewUrbanPlusvalia.description}
+                    {/* Urban Intelligence Alert Banner (Solo si hay megaproyecto detectado en esa dirección) */}
+                    {previewUrbanPlusvalia.hasKeyInfrastructure && (
+                      <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/30 text-[11px] text-purple-200 flex items-start gap-2">
+                        <Sparkles className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                        <div>
+                          <strong>Radar de Plusvalía Detectado:</strong> {previewUrbanPlusvalia.description}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
 
@@ -788,8 +790,8 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
 
                 </div>
 
-                {/* Tarjeta Destacada: Radar Territorial de Megaproyectos & Plusvalía */}
-                {valuationResult.urbanPlusvalia && (
+                {/* Tarjeta Destacada: Radar Territorial de Megaproyectos & Plusvalía (Solo si existe en esa dirección) */}
+                {valuationResult.urbanPlusvalia?.hasKeyInfrastructure && (
                   <div className="p-5 rounded-2xl bg-gradient-to-r from-purple-950/20 via-purple-900/10 to-transparent border border-purple-300/80 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">

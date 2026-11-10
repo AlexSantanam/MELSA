@@ -669,8 +669,9 @@ Generado con tecnología pericial MELSA.`;
                       +{valuationResult.urbanPlusvalia.projectImpactPct}% Plusvalía
                     </span>
                   </div>
-                  <h4 className="text-sm font-extrabold text-[#0F1115]">
-                    {valuationResult.urbanPlusvalia.projectName} ({valuationResult.urbanPlusvalia.distanceDescription})
+                  <h4 className="text-sm font-extrabold text-[#0F1115] flex flex-wrap items-center gap-1.5">
+                    <span>{valuationResult.urbanPlusvalia.projectName}</span>
+                    <span className="text-xs text-[#D02126] font-bold">• {valuationResult.urbanPlusvalia.distanceDescription}</span>
                   </h4>
                   <p className="text-xs text-gray-700 leading-relaxed">
                     {valuationResult.urbanPlusvalia.description}

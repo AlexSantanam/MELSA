@@ -945,13 +945,19 @@ export async function searchChileanAddresses(commune: string, query: string): Pr
       let plusvaliaTag: string | undefined = undefined;
       let landmark: string | undefined = undefined;
 
-      if (normCommune.includes('villa alemana') && (normSt.includes('letelier') || normSt.includes('marga marga') || normSt.includes('penablanca'))) {
-        landmark = 'A 2 cuadras del Nuevo Hospital Marga Marga';
+      if (normCommune.includes('villa alemana') && (normSt.includes('letelier') || normSt.includes('valentin'))) {
+        landmark = 'A 2 a 4 cuadras del Nuevo Hospital Marga Marga';
         plusvaliaTag = '+16% Plusvalía Megaproyecto';
-      } else if (normCommune.includes('las condes') && (normSt.includes('kennedy') || normSt.includes('estoril'))) {
+      } else if (normCommune.includes('villa alemana') && normSt.includes('marga marga')) {
+        landmark = 'A 500m del Hospital Marga Marga';
+        plusvaliaTag = '+14% Plusvalía';
+      } else if (normCommune.includes('villa alemana') && (normSt.includes('maturana') || normSt.includes('victoria') || normSt.includes('latorre') || normSt.includes('buenos aires'))) {
+        landmark = 'Eje Céntrico & Estación Metro EFE';
+        plusvaliaTag = '+7% Conectividad';
+      } else if (normCommune.includes('las condes') && (normSt.includes('kennedy') || normSt.includes('estoril') || normSt.includes('geronimo'))) {
         landmark = 'Eje Clínico & Futura Línea 7';
         plusvaliaTag = '+12% Plusvalía Metro';
-      } else if (normCommune.includes('vina') && normSt.includes('1 norte')) {
+      } else if (normCommune.includes('vina') && (normSt.includes('1 norte') || normSt.includes('fricke'))) {
         landmark = 'Polo Clínico Hospital Fricke';
         plusvaliaTag = '+11% Plusvalía';
       }
@@ -1008,71 +1014,207 @@ export async function searchChileanAddresses(commune: string, query: string): Pr
 /**
  * Detector Agéntico de Plusvalía Territorial & Megaproyectos Urbanos
  */
+/**
+ * Detector Agéntico de Plusvalía Territorial & Megaproyectos Urbanos
+ * Discrimina con alta precisión por calle y cuadrante exacto, NO por comuna completa.
+ */
 export function detectUrbanPlusvalia(commune: string, address: string): UrbanPlusvaliaInsight {
-  const text = `${commune} ${address}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  
-  if (text.includes('villa alemana') || text.includes('penablanca') || text.includes('letelier') || text.includes('marga marga')) {
+  const normCommune = (commune || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const normAddress = (address || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+  // Si no hay dirección específica ingresada, no activar ningún megaproyecto
+  if (!normAddress || normAddress.length < 3) {
     return {
-      hasKeyInfrastructure: true,
-      projectName: 'Nuevo Hospital Provincial Marga Marga (En Entrega)',
-      projectCategory: 'Salud & Hospitales',
-      distanceDescription: 'A 2 a 4 cuadras del sector (650 metros)',
-      projectImpactPct: 16,
-      description: 'Uno de los complejos hospitalarios de alta complejidad más modernos de Latinoamérica (282 camas, 50 boxes y helipuerto). Su inminente puesta en marcha dinamiza la demanda de arriendos para personal médico y especialistas, generando una plusvalía directa de +14% a +18% en el cuadrante residencial.'
+      hasKeyInfrastructure: false,
+      projectName: 'Sin dirección específica',
+      projectCategory: 'Áreas Verdes',
+      distanceDescription: 'Ingresa una calle o sector',
+      projectImpactPct: 0,
+      description: 'Ingresa la calle y numeración para que el motor identifique si existen megaproyectos en el cuadrante inmediato.'
     };
   }
 
-  if (text.includes('las condes') || text.includes('kennedy') || text.includes('estoril') || text.includes('geronimo')) {
+  // 1. VILLA ALEMANA / PEÑABLANCA
+  if (normCommune.includes('villa alemana') || normCommune.includes('penablanca')) {
+    // Eje directo e inmediato del Nuevo Hospital Provincial Marga Marga (cuadrante Letelier / Marga Marga)
+    if (normAddress.includes('letelier') || normAddress.includes('valentin')) {
+      return {
+        hasKeyInfrastructure: true,
+        projectName: 'Nuevo Hospital Provincial Marga Marga (En Entrega)',
+        projectCategory: 'Salud & Hospitales',
+        distanceDescription: 'A 2 a 4 cuadras del sector (650 metros)',
+        projectImpactPct: 16,
+        description: 'Uno de los complejos hospitalarios de alta complejidad más modernos de Latinoamérica (282 camas, 50 boxes y helipuerto). Su inminente entrega dinamiza la demanda de arriendos para personal médico y especialistas, generando una plusvalía directa de +14% a +18% en el cuadrante residencial.'
+      };
+    }
+
+    if (normAddress.includes('marga marga') || normAddress.includes('berlin') || normAddress.includes('san enrique')) {
+      return {
+        hasKeyInfrastructure: true,
+        projectName: 'Nuevo Hospital Provincial Marga Marga (Sector Av. Marga Marga)',
+        projectCategory: 'Salud & Hospitales',
+        distanceDescription: 'A 500 metros del complejo hospitalario',
+        projectImpactPct: 14,
+        description: 'Acceso directo al polo de salud provincial e interconexión expedita hacia Troncal Sur.'
+      };
+    }
+
+    if (normAddress.includes('penablanca') || normAddress.includes('rincon del sol')) {
+      return {
+        hasKeyInfrastructure: true,
+        projectName: 'Nuevo Hospital Provincial Marga Marga (Sector Peñablanca)',
+        projectCategory: 'Salud & Hospitales',
+        distanceDescription: 'A 850 metros de acceso hospitalario',
+        projectImpactPct: 11,
+        description: 'Sector residencial consolidado beneficiado por la nueva conectividad vial del hospital provincial.'
+      };
+    }
+
+    // Eje céntrico y Metro EFE
+    if (normAddress.includes('maturana') || normAddress.includes('victoria') || normAddress.includes('estacion') || normAddress.includes('latorre') || normAddress.includes('buenos aires')) {
+      return {
+        hasKeyInfrastructure: true,
+        projectName: 'Eje Céntrico Comercial & Estación Villa Alemana EFE',
+        projectCategory: 'Transporte & Metro/EFE',
+        distanceDescription: 'A 450 metros de Estación Metro EFE',
+        projectImpactPct: 7,
+        description: 'Conectividad ferroviaria directa Tren Limache-Puerto y alta accesibilidad a comercio bancario y municipal.'
+      };
+    }
+
+    // Calles en Villa Alemana que NO están cerca del hospital
     return {
-      hasKeyInfrastructure: true,
-      projectName: 'Trazado Futura Línea 7 del Metro & Eje Clínico Alemana/Las Condes',
-      projectCategory: 'Transporte & Metro/EFE',
-      distanceDescription: 'A 500 metros de futura estación L7',
-      projectImpactPct: 12,
-      description: 'La consolidación del eje subterráneo de la Línea 7 y la cercanía con centros médicos de alta tecnología garantizan alta liquidez y plusvalía continua.'
+      hasKeyInfrastructure: false,
+      projectName: 'Sector Residencial Consolidado (Villa Alemana)',
+      projectCategory: 'Áreas Verdes',
+      distanceDescription: 'Sin megaproyectos inmediatos (< 800m)',
+      projectImpactPct: 0,
+      description: 'Zona residencial tradicional de Villa Alemana con comercio de barrio y servicios básicos, sin impacto directo de obras de alta envergadura dentro de su radio caminable.'
     };
   }
 
-  if (text.includes('vina') || text.includes('viña') || text.includes('fricke') || text.includes('sporting')) {
+  // 2. LAS CONDES
+  if (normCommune.includes('las condes')) {
+    if (normAddress.includes('kennedy') || normAddress.includes('estoril') || normAddress.includes('geronimo') || normAddress.includes('alderete')) {
+      return {
+        hasKeyInfrastructure: true,
+        projectName: 'Trazado Futura Línea 7 del Metro & Eje Clínico Alemana/Las Condes',
+        projectCategory: 'Transporte & Metro/EFE',
+        distanceDescription: 'A 500 metros de futura estación L7',
+        projectImpactPct: 12,
+        description: 'La consolidación del eje subterráneo de la Línea 7 y la cercanía con centros médicos de alta tecnología garantizan alta liquidez y plusvalía continua.'
+      };
+    }
+
+    if (normAddress.includes('apoquindo') || normAddress.includes('golf') || normAddress.includes('manquehue') || normAddress.includes('isidora')) {
+      return {
+        hasKeyInfrastructure: true,
+        projectName: 'Hub Corporativo El Golf & Metro Línea 1',
+        projectCategory: 'Transporte & Metro/EFE',
+        distanceDescription: 'A 350 metros de estación Metro L1',
+        projectImpactPct: 9,
+        description: 'Polo corporativo prime de Santiago con máxima demanda ejecutiva y vacancia casi nula.'
+      };
+    }
+
     return {
-      hasKeyInfrastructure: true,
-      projectName: 'Polo Hospitalario Fricke & Eje Troncal 1 Norte',
-      projectCategory: 'Salud & Hospitales',
-      distanceDescription: 'A 6 cuadras del polo médico central',
-      projectImpactPct: 11,
-      description: 'Zona de alta rentabilidad por arriendos continuos a estudiantes de medicina y personal de salud.'
+      hasKeyInfrastructure: false,
+      projectName: 'Sector Residencial Consolidado (Las Condes)',
+      projectCategory: 'Áreas Verdes',
+      distanceDescription: 'Sin obras masivas inmediatas',
+      projectImpactPct: 0,
+      description: 'Sector habitacional consolidado de alta plusvalía base sin obras de transporte masivo en ejecución inmediata dentro de 800 metros.'
     };
   }
 
-  if (text.includes('concon') || text.includes('montemar') || text.includes('torquemada')) {
+  // 3. VIÑA DEL MAR
+  if (normCommune.includes('vina') || normCommune.includes('viña')) {
+    if (normAddress.includes('fricke') || normAddress.includes('1 norte') || normAddress.includes('alvarez') || normAddress.includes('viana')) {
+      return {
+        hasKeyInfrastructure: true,
+        projectName: 'Polo Hospitalario Dr. Gustavo Fricke & Eje Troncal EFE',
+        projectCategory: 'Salud & Hospitales',
+        distanceDescription: 'A 4 cuadras del polo médico central',
+        projectImpactPct: 11,
+        description: 'Zona de alta rentabilidad por arriendos continuos a estudiantes de medicina, médicos y pacientes ambulatorios.'
+      };
+    }
+
+    if (normAddress.includes('libertad') || normAddress.includes('san martin') || normAddress.includes('15 norte')) {
+      return {
+        hasKeyInfrastructure: true,
+        projectName: 'Eje Comercial Mall Marina & Av. Libertad',
+        projectCategory: 'Polos Comerciales',
+        distanceDescription: 'A 300 metros de polo gastronómico y cívico',
+        projectImpactPct: 8,
+        description: 'Cuadrante de más alta cotización turística y residencial de Viña del Mar.'
+      };
+    }
+
     return {
-      hasKeyInfrastructure: true,
-      projectName: 'Nuevo Aeropuerto Comercial Viña/Concón (Torquemada) & Polo Gastronómico',
-      projectCategory: 'Transporte & Metro/EFE',
-      distanceDescription: 'A 10 min de la futura terminal aérea',
-      projectImpactPct: 13,
-      description: 'El nuevo terminal aéreo comercial impulsa la plusvalía hotelera y residencial de toda la costa de Concón.'
+      hasKeyInfrastructure: false,
+      projectName: 'Sector Residencial Consolidado (Viña del Mar)',
+      projectCategory: 'Áreas Verdes',
+      distanceDescription: 'Sin megaproyectos inmediatos',
+      projectImpactPct: 0,
+      description: 'Sector residencial tradicional de Viña del Mar.'
     };
   }
 
-  if (text.includes('quilpue') || text.includes('carrera') || text.includes('sol')) {
+  // 4. CONCÓN
+  if (normCommune.includes('concon')) {
+    if (normAddress.includes('montemar') || normAddress.includes('blanca estela') || normAddress.includes('costa')) {
+      return {
+        hasKeyInfrastructure: true,
+        projectName: 'Polo Prime Bosques de Montemar & Conexión Aeropuerto Torquemada',
+        projectCategory: 'Transporte & Metro/EFE',
+        distanceDescription: 'En cuadrante residencial de alta demanda',
+        projectImpactPct: 13,
+        description: 'El nuevo terminal aéreo comercial de Torquemada y la consolidación de colegios y centros médicos impulsan la plusvalía de toda la costa de Concón.'
+      };
+    }
+
     return {
-      hasKeyInfrastructure: true,
-      projectName: 'Interconexión EFE Metro Valparaíso & Red Marga Marga',
-      projectCategory: 'Transporte & Metro/EFE',
-      distanceDescription: 'A minutos de Estación Quilpué EFE',
-      projectImpactPct: 10,
-      description: 'Acceso inmediato al tren Limache-Puerto y conexión directa a Viña del Mar y Valparaíso.'
+      hasKeyInfrastructure: false,
+      projectName: 'Sector Residencial Concón',
+      projectCategory: 'Áreas Verdes',
+      distanceDescription: 'Sin megaproyectos a pasos',
+      projectImpactPct: 0,
+      description: 'Zona residencial costera consolidada.'
     };
   }
 
+  // 5. QUILPUÉ
+  if (normCommune.includes('quilpue')) {
+    if (normAddress.includes('carrera') || normAddress.includes('freire') || normAddress.includes('estacion') || normAddress.includes('vicuna')) {
+      return {
+        hasKeyInfrastructure: true,
+        projectName: 'Interconexión EFE Metro Valparaíso & Eje Comercial Los Carrera',
+        projectCategory: 'Transporte & Metro/EFE',
+        distanceDescription: 'A minutos de Estación Quilpué EFE',
+        projectImpactPct: 9,
+        description: 'Acceso inmediato al tren Limache-Puerto y conexión directa a Viña del Mar y Valparaíso.'
+      };
+    }
+
+    return {
+      hasKeyInfrastructure: false,
+      projectName: 'Sector Residencial Quilpué',
+      projectCategory: 'Áreas Verdes',
+      distanceDescription: 'Sin megaproyectos a pasos',
+      projectImpactPct: 0,
+      description: 'Barrio residencial tradicional de Quilpué.'
+    };
+  }
+
+  // Fallback general: Sin megaproyectos inmediatos
   return {
-    hasKeyInfrastructure: true,
-    projectName: 'Equipamiento Comunal Consolidado & Servicios Esenciales',
+    hasKeyInfrastructure: false,
+    projectName: 'Sector Residencial Consolidado',
     projectCategory: 'Áreas Verdes',
-    distanceDescription: 'En radio de 800 metros',
-    projectImpactPct: 5,
-    description: 'Sector con cobertura completa de servicios básicos, colegios y transporte público establecido.'
+    distanceDescription: 'Sin megaproyectos detectados en el cuadrante inmediato',
+    projectImpactPct: 0,
+    description: 'La propiedad se emplaza en una zona residencial estándar sin megaproyectos de alto impacto territorial dentro de su radio caminable.'
   };
 }
 

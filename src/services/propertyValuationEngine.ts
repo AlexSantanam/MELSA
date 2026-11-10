@@ -93,8 +93,8 @@ export interface ValuationResult {
   executiveReportCMA: string;
 }
 
-// Valor oficial referencial de la UF en Chile
-export const UF_CURRENT_CLP = 38450;
+// Valor oficial referencial de la UF en Chile (Actualizado al día según Banco Central / mindicador.cl)
+export const UF_CURRENT_CLP = 41295;
 
 export interface CommuneBenchmark {
   name: string;

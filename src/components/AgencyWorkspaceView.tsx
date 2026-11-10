@@ -87,6 +87,7 @@ import { PropertyPhotoUploader } from './PropertyPhotoUploader';
 import { extractPropertyWithGroq, ExtractedPropertyData } from '../services/propertyAiExtractor';
 import { AgencyDevelopmentsHub } from './AgencyDevelopmentsHub';
 import { AgencyValuationHub } from './AgencyValuationHub';
+import { UF_CURRENT_CLP } from '../services/propertyValuationEngine';
 
 interface AgencyWorkspaceViewProps {
   currentUser: AuthUser;
@@ -755,7 +756,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
           <div className="hidden lg:flex items-center gap-4 text-xs font-semibold text-gray-700 border-l border-gray-200 pl-4">
             <span className="flex items-center gap-1">
               <span className="text-[#D02126] font-bold">↑</span>
-              <span>UF: <strong>$41.295,46</strong></span>
+              <span>UF: <strong>${UF_CURRENT_CLP.toLocaleString('es-CL')}</strong></span>
             </span>
             <span className="flex items-center gap-1">
               <span className="text-[#D02126] font-bold">↑</span>

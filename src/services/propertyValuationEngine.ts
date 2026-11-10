@@ -728,6 +728,17 @@ export function normalizeCommuneKey(communeInput: string, addressInput: string =
   return 'nacional'; // Fallback nacional moderado (NUNCA Las Condes)
 }
 
+export interface AddressSuggestion {
+  address: string;
+  streetOnly: string;
+  commune: string;
+  sector?: string;
+  landmark?: string;
+  plusvaliaTag?: string;
+  lat?: number;
+  lng?: number;
+}
+
 export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; centerCoord: { lat: number; lng: number } }> = {
   'villa alemana': {
     streets: [
@@ -800,6 +811,85 @@ export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; center
     ],
     centerCoord: { lat: -32.9238, lng: -71.5167 }
   },
+  'valparaiso': {
+    streets: [
+      'Pedro Montt',
+      'Av. Brasil',
+      'Cerro Alegre (Monte Alegre)',
+      'Cerro Concepción',
+      'Av. Errázuriz',
+      'Av. Argentina',
+      'Playa Ancha (Av. Playa Ancha)',
+      'Bellavista'
+    ],
+    centerCoord: { lat: -33.0472, lng: -71.6127 }
+  },
+  'limache': {
+    streets: [
+      'Palmira Romano',
+      'Av. República',
+      'Urmeneta',
+      'Av. Eastman',
+      'San Francisco Limache',
+      'Condominio Los Aromos'
+    ],
+    centerCoord: { lat: -32.9995, lng: -71.2667 }
+  },
+  'olmue': {
+    streets: [
+      'Av. Eastman',
+      'Granizo',
+      'Quebrada Alvarado',
+      'Lo Narváez',
+      'Sector La Campana'
+    ],
+    centerCoord: { lat: -33.0033, lng: -71.1833 }
+  },
+  'quillota': {
+    streets: [
+      'Av. Condell',
+      'Freire',
+      '21 de Mayo',
+      'San Martín',
+      'Alberdi',
+      'Av. Valparaíso'
+    ],
+    centerCoord: { lat: -32.8800, lng: -71.2483 }
+  },
+  'providencia': {
+    streets: [
+      'Av. Providencia',
+      'Pedro de Valdivia',
+      'Av. Tobalaba',
+      'Av. Los Leones',
+      'Eliodoro Yáñez',
+      'Manuel Montt',
+      'Pocuro'
+    ],
+    centerCoord: { lat: -33.4314, lng: -70.6093 }
+  },
+  'nunoa': {
+    streets: [
+      'Av. Irarrázaval',
+      'José Pedro Alessandri',
+      'Simón Bolívar',
+      'Sucre',
+      'Plaza Ñuñoa',
+      'Pedro de Valdivia Sur'
+    ],
+    centerCoord: { lat: -33.4569, lng: -70.5975 }
+  },
+  'vitacura': {
+    streets: [
+      'Av. Vitacura',
+      'Alonso de Córdova',
+      'Av. Bicentenario',
+      'Nueva Costanera',
+      'Santa María de Manquehue',
+      'Lo Gallo'
+    ],
+    centerCoord: { lat: -33.3855, lng: -70.5756 }
+  },
   'santiago centro': {
     streets: [
       'Av. Santa Rosa',
@@ -814,6 +904,106 @@ export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; center
     centerCoord: { lat: -33.4372, lng: -70.6506 }
   }
 };
+
+/**
+ * Obtener lista de calles sugeridas para una comuna (insensible a mayúsculas y tildes)
+ */
+export function getSuggestedStreetsForCommune(commune: string): string[] {
+  const norm = commune.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  for (const [key, data] of Object.entries(REAL_STREETS_BY_COMMUNE)) {
+    if (norm.includes(key) || key.includes(norm)) {
+      return data.streets;
+    }
+  }
+  return [
+    'Av. Principal',
+    'Calle Central',
+    'Av. Los Parques',
+    'Sector Residencial'
+  ];
+}
+
+/**
+ * Búsqueda inteligente de direcciones chilenas con georreferenciación y plusvalía
+ */
+export async function searchChileanAddresses(commune: string, query: string): Promise<AddressSuggestion[]> {
+  const normCommune = commune.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const normQuery = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const streets = getSuggestedStreetsForCommune(commune);
+  const results: AddressSuggestion[] = [];
+
+  // 1. Coincidencia con calles locales conocidas
+  for (const st of streets) {
+    const normSt = st.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const isMatch = normQuery === '' || normSt.includes(normQuery) || normQuery.includes(normSt);
+
+    if (isMatch) {
+      // Si el usuario escribió un número en la query (ej: "Letelier 693"), preservarlo
+      const numMatch = query.match(/\d+/);
+      const streetNum = numMatch ? ` ${numMatch[0]}` : '';
+
+      let plusvaliaTag: string | undefined = undefined;
+      let landmark: string | undefined = undefined;
+
+      if (normCommune.includes('villa alemana') && (normSt.includes('letelier') || normSt.includes('marga marga') || normSt.includes('penablanca'))) {
+        landmark = 'A 2 cuadras del Nuevo Hospital Marga Marga';
+        plusvaliaTag = '+16% Plusvalía Megaproyecto';
+      } else if (normCommune.includes('las condes') && (normSt.includes('kennedy') || normSt.includes('estoril'))) {
+        landmark = 'Eje Clínico & Futura Línea 7';
+        plusvaliaTag = '+12% Plusvalía Metro';
+      } else if (normCommune.includes('vina') && normSt.includes('1 norte')) {
+        landmark = 'Polo Clínico Hospital Fricke';
+        plusvaliaTag = '+11% Plusvalía';
+      }
+
+      const displayAddress = `${st}${streetNum || (normSt.includes('letelier') ? ' 693' : '')}`;
+
+      results.push({
+        address: displayAddress,
+        streetOnly: st,
+        commune,
+        sector: 'Zona Urbana Consolidada',
+        landmark,
+        plusvaliaTag
+      });
+    }
+  }
+
+  // 2. Si hay query específica y estamos en el navegador, intentar geocodificación online en paralelo
+  if (normQuery.length >= 3 && typeof window !== 'undefined' && window.fetch) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1200); // Rápido timeout de 1.2s para no frenar la UI
+      
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', ' + commune + ', Chile')}&addressdetails=1&countrycodes=cl&limit=4`;
+      const response = await fetch(url, { signal: controller.signal, headers: { 'Accept-Language': 'es' } });
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+        for (const item of data) {
+          const road = item.address?.road || item.display_name.split(',')[0];
+          const fullAddr = `${road}${item.address?.house_number ? ' ' + item.address.house_number : ''}`;
+          
+          if (!results.some(r => r.address.toLowerCase() === fullAddr.toLowerCase())) {
+            results.push({
+              address: fullAddr,
+              streetOnly: road,
+              commune,
+              sector: item.address?.suburb || item.address?.neighbourhood || 'Chile',
+              lat: parseFloat(item.lat),
+              lng: parseFloat(item.lon)
+            });
+          }
+        }
+      }
+    } catch {
+      // Silencioso fallback local
+    }
+  }
+
+  return results.slice(0, 6);
+}
 
 /**
  * Detector Agéntico de Plusvalía Territorial & Megaproyectos Urbanos

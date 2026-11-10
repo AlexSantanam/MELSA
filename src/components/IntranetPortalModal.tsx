@@ -15,6 +15,7 @@ import {
   Calendar, 
   Sparkles, 
   Eye, 
+  EyeOff, 
   MapPin, 
   Clock, 
   Layers, 
@@ -34,7 +35,7 @@ import {
 } from 'lucide-react';
 import { AuthUser, ProviderApplication, HomeServiceProvider, ProviderProject, AgencyPlanTier } from '../types';
 import { MOCK_APPLICATIONS, HOME_SERVICE_PROVIDERS, MOCK_AUTH_USERS } from '../data/mockData';
-import { loginUser, logoutUser, registerNewUser, requestEmailOtp, verifyEmailOtp } from '../services/authService';
+import { loginUser, logoutUser, registerNewUser, requestEmailOtp, verifyEmailOtp, requestPasswordReset } from '../services/authService';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MelsaLogo } from './MelsaLogo';
 
@@ -80,11 +81,14 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
   const [isRegistering, setIsRegistering] = useState(false);
   const [registerSuccessMsg, setRegisterSuccessMsg] = useState<string | null>(null);
 
-  // Login Flow: 'code' (clave al correo OTP) | 'password' (contraseña tradicional)
-  const [loginMethod, setLoginMethod] = useState<'code' | 'password'>('code');
+  // Login Flow: 1 solo ingreso con contraseña + recuperación
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<'code' | 'password'>('password');
   const [loginStep, setLoginStep] = useState<'request' | 'verify'>('request');
   const [emailInput, setEmailInput] = useState('alexis.s.m@gmail.com');
-  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('alexis2026');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -283,6 +287,25 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
     }
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+    setRegisterSuccessMsg(null);
+    if (!emailInput || !emailInput.includes('@')) {
+      setLoginError('Por favor ingresa un correo electrónico válido.');
+      return;
+    }
+    setIsSendingReset(true);
+    try {
+      const res = await requestPasswordReset(emailInput);
+      setRegisterSuccessMsg(res.message);
+    } catch (err: any) {
+      setLoginError(err.message || 'Error al solicitar recuperación de contraseña.');
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
+
   const handleManualLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
@@ -419,11 +442,15 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
                 <Lock className="w-6 h-6" />
               </div>
               <h3 className="text-2xl font-serif font-bold text-[#0F1115]">
-                {authMode === 'login' ? 'Acceso al Sistema Melsa' : 'Crear Cuenta en Melsa'}
+                {authMode === 'login'
+                  ? (showForgotPassword ? 'Recuperar Contraseña' : 'Acceso al Sistema Melsa')
+                  : 'Crear Cuenta en Melsa'}
               </h3>
               <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
                 {authMode === 'login'
-                  ? 'Ingresa mediante clave enviada a tu correo o con tu contraseña habitual.'
+                  ? (showForgotPassword
+                      ? 'Ingresa tu correo para enviarte las instrucciones de restablecimiento.'
+                      : 'Ingresa con tu correo electrónico y contraseña.')
                   : 'Software para Corredoras & Agencias: arriendos, cobranzas y liquidaciones.'}
               </p>
             </div>
@@ -513,221 +540,68 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
             )}
 
             {/* ========================================================= */}
-            {/* MODE A: LOGIN SCREEN                                      */}
+            {/* MODE A: LOGIN SCREEN (1 SOLO INGRESO CON CONTRASEÑA)      */}
             {/* ========================================================= */}
             {authMode === 'login' ? (
               <div className="space-y-4">
-                {/* Method selector: Clave al Correo vs Contraseña */}
-                <div className="flex items-center justify-between p-1 bg-gray-50 border border-gray-200 rounded-xl text-xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLoginMethod('code');
-                      setLoginError(null);
-                    }}
-                    className={`flex-1 py-1.5 px-3 rounded-lg font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      loginMethod === 'code'
-                        ? 'bg-white text-[#0B6B67] shadow-xs font-bold border border-gray-200/50'
-                        : 'text-gray-500 hover:text-gray-900'
-                    }`}
-                  >
-                    <Mail className="w-3.5 h-3.5" />
-                    <span>Clave al Correo (OTP)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLoginMethod('password');
-                      setLoginError(null);
-                    }}
-                    className={`flex-1 py-1.5 px-3 rounded-lg font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      loginMethod === 'password'
-                        ? 'bg-white text-[#0F1115] shadow-xs font-bold border border-gray-200/50'
-                        : 'text-gray-500 hover:text-gray-900'
-                    }`}
-                  >
-                    <KeyRound className="w-3.5 h-3.5" />
-                    <span>Contraseña Habitual</span>
-                  </button>
-                </div>
-
-                {/* SUB-FLOW 1: CLAVE AL CORREO (OTP) */}
-                {loginMethod === 'code' ? (
-                  loginStep === 'request' ? (
-                    <form onSubmit={handleRequestLoginOtp} className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
-                          Correo Electrónico *
-                        </label>
-                        <input
-                          type="email"
-                          required
-                          value={emailInput}
-                          onChange={(e) => setEmailInput(e.target.value)}
-                          placeholder="ej. alexis.s.m@gmail.com o admin@melsa.cl"
-                          className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-3 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#0B6B67] focus:border-[#0B6B67] outline-none transition-all"
-                        />
-                        <span className="text-[10px] text-gray-400 mt-1 block">
-                          Te enviaremos un código numérico de 6 dígitos para entrar sin contraseña.
-                        </span>
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={isSendingOtp}
-                        className="w-full py-3.5 rounded-xl bg-[#0B6B67] hover:bg-[#08524F] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
-                      >
-                        {isSendingOtp ? (
-                          <>
-                            <Clock className="w-4 h-4 animate-spin" />
-                            <span>Enviando código...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Mail className="w-4 h-4" />
-                            <span>ENVIAR CLAVE AL CORREO</span>
-                          </>
-                        )}
-                      </button>
-
-                      {/* Quick Access Atajos */}
-                      <div className="pt-2 border-t border-gray-100">
-                        <span className="text-[10px] uppercase font-bold text-gray-400 block mb-2 text-center">
-                          Atajos Rápidos de Acceso:
-                        </span>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEmailInput('alexis.s.m@gmail.com');
-                              setRegCompany('Corredora Los Pinos');
-                            }}
-                            className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-[#D02126] border border-red-200 text-[11px] font-bold text-left transition-all cursor-pointer"
-                          >
-                            🏢 Alexis Santana (Los Pinos)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEmailInput('admin@melsainmobiliaria.com')}
-                            className="p-2 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200 text-[11px] font-semibold text-left transition-all cursor-pointer"
-                          >
-                            🛡️ Admin Auditoría Melsa
-                          </button>
-                        </div>
-                      </div>
-                    </form>
-                  ) : (
-                    /* Verify Login OTP */
-                    <div className="space-y-4 animate-in fade-in duration-150">
-                      {/* Circle check icon */}
-                      <div className="w-14 h-14 rounded-full border-2 border-[#0B6B67] bg-[#0B6B67]/10 text-[#0B6B67] mx-auto flex items-center justify-center shadow-xs">
-                        <Check className="w-7 h-7 stroke-[2.5]" />
-                      </div>
-
-                      <div className="text-center">
-                        <h4 className="text-lg font-bold text-[#0F1115]">Revisa tu correo</h4>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          Enviamos un código de acceso a <strong>{emailInput}</strong>
-                        </p>
-                      </div>
-
-                      {/* Simulated Email Card matching Altenda */}
-                      <div className="bg-[#FAF9F8] border border-gray-200 rounded-2xl p-3.5 text-left shadow-xs space-y-2">
-                        <div className="flex items-center justify-between pb-1.5 border-b border-gray-200/60">
-                          <span className="text-[11px] font-bold text-gray-800">✉️ Correo de Notificación Oficial</span>
-                          <span className="text-[10px] text-gray-400">Válido 24 horas</span>
-                        </div>
-                        <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-gray-200">
-                          <div>
-                            <span className="text-[10px] uppercase font-bold text-gray-400 block">CÓDIGO DE ACCESO</span>
-                            <span className="text-xl font-mono font-bold tracking-widest text-[#0B6B67]">{activeOtpCode}</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleAutoFillCode();
-                              setCopiedCodeToast(true);
-                              setTimeout(() => setCopiedCodeToast(false), 2000);
-                            }}
-                            className="px-3 py-1.5 rounded-lg bg-[#0B6B67]/10 hover:bg-[#0B6B67]/20 text-[#0B6B67] text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>{copiedCodeToast ? '¡Autollenado!' : 'Autollenar'}</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* 6 Digit Inputs */}
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-2 text-center">
-                          Código de verificación (6 dígitos)
-                        </label>
-                        <div className="flex justify-center gap-2 sm:gap-2.5">
-                          {otpDigits.map((digit, idx) => (
-                            <input
-                              key={idx}
-                              id={`otp-box-${idx}`}
-                              type="text"
-                              inputMode="numeric"
-                              maxLength={1}
-                              value={digit}
-                              onChange={(e) => handleDigitChange(idx, e.target.value)}
-                              onKeyDown={(e) => handleDigitKeyDown(idx, e)}
-                              onPaste={handlePasteOtp}
-                              className="w-10 h-12 text-center text-xl font-bold rounded-xl border-2 border-gray-200 focus:border-[#0B6B67] focus:ring-2 focus:ring-[#0B6B67]/20 outline-none transition-all bg-white text-[#0F1115]"
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleVerifyOtp()}
-                        disabled={isVerifyingOtp}
-                        className="w-full py-3.5 rounded-xl bg-[#0B6B67] hover:bg-[#08524F] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
-                      >
-                        {isVerifyingOtp ? (
-                          <>
-                            <Clock className="w-4 h-4 animate-spin" />
-                            <span>Verificando...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>ENTRAR A MI PANEL</span>
-                            <ArrowRight className="w-4 h-4" />
-                          </>
-                        )}
-                      </button>
-
-                      <div className="flex items-center justify-center gap-3 text-xs pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const res = requestEmailOtp({ email: emailInput });
-                            setActiveOtpCode(res.code);
-                            setRegisterSuccessMsg('Se reenvió un nuevo código a tu correo.');
-                          }}
-                          className="text-gray-500 hover:text-gray-800 cursor-pointer"
-                        >
-                          No recibí el código
-                        </button>
-                        <span className="text-gray-300">•</span>
-                        <button
-                          type="button"
-                          onClick={() => setLoginStep('request')}
-                          className="text-[#D02126] font-semibold hover:underline cursor-pointer"
-                        >
-                          Cambiar correo
-                        </button>
-                      </div>
-                    </div>
-                  )
-                ) : (
-                  /* SUB-FLOW 2: PASSWORD LOGIN */
-                  <form onSubmit={handleManualLogin} className="space-y-4">
+                {showForgotPassword ? (
+                  /* VISTA: RECUPERACIÓN DE CONTRASEÑA */
+                  <form onSubmit={handleResetPassword} className="space-y-4 animate-in fade-in duration-150">
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
-                        Correo Electrónico
+                        Correo Electrónico Registrado *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        placeholder="ej. alexis.s.m@gmail.com o admin@melsainmobiliaria.com"
+                        className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-3 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none transition-all"
+                      />
+                      <span className="text-[10px] text-gray-400 mt-1 block">
+                        Te enviaremos un enlace e instrucciones a tu correo para restablecer tu contraseña.
+                      </span>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSendingReset}
+                      className="w-full py-3.5 rounded-xl bg-[#D02126] hover:bg-[#B81B1F] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                    >
+                      {isSendingReset ? (
+                        <>
+                          <Clock className="w-4 h-4 animate-spin" />
+                          <span>Enviando instrucciones...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="w-4 h-4" />
+                          <span>ENVIAR RECUPERACIÓN AL CORREO</span>
+                        </>
+                      )}
+                    </button>
+
+                    <div className="text-center pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowForgotPassword(false);
+                          setLoginError(null);
+                          setRegisterSuccessMsg(null);
+                        }}
+                        className="text-xs font-semibold text-gray-600 hover:text-[#D02126] transition-colors cursor-pointer"
+                      >
+                        ← Volver a Iniciar Sesión
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  /* VISTA: INGRESO PRINCIPAL CON CONTRASEÑA */
+                  <form onSubmit={handleManualLogin} className="space-y-4 animate-in fade-in duration-150">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
+                        Correo Electrónico *
                       </label>
                       <input
                         type="email"
@@ -740,23 +614,46 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1 uppercase tracking-wider">
-                        Contraseña
-                      </label>
-                      <input
-                        type="password"
-                        required
-                        value={passwordInput}
-                        onChange={(e) => setPasswordInput(e.target.value)}
-                        placeholder="••••••••••••"
-                        className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3.5 py-3 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none transition-all"
-                      />
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          Contraseña *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowForgotPassword(true);
+                            setLoginError(null);
+                            setRegisterSuccessMsg(null);
+                          }}
+                          className="text-[11px] text-[#D02126] hover:underline font-semibold cursor-pointer"
+                        >
+                          ¿Olvidaste tu contraseña?
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          required
+                          value={passwordInput}
+                          onChange={(e) => setPasswordInput(e.target.value)}
+                          placeholder="••••••••••••"
+                          className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl pl-3.5 pr-10 py-3 text-xs text-[#0F1115] focus:ring-2 focus:ring-[#D02126] outline-none transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer p-1"
+                          title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
 
                     <button
                       type="submit"
                       disabled={isLoggingIn}
-                      className="w-full py-3.5 rounded-xl bg-[#D02126] hover:bg-[#B81B1F] text-white font-semibold text-xs tracking-wider uppercase transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                      className="w-full py-3.5 rounded-xl bg-[#D02126] hover:bg-[#B81B1F] text-white font-bold text-xs tracking-wider uppercase transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
                     >
                       {isLoggingIn ? (
                         <>
@@ -770,6 +667,39 @@ export const IntranetPortalModal: React.FC<IntranetPortalModalProps> = ({
                         </>
                       )}
                     </button>
+
+                    {/* Atajos Rápidos de Acceso */}
+                    <div className="pt-2 border-t border-gray-100">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block mb-2 text-center">
+                        Atajos Rápidos de Acceso:
+                      </span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmailInput('alexis.s.m@gmail.com');
+                            setPasswordInput('alexis2026');
+                            setLoginError(null);
+                          }}
+                          className="p-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-[#D02126] border border-red-200 text-[11px] font-bold text-left transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <span>🏢</span>
+                          <span className="truncate">Alexis Santana (Los Pinos)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmailInput('admin@melsainmobiliaria.com');
+                            setPasswordInput('melsa2026');
+                            setLoginError(null);
+                          }}
+                          className="p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200 text-[11px] font-semibold text-left transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <span>🛡️</span>
+                          <span className="truncate">Admin Auditoría Melsa</span>
+                        </button>
+                      </div>
+                    </div>
                   </form>
                 )}
 

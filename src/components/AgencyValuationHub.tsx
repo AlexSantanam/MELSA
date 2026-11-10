@@ -25,9 +25,10 @@ import {
   ValuationInput, 
   ValuationResult,
   ConstructionMaterialType,
-  REAL_STREETS_BY_COMMUNE,
+  getSuggestedStreetsForCommune,
   UF_CURRENT_CLP 
 } from '../services/propertyValuationEngine';
+import { AddressSearchAutocomplete } from './AddressSearchAutocomplete';
 
 interface AgencyValuationHubProps {
   onAddPropertyToPortfolio?: (prop: {
@@ -316,38 +317,36 @@ Generado con tecnología pericial MELSA.`;
             </div>
           </div>
 
-            {/* Dirección o Sector */}
+            {/* Dirección o Sector con Búsqueda Reactiva Inteligente */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">
                   Dirección, Calle o Sector
                 </label>
-                <span className="text-[10px] text-gray-400">Calles reales y radar urbano</span>
+                <span className="text-[10px] text-gray-400">Autocompletado y geocodificación activa</span>
               </div>
-              <input
-                type="text"
+              
+              <AddressSearchAutocomplete
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Ej. Valentín Letelier 693"
-                className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] outline-none focus:border-[#D02126]"
+                onChange={(newAddr) => setAddress(newAddr)}
+                commune={commune}
+                placeholder="Ej. Valentín Letelier 693 o Av. Marga Marga"
               />
 
-              {/* Sugerencias de calles reales para la comuna */}
-              {REAL_STREETS_BY_COMMUNE[commune] && (
-                <div className="mt-2 flex flex-wrap gap-1.5 items-center">
-                  <span className="text-[10px] text-gray-400 font-medium">Sectores:</span>
-                  {REAL_STREETS_BY_COMMUNE[commune].slice(0, 3).map((st) => (
-                    <button
-                      key={st.name}
-                      type="button"
-                      onClick={() => setAddress(st.name)}
-                      className="text-[10px] px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-red-50 hover:text-[#D02126] text-gray-600 transition-colors border border-gray-200"
-                    >
-                      {st.name}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* Sugerencias de calles principales de la comuna */}
+              <div className="mt-2 flex flex-wrap gap-1.5 items-center">
+                <span className="text-[10px] text-gray-400 font-medium">Frecuentes:</span>
+                {getSuggestedStreetsForCommune(commune).slice(0, 4).map((st) => (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => setAddress(st)}
+                    className="text-[10px] px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-red-50 hover:text-[#D02126] text-gray-600 transition-colors border border-gray-200 cursor-pointer"
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Rol de Avalúo SII Funcional (Dos campos independientes: Manzana - Predio) */}

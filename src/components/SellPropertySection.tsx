@@ -30,8 +30,10 @@ import {
   UF_CURRENT_CLP,
   ConstructionMaterialType,
   REAL_STREETS_BY_COMMUNE,
+  getSuggestedStreetsForCommune,
   detectUrbanPlusvalia
 } from '../services/propertyValuationEngine';
+import { AddressSearchAutocomplete } from './AddressSearchAutocomplete';
 
 export const SellPropertySection: React.FC = () => {
   // Estado del Formulario AVM (Inicialmente vacío para desplegar placeholders de ejemplo en gris)

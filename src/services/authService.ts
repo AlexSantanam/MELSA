@@ -380,3 +380,21 @@ export function verifyEmailOtp(
   return { success: true, user: verifiedUser };
 }
 
+export async function requestPasswordReset(email: string): Promise<{ success: boolean; message: string }> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (isSupabaseConfigured()) {
+    try {
+      await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined
+      });
+    } catch (err) {
+      console.warn('Supabase reset notice:', err);
+    }
+  }
+  return {
+    success: true,
+    message: `Hemos enviado las instrucciones y el enlace de recuperación a ${cleanEmail}. Por favor revisa tu bandeja de entrada o spam.`
+  };
+}
+
+

@@ -17,7 +17,8 @@ import {
   Clock, 
   AlertCircle,
   HelpCircle,
-  ArrowRight
+  ArrowRight,
+  RotateCcw
 } from 'lucide-react';
 import { 
   calculateValuationAVM, 
@@ -76,6 +77,25 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
     setTotalM2(totM2);
     setBedrooms(beds);
     setBathrooms(baths);
+  };
+
+  // Limpiar y resetear el formulario a blanco
+  const handleResetForm = () => {
+    setPropertyType('Casa');
+    setCommune('Villa Alemana');
+    setAddress('');
+    setRolManzana('');
+    setRolPredio('');
+    setConstructionMaterial('Albañilería Confinada / Ladrillo Fiscal (Clase C)');
+    setUsefulM2('');
+    setTotalM2('');
+    setBedrooms(3);
+    setBathrooms(2);
+    setParking(1);
+    setStorage(0);
+    setOrientation('Nor-Oriente');
+    setCondition('Buen estado general');
+    setValuationResult(null);
   };
 
   // Run Quantitative + AI Valuation
@@ -204,13 +224,29 @@ Generado con tecnología pericial MELSA.`;
         {/* Left Column: Input Form (5 Cols) */}
         <div className="lg:col-span-5 bg-white rounded-3xl border border-gray-200 p-6 shadow-sm space-y-5 text-xs">
           <div className="pb-3 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-base font-extrabold text-[#0F1115]">
-              Parámetros Técnicos de la Propiedad
-            </h3>
-            <span className="text-[10px] text-gray-400 font-mono">SII / CBR</span>
+            <div>
+              <h3 className="text-base font-extrabold text-[#0F1115]">
+                Parámetros Técnicos de la Propiedad
+              </h3>
+              <span className="text-[10px] text-gray-400 font-mono">SII / CBR • NCh 3658</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {(address || rolManzana || rolPredio || usefulM2 || valuationResult) && (
+                <button
+                  type="button"
+                  onClick={handleResetForm}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-rose-50 text-gray-600 hover:text-[#D02126] text-[11px] font-bold transition-all cursor-pointer border border-gray-200"
+                  title="Limpiar formulario para evaluar otra propiedad"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Limpiar</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          <form onSubmit={handleExecuteValuation} className="space-y-4">
+          <form onSubmit={handleExecuteValuation} autoComplete="off" className="space-y-4">
             
             {/* Tipo de Inmueble y Comuna */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

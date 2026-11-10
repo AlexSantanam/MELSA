@@ -16,6 +16,7 @@ import {
   Info,
   Scale,
   RefreshCw,
+  RotateCcw,
   Hospital,
   Map,
   Eye,
@@ -95,6 +96,25 @@ export const SellPropertySection: React.FC = () => {
     setStorage(1);
     setOrientation('Nor-Oriente');
     setCondition('Buen estado general');
+  };
+
+  // Limpiar y resetear el formulario a blanco
+  const handleResetForm = () => {
+    setPropertyType('Casa');
+    setCommune('Villa Alemana');
+    setAddress('');
+    setRolManzana('');
+    setRolPredio('');
+    setConstructionMaterial('Albañilería Confinada / Ladrillo Fiscal (Clase C)');
+    setUsefulM2('');
+    setTotalM2('');
+    setBedrooms(3);
+    setBathrooms(2);
+    setParking(1);
+    setStorage(0);
+    setOrientation('Nor-Oriente');
+    setCondition('Buen estado general');
+    setValuationResult(null);
   };
 
   // Ejecutar el motor de tasación AVM con IA
@@ -270,7 +290,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
             
             {/* Step 1: Input Form */}
             {!valuationResult && !isAnalyzing && (
-              <form onSubmit={handleRunValuation} className="space-y-6">
+              <form onSubmit={handleRunValuation} autoComplete="off" className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-gray-100">
                   <div>
                     <h3 className="text-xl font-extrabold text-[#0F1115]">
@@ -281,15 +301,29 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleAutofillWithRol}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-[#D02126] text-xs font-bold transition-colors cursor-pointer border border-rose-200/60 self-start sm:self-auto"
-                    title="Carga de ejemplo real: Valentín Letelier 693, Villa Alemana (Rol 433-032)"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>⚡ Probar con Rol SII Ejemplo (Villa Alemana)</span>
-                  </button>
+                  <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                    {(address || rolManzana || rolPredio || usefulM2) && (
+                      <button
+                        type="button"
+                        onClick={handleResetForm}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-rose-50 text-gray-600 hover:text-[#D02126] text-xs font-bold transition-colors cursor-pointer border border-gray-200"
+                        title="Limpiar formulario para evaluar otra propiedad"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Limpiar</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleAutofillWithRol}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-[#D02126] text-xs font-bold transition-colors cursor-pointer border border-rose-200/60"
+                      title="Carga de ejemplo real: Valentín Letelier 693, Villa Alemana (Rol 433-032)"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>⚡ Probar con Rol SII Ejemplo (Villa Alemana)</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Grid 1: Tipología & Ubicación */}

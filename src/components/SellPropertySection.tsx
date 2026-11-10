@@ -85,6 +85,9 @@ export const SellPropertySection: React.FC = () => {
       setConstructionMaterial(profile.constructionMaterial);
       setBedrooms(profile.bedrooms);
       setBathrooms(profile.bathrooms);
+      if (profile.officialAddress && (!address || address.length < 3)) {
+        setAddress(profile.officialAddress);
+      }
       setIsQueryingSii(false);
     }, 600);
   };
@@ -552,32 +555,54 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
 
                     {/* Ficha Catastral Sincronizada */}
                     {siiCadastralResult && (
-                      <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-1.5 animate-in fade-in duration-200">
+                      <div className={`p-2.5 rounded-xl border text-xs space-y-1.5 animate-in fade-in duration-200 ${
+                        siiCadastralResult.foundInDatabase
+                          ? 'bg-emerald-50 border-emerald-300'
+                          : 'bg-amber-50/70 border-amber-200'
+                      }`}>
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-emerald-900 flex items-center gap-1 text-[11px]">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Ficha Catastral SII Sincronizada</span>
+                          <span className={`font-bold flex items-center gap-1 text-[11px] ${
+                            siiCadastralResult.foundInDatabase ? 'text-emerald-900' : 'text-amber-900'
+                          }`}>
+                            <CheckCircle2 className={`w-3.5 h-3.5 ${siiCadastralResult.foundInDatabase ? 'text-emerald-600' : 'text-amber-600'}`} />
+                            <span>
+                              {siiCadastralResult.foundInDatabase
+                                ? 'Ficha Catastral Oficial SII Verificada'
+                                : 'Estimación Catastral Paramétrica'}
+                            </span>
                           </span>
-                          <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md">
+                          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${
+                            siiCadastralResult.foundInDatabase
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}>
                             Rol {siiCadastralResult.rolFormatted}
                           </span>
                         </div>
+
+                        {siiCadastralResult.officialAddress && (
+                          <div className="text-[10px] font-medium text-emerald-900 bg-white/90 p-1.5 rounded-lg border border-emerald-200">
+                            📍 <strong>Dirección SII:</strong> {siiCadastralResult.officialAddress}
+                          </div>
+                        )}
                         
                         <div className="flex flex-wrap gap-1 text-[10px] text-gray-700">
-                          <span className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 font-semibold">
+                          <span className="px-2 py-0.5 rounded-md bg-white border border-gray-200 font-semibold">
                             📐 {siiCadastralResult.usefulM2} m² útiles
                           </span>
-                          <span className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 font-semibold">
+                          <span className="px-2 py-0.5 rounded-md bg-white border border-gray-200 font-semibold">
                             🏡 {siiCadastralResult.totalM2} m² terreno
                           </span>
-                          <span className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 font-semibold">
+                          <span className="px-2 py-0.5 rounded-md bg-white border border-gray-200 font-semibold">
                             🧱 {siiCadastralResult.constructionMaterial.split('/')[0]}
                           </span>
                         </div>
 
-                        <div className="text-[10px] text-emerald-800 font-medium pt-0.5 border-t border-emerald-200/60 flex items-center justify-between">
-                          <span>Avalúo Fiscal Base: ${siiCadastralResult.fiscalValuationClp.toLocaleString('es-CL')} CLP</span>
-                          <span className="font-bold">{siiCadastralResult.isDfl2 ? '✓ DFL-2' : 'General'}</span>
+                        <div className={`text-[10px] font-medium pt-0.5 border-t flex items-center justify-between ${
+                          siiCadastralResult.foundInDatabase ? 'text-emerald-800 border-emerald-200/60' : 'text-amber-800 border-amber-200/60'
+                        }`}>
+                          <span>Avalúo Fiscal Oficial: <strong>${siiCadastralResult.estimatedFiscalAssessmentCLP.toLocaleString('es-CL')} CLP</strong></span>
+                          <span className="font-bold">{siiCadastralResult.contributionsStatus}</span>
                         </div>
                       </div>
                     )}

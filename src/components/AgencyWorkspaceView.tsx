@@ -65,7 +65,9 @@ import {
   RefreshCw,
   Play,
   Volume2,
-  Target
+  Target,
+  BookOpen,
+  Scale
 } from 'lucide-react';
 import { 
   AuthUser, 
@@ -95,6 +97,7 @@ import {
   createManualLiveLead, 
   OmnichannelLead 
 } from '../services/leadTriageService';
+import { ContractGeneratorModal, ContractWizardType } from './ContractGeneratorModal';
 
 interface AgencyWorkspaceViewProps {
   currentUser: AuthUser;
@@ -462,6 +465,9 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
   const [showDemoData, setShowDemoData] = useState(false);
 
   // Contracts module state (Altenda screenshot 2)
+  const [contractsSubTab, setContractsSubTab] = useState<'catalog' | 'list'>('catalog');
+  const [isContractGeneratorOpen, setIsContractGeneratorOpen] = useState(false);
+  const [selectedWizardContractType, setSelectedWizardContractType] = useState<ContractWizardType>('promesa_compraventa');
   const [contractsSearch, setContractsSearch] = useState('');
   const [contractsStatusFilter, setContractsStatusFilter] = useState('Todos');
   const [isNewContractModalOpen, setIsNewContractModalOpen] = useState(false);
@@ -3109,164 +3115,488 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
             )}
 
             {/* ========================================================== */}
-            {/* TAB 6: CONTRATOS (SCREENSHOT 2 EXACT MATCH)               */}
+            {/* TAB 6: CONTRATOS (CATÁLOGO WIZARD & CARTERA)                */}
             {/* ========================================================== */}
             {activeTab === 'contracts' && (
               <div className="space-y-6 animate-in fade-in duration-150">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
-                    Contratos
-                  </h1>
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F1115]">
+                      Centro Legal & Contratos
+                    </h1>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Redacción tipo Wonder.Legal, firma bilateral ZapSign o certificación FEA con validez tributaria ante el SII
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedWizardContractType('promesa_compraventa');
+                        setIsContractGeneratorOpen(true);
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>+ Redactar Nuevo Contrato</span>
+                    </button>
+                    <button
+                      onClick={() => setShowDemoData(!showDemoData)}
+                      className="px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      {showDemoData ? '👁️ Limpiar' : '📊 Demo'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* SUBPESTAÑAS INTERNAS DE CONTRATOS */}
+                <div className="flex items-center gap-2 border-b border-gray-200 pb-3">
                   <button
-                    onClick={() => setShowDemoData(!showDemoData)}
-                    className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 cursor-pointer self-start sm:self-auto transition-colors"
+                    onClick={() => setContractsSubTab('catalog')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                      contractsSubTab === 'catalog'
+                        ? 'bg-[#1A2E40] text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
                   >
-                    {showDemoData ? '👁️ Ver limpio inicial' : '📊 Ver contratos de ejemplo'}
+                    <BookOpen className="w-4 h-4 text-amber-400" />
+                    <span>📚 Catálogo de Contratos Tipo</span>
+                  </button>
+                  <button
+                    onClick={() => setContractsSubTab('list')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                      contractsSubTab === 'list'
+                        ? 'bg-[#1A2E40] text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <FileText className="w-4 h-4 text-emerald-400" />
+                    <span>📋 Contratos Registrados ({contracts.length})</span>
                   </button>
                 </div>
 
-                {/* Filter and Action Bar matching Screenshot 2 */}
-                <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 max-w-2xl">
-                    <div className="flex-1">
-                      <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                        Buscar contratos
-                      </label>
-                      <input
-                        type="text"
-                        value={contractsSearch}
-                        onChange={(e) => setContractsSearch(e.target.value)}
-                        placeholder="Propiedad, título o código"
-                        className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#D02126] shadow-2xs transition-colors"
-                      />
+                {/* VISTA 1: CATÁLOGO DE CONTRATOS POR CATEGORÍAS */}
+                {contractsSubTab === 'catalog' && (
+                  <div className="space-y-6">
+                    {/* Banner Informativo LegalTech */}
+                    <div className="bg-gradient-to-r from-[#0F1115] via-[#1A2E40] to-[#0F1115] rounded-3xl p-5 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm border border-gray-800">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500 text-white uppercase tracking-wider">
+                            3 Modalidades de Salida
+                          </span>
+                          <span className="text-xs text-gray-300 font-semibold">
+                            Redacción guiada paso a paso con actualización de texto en vivo
+                          </span>
+                        </div>
+                        <h3 className="text-sm font-bold text-white">
+                          Elige una plantilla tipo para abrir el asistente y modificar las cláusulas manualmente
+                        </h3>
+                        <p className="text-[11px] text-gray-300 leading-relaxed max-w-3xl">
+                          Al terminar podrás: <strong>1) Imprimir minuta notarial gratis</strong>, <strong>2) Enviar por ZapSign a WhatsApp</strong> para firmas simples, o <strong>3) Despachar a Notaría Digital con Firma Avanzada FEA ($7.990)</strong> con plena validez tributaria ante el SII y mérito de desalojo express.
+                        </p>
+                      </div>
+                      <div className="shrink-0 flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedWizardContractType('promesa_compraventa');
+                            setIsContractGeneratorOpen(true);
+                          }}
+                          className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs transition-all shadow-sm cursor-pointer flex items-center gap-2"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          <span>Abrir Asistente Wizard</span>
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="w-full sm:w-48">
-                      <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                        Estado
-                      </label>
-                      <select
-                        value={contractsStatusFilter}
-                        onChange={(e) => setContractsStatusFilter(e.target.value)}
-                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-700 focus:outline-none focus:border-[#D02126] shadow-2xs transition-colors cursor-pointer"
+                    {/* CATEGORÍA 1: COMPRAVENTA & MANDATOS */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-4 bg-[#D02126] rounded-full"></div>
+                        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                          1. Compraventa Inmobiliaria & Mandatos
+                        </h2>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Contrato 1: Promesa de Compraventa */}
+                        <div className="bg-white rounded-3xl p-5 border border-gray-200/90 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between space-y-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-rose-50 text-[#D02126]">
+                                Civil & Notarial
+                              </span>
+                              <span className="text-[10px] text-gray-400 font-mono">Cód. PROM-CL</span>
+                            </div>
+                            <h3 className="text-base font-extrabold text-gray-900">
+                              Promesa de Compraventa de Inmueble
+                            </h3>
+                            <p className="text-xs text-gray-600 leading-relaxed">
+                              Contrato bilateral solemne con cláusula de arras de garantía, plazos de estudio de títulos, condiciones suspensivas de crédito hipotecario, y deslindes e inscripción en el Conservador de Bienes Raíces (CBR).
+                            </p>
+                            <div className="pt-2 flex flex-wrap gap-1.5 text-[10px]">
+                              <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-semibold">Arras y Multa</span>
+                              <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-semibold">Fojas/N° CBR</span>
+                              <span className="bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded font-bold">Apta para FEA / SII</span>
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                            <div className="text-[10px] text-gray-500">
+                              <span>Formalización: </span>
+                              <strong className="text-gray-800">Minuta • ZapSign • FEA</strong>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setSelectedWizardContractType('promesa_compraventa');
+                                setIsContractGeneratorOpen(true);
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl bg-[#1A2E40] hover:bg-[#253f57] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                            >
+                              <span>Modificar y Redactar</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Contrato 2: Orden de Venta con Exclusividad */}
+                        <div className="bg-white rounded-3xl p-5 border border-gray-200/90 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between space-y-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-700">
+                                Mandato Mercantil
+                              </span>
+                              <span className="text-[10px] text-gray-400 font-mono">Cód. MAND-EXCL</span>
+                            </div>
+                            <h3 className="text-base font-extrabold text-gray-900">
+                              Orden de Venta y Exclusividad de Corretaje
+                            </h3>
+                            <p className="text-xs text-gray-600 leading-relaxed">
+                              Mandato legal con fijación de precio mínimo en UF, honorarios de corretaje garantizados al 2% + IVA para MELSA, facultades de publicidad en portales, colocación de letrero y llaves.
+                            </p>
+                            <div className="pt-2 flex flex-wrap gap-1.5 text-[10px]">
+                              <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-semibold">Comisión 2% + IVA</span>
+                              <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-semibold">Exclusividad 90-180 días</span>
+                              <span className="bg-blue-50 text-blue-800 px-2 py-0.5 rounded font-bold">Ideal ZapSign</span>
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                            <div className="text-[10px] text-gray-500">
+                              <span>Formalización: </span>
+                              <strong className="text-gray-800">ZapSign WhatsApp</strong>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setSelectedWizardContractType('orden_corretaje');
+                                setIsContractGeneratorOpen(true);
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl bg-[#1A2E40] hover:bg-[#253f57] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                            >
+                              <span>Modificar y Redactar</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* CATEGORÍA 2: ARRENDAMIENTOS (RESIDENCIAL & COMERCIAL) */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-4 bg-emerald-600 rounded-full"></div>
+                        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                          2. Arrendamientos (Habitacional & Comercial)
+                        </h2>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Contrato 3: Arriendo Residencial Ley Devuélveme Mi Casa */}
+                        <div className="bg-white rounded-3xl p-5 border-2 border-emerald-500/80 shadow-xs flex flex-col justify-between space-y-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900">
+                                Ley N° 21.461 & 18.101
+                              </span>
+                              <span className="text-[10px] text-emerald-700 font-bold">⭐ Más Usado</span>
+                            </div>
+                            <h3 className="text-base font-extrabold text-gray-900">
+                              Arriendo Habitacional (Devuélveme Mi Casa)
+                            </h3>
+                            <p className="text-xs text-gray-600 leading-relaxed">
+                              Blindaje total para el arrendador con procedimiento monitorio express para desalojo en 10 días por no pago, cláusula de reporte a Dicom/Boletín Comercial, reajuste por IPC y prohibición estricta de subarriendo.
+                            </p>
+                            <div className="pt-2 flex flex-wrap gap-1.5 text-[10px]">
+                              <span className="bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded font-bold">Desalojo 10 días</span>
+                              <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-semibold">Aval / Codeudor</span>
+                              <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-semibold">Reporte Dicom</span>
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                            <div className="text-[10px] text-gray-500">
+                              <span>Recomendado: </span>
+                              <strong className="text-emerald-700">FEA ($7.990) o ZapSign</strong>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setSelectedWizardContractType('arriendo_residencial');
+                                setIsContractGeneratorOpen(true);
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                            >
+                              <span>Modificar y Redactar</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Contrato 4: Arriendo Comercial */}
+                        <div className="bg-white rounded-3xl p-5 border border-gray-200/90 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between space-y-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-50 text-amber-800">
+                                Validez SII • Art. 31 LIR
+                              </span>
+                              <span className="text-[10px] text-gray-400 font-mono">Cód. ARR-COM</span>
+                            </div>
+                            <h3 className="text-base font-extrabold text-gray-900">
+                              Arriendo Comercial / Local u Oficina
+                            </h3>
+                            <p className="text-xs text-gray-600 leading-relaxed">
+                              Especialmente adaptado para personas jurídicas y giros comerciales. Con cláusulas de IVA (factura o exención según destino), patente municipal, mantención de instalaciones y cláusula arbitral.
+                            </p>
+                            <div className="pt-2 flex flex-wrap gap-1.5 text-[10px]">
+                              <span className="bg-amber-50 text-amber-900 px-2 py-0.5 rounded font-bold">Gasto Deducible SII</span>
+                              <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-semibold">Renta en UF / Factura</span>
+                              <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-semibold">Giro Comercial</span>
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                            <div className="text-[10px] text-gray-500">
+                              <span>Recomendado: </span>
+                              <strong className="text-amber-800">FEA (Validez Tributaria SII)</strong>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setSelectedWizardContractType('arriendo_comercial');
+                                setIsContractGeneratorOpen(true);
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl bg-[#1A2E40] hover:bg-[#253f57] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                            >
+                              <span>Modificar y Redactar</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* CATEGORÍA 3: OPERACIONES RÁPIDAS & VISITAS */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-4 bg-purple-600 rounded-full"></div>
+                        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                          3. Operaciones Rápidas de Corretaje & Visitas
+                        </h2>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Contrato 5: Orden de Visita */}
+                        <div className="bg-white rounded-3xl p-5 border border-gray-200/90 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between space-y-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-purple-50 text-purple-700">
+                                Protección de Corretaje
+                              </span>
+                              <span className="text-[10px] text-gray-400 font-mono">Cód. ORD-VIS</span>
+                            </div>
+                            <h3 className="text-base font-extrabold text-gray-900">
+                              Orden de Visita de Inmueble
+                            </h3>
+                            <p className="text-xs text-gray-600 leading-relaxed">
+                              Constancia firmada in situ o por WhatsApp por el interesado al momento de visitar una propiedad. Incluye cláusula penal de resguardo del 2% de comisión si el cliente intenta comprar directo con el dueño.
+                            </p>
+                            <div className="pt-2 flex flex-wrap gap-1.5 text-[10px]">
+                              <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-semibold">Firma Táctil Móvil</span>
+                              <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-semibold">Anti-bypass</span>
+                              <span className="bg-purple-50 text-purple-800 px-2 py-0.5 rounded font-bold">100% Gratis ZapSign</span>
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                            <div className="text-[10px] text-gray-500">
+                              <span>Formalización: </span>
+                              <strong className="text-gray-800">ZapSign Móvil (2 min)</strong>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setSelectedWizardContractType('orden_visita');
+                                setIsContractGeneratorOpen(true);
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl bg-[#1A2E40] hover:bg-[#253f57] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                            >
+                              <span>Modificar y Redactar</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* VISTA 2: LISTA DE CONTRATOS REGISTRADOS */}
+                {contractsSubTab === 'list' && (
+                  <div className="space-y-6">
+                    {/* Filter and Action Bar matching Screenshot 2 */}
+                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 max-w-2xl">
+                        <div className="flex-1">
+                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                            Buscar contratos
+                          </label>
+                          <input
+                            type="text"
+                            value={contractsSearch}
+                            onChange={(e) => setContractsSearch(e.target.value)}
+                            placeholder="Propiedad, título o código"
+                            className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#D02126] shadow-2xs transition-colors"
+                          />
+                        </div>
+
+                        <div className="w-full sm:w-48">
+                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                            Estado
+                          </label>
+                          <select
+                            value={contractsStatusFilter}
+                            onChange={(e) => setContractsStatusFilter(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-700 focus:outline-none focus:border-[#D02126] shadow-2xs transition-colors cursor-pointer"
+                          >
+                            <option value="Todos">Todos</option>
+                            <option value="Vigente">Vigente</option>
+                            <option value="Por vencer">Por vencer</option>
+                            <option value="Finalizado">Finalizado</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-start lg:self-end">
+                        <button
+                          onClick={() => {
+                            setSelectedWizardContractType('arriendo_residencial');
+                            setIsContractGeneratorOpen(true);
+                          }}
+                          className="px-4 py-2.5 rounded-xl bg-[#D02126] hover:bg-[#B81B1F] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>+ Nuevo contrato</span>
+                        </button>
+                        <button
+                          onClick={() => setIsTemplatesModalOpen(true)}
+                          className="px-3.5 py-2.5 rounded-xl bg-[#F0F7F6] text-[#D02126] hover:bg-[#E2F1EF] text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 border border-[#CDEAE6]"
+                        >
+                          <FileCode className="w-3.5 h-3.5" />
+                          <span>Plantillas y variables</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Banner LegalTech Firma Electrónica */}
+                    <div className="bg-[#0F1115] rounded-2xl p-4 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
+                      <div className="flex items-center gap-2.5">
+                        <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+                        <div>
+                          <span className="font-bold block">Firma Electrónica Bilateral con Validez Legal (Ley 19.799 & FEA)</span>
+                          <span className="text-gray-300 text-[11px] block">
+                            Cierra acuerdos, contratos de arriendo y órdenes con verificación de identidad, OTP y certificación tributaria ante el SII sin ir a notaría.
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setLegalSignContract(contracts[0]);
+                          setIsLegalSignModalOpen(true);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-colors shrink-0 cursor-pointer shadow-xs"
                       >
-                        <option value="Todos">Todos</option>
-                        <option value="Vigente">Vigente</option>
-                        <option value="Por vencer">Por vencer</option>
-                        <option value="Finalizado">Finalizado</option>
-                      </select>
+                        ✍️ Firmar Contrato Activo
+                      </button>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-2 self-start lg:self-end">
-                    <button
-                      onClick={() => setIsNewContractModalOpen(true)}
-                      className="px-4 py-2.5 rounded-xl bg-[#D02126] hover:bg-[#B81B1F] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>+ Nuevo contrato</span>
-                    </button>
-                    <button
-                      onClick={() => setIsTemplatesModalOpen(true)}
-                      className="px-3.5 py-2.5 rounded-xl bg-[#F0F7F6] text-[#D02126] hover:bg-[#E2F1EF] text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 border border-[#CDEAE6]"
-                    >
-                      <FileCode className="w-3.5 h-3.5" />
-                      <span>Plantillas y variables</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Banner LegalTech Firma Electrónica */}
-                <div className="bg-[#0F1115] rounded-2xl p-4 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
-                  <div className="flex items-center gap-2.5">
-                    <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
-                    <div>
-                      <span className="font-bold block">Firma Electrónica Nativa con Validez Legal (Ley 19.799)</span>
-                      <span className="text-gray-300 text-[11px] block">
-                        Cierra reservas, contratos de arriendo y órdenes de visita con verificación de identidad por RUT y OTP sin ir a notaría.
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setLegalSignContract(contracts[0]);
-                      setIsLegalSignModalOpen(true);
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-colors shrink-0 cursor-pointer shadow-xs"
-                  >
-                    ✍️ Firmar Contrato Activo
-                  </button>
-                </div>
-
-                {/* Content Box with Empty State or Filtered Table */}
-                <div className="bg-white rounded-3xl p-6 sm:p-12 border border-gray-200/90 shadow-2xs min-h-[300px] flex flex-col justify-center">
-                  {!showDemoData && contractsSearch === '' ? (
-                    <div className="flex items-center justify-center gap-2.5 text-xs text-gray-400 py-16">
-                      <Inbox className="w-5 h-5 text-gray-400 shrink-0" />
-                      <span>Aún no hay contratos registrados.</span>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto w-full">
-                      <table className="w-full text-left text-xs">
-                        <thead>
-                          <tr className="border-b border-gray-200 text-gray-400 uppercase font-bold text-[10px]">
-                            <th className="pb-3">Inmueble</th>
-                            <th className="pb-3">Arrendatario</th>
-                            <th className="pb-3">Canon CLP</th>
-                            <th className="pb-3">Reajuste</th>
-                            <th className="pb-3">Estado</th>
-                            <th className="pb-3 text-right">Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {contracts
-                            .filter(c => {
-                              if (contractsStatusFilter !== 'Todos' && contractsStatusFilter !== 'Vigente') return false;
-                              if (contractsSearch.trim()) {
-                                return c.propertyAddress.toLowerCase().includes(contractsSearch.toLowerCase()) ||
-                                       c.tenantName.toLowerCase().includes(contractsSearch.toLowerCase());
-                              }
-                              return true;
-                            })
-                            .map((c) => (
-                              <tr key={c.id} className="hover:bg-gray-50/60 transition-colors">
-                                <td className="py-3 font-semibold text-[#0F1115]">{c.propertyAddress}</td>
-                                <td className="py-3 text-gray-600">{c.tenantName}</td>
-                                <td className="py-3 font-mono font-bold text-[#D02126]">{formatCLP(c.rentCLP)}</td>
-                                <td className="py-3 text-gray-500">{c.readjustmentIndex}</td>
-                                <td className="py-3">
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                                    Vigente
-                                  </span>
-                                </td>
-                                <td className="py-3 text-right space-x-2">
-                                  <button
-                                    onClick={() => {
-                                      setLegalSignContract(c);
-                                      setIsLegalSignModalOpen(true);
-                                    }}
-                                    className="px-2 py-1 rounded-lg bg-emerald-50 text-[#D02126] font-bold hover:bg-emerald-100 text-[11px] cursor-pointer"
-                                    title="Firmar digitalmente según Ley 19.799"
-                                  >
-                                    ✍️ Firmar
-                                  </button>
-                                  <button 
-                                    onClick={() => {
-                                      setSelectedContractId(c.id);
-                                      setActiveTab('settlement');
-                                    }}
-                                    className="text-gray-500 hover:text-gray-900 font-semibold text-[11px] cursor-pointer"
-                                  >
-                                    Liquidar →
-                                  </button>
-                                </td>
+                    {/* Content Box with Empty State or Filtered Table */}
+                    <div className="bg-white rounded-3xl p-6 sm:p-12 border border-gray-200/90 shadow-2xs min-h-[300px] flex flex-col justify-center">
+                      {!showDemoData && contractsSearch === '' ? (
+                        <div className="flex items-center justify-center gap-2.5 text-xs text-gray-400 py-16">
+                          <Inbox className="w-5 h-5 text-gray-400 shrink-0" />
+                          <span>Aún no hay contratos registrados.</span>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto w-full">
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="border-b border-gray-200 text-gray-400 uppercase font-bold text-[10px]">
+                                <th className="pb-3">Inmueble</th>
+                                <th className="pb-3">Arrendatario / Comprador</th>
+                                <th className="pb-3">Monto</th>
+                                <th className="pb-3">Reajuste</th>
+                                <th className="pb-3">Estado</th>
+                                <th className="pb-3 text-right">Acciones</th>
                               </tr>
-                            ))}
-                        </tbody>
-                      </table>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {contracts
+                                .filter(c => {
+                                  if (contractsStatusFilter !== 'Todos' && contractsStatusFilter !== 'Vigente') return false;
+                                  if (contractsSearch.trim()) {
+                                    return c.propertyAddress.toLowerCase().includes(contractsSearch.toLowerCase()) ||
+                                           c.tenantName.toLowerCase().includes(contractsSearch.toLowerCase());
+                                  }
+                                  return true;
+                                })
+                                .map((c) => (
+                                  <tr key={c.id} className="hover:bg-gray-50/60 transition-colors">
+                                    <td className="py-3 font-semibold text-[#0F1115]">{c.propertyAddress}</td>
+                                    <td className="py-3 text-gray-600">{c.tenantName}</td>
+                                    <td className="py-3 font-mono font-bold text-[#D02126]">{formatCLP(c.rentCLP)}</td>
+                                    <td className="py-3 text-gray-500">{c.readjustmentIndex}</td>
+                                    <td className="py-3">
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                        Vigente
+                                      </span>
+                                    </td>
+                                    <td className="py-3 text-right space-x-2">
+                                      <button
+                                        onClick={() => {
+                                          setSelectedWizardContractType('arriendo_residencial');
+                                          setIsContractGeneratorOpen(true);
+                                        }}
+                                        className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold hover:bg-emerald-100 text-[11px] cursor-pointer"
+                                        title="Abrir en Wizard y formalizar"
+                                      >
+                                        ✍️ Ver / Wizard
+                                      </button>
+                                      <button 
+                                        onClick={() => {
+                                          setSelectedContractId(c.id);
+                                          setActiveTab('settlement');
+                                        }}
+                                        className="text-gray-500 hover:text-gray-900 font-semibold text-[11px] cursor-pointer"
+                                      >
+                                        Liquidar →
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -5399,6 +5729,34 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* ============================================================== */}
+      {/* MODAL: ASISTENTE WIZARD WONDER.LEGAL + ZAPSIGN + FEA          */}
+      {/* ============================================================== */}
+      <ContractGeneratorModal
+        isOpen={isContractGeneratorOpen}
+        onClose={() => setIsContractGeneratorOpen(false)}
+        initialContractType={selectedWizardContractType}
+        onSaveContract={(contractData) => {
+          if (contractData) {
+            const newC: AgencyRentalContract = {
+              id: 'cnt-' + Date.now(),
+              propertyAddress: contractData.propertyAddress || 'Inmueble personalizado',
+              tenantName: contractData.tenantName || 'Cliente Arrendatario',
+              tenantRut: contractData.tenantRut || '18.456.789-K',
+              rentCLP: contractData.rentCLP || 750000,
+              readjustmentIndex: contractData.readjustmentIndex || 'IPC Semestral',
+              paymentDay: contractData.paymentDay || 5,
+              ownerName: contractData.ownerName || companyDisplayName,
+              ownerBank: 'Banco Santander'
+            };
+            setContracts(prev => [newC, ...prev]);
+            setShowDemoData(true);
+            setContractsSubTab('list');
+          }
+          setIsContractGeneratorOpen(false);
+        }}
+      />
 
       {/* ============================================================== */}
       {/* MODAL: NUEVO CONTRATO (ALTENDA SCREENSHOT 2)                    */}

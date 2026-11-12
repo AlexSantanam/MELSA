@@ -20,9 +20,20 @@ import {
   HelpCircle,
   Phone,
   Mail,
-  Home
+  Home,
+  QrCode,
+  MessageCircle,
+  Check
 } from 'lucide-react';
 import { CHILE_REGIONS } from '../services/propertyValuationEngine';
+import { 
+  validateChileanRut, 
+  formatChileanRut, 
+  dispatchToZapSign, 
+  dispatchToFeaNotary,
+  DispatchZapSignResponse,
+  DispatchFeaResponse 
+} from '../services/contractSigningService';
 
 export type ContractWizardType = 
   | 'promesa_compraventa'
@@ -135,12 +146,20 @@ export const ContractGeneratorModal: React.FC<ContractGeneratorModalProps> = ({
   const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [isZapSignModalOpen, setIsZapSignModalOpen] = useState(false);
   const [zapSignSuccessNotice, setZapSignSuccessNotice] = useState<string | null>(null);
+  const [zapSignResult, setZapSignResult] = useState<DispatchZapSignResponse | null>(null);
+  const [isZapSignLoading, setIsZapSignLoading] = useState(false);
   
   // FEA / Notaría Digital Modal State
   const [isFeaModalOpen, setIsFeaModalOpen] = useState(false);
   const [feaSuccessNotice, setFeaSuccessNotice] = useState<string | null>(null);
+  const [feaResult, setFeaResult] = useState<DispatchFeaResponse | null>(null);
+  const [isFeaLoading, setIsFeaLoading] = useState(false);
   const [feaProvider, setFeaProvider] = useState<'firmavirtual' | 'esign'>('firmavirtual');
   const [includeNotaryCertification, setIncludeNotaryCertification] = useState(true);
+
+  // Validación de RUT Chileno
+  const isSellerRutValid = validateChileanRut(sellerRut);
+  const isBuyerRutValid = validateChileanRut(buyerRut);
 
   if (!isOpen) return null;
 
@@ -204,22 +223,104 @@ export const ContractGeneratorModal: React.FC<ContractGeneratorModalProps> = ({
   };
 
   // Enviar a ZapSign (Firma Simple)
-  const handleSendZapSign = () => {
-    setZapSignSuccessNotice(`¡Contrato enviado a ZapSign para firma simple de ${buyerName} y ${sellerName}!`);
-    setTimeout(() => {
-      setZapSignSuccessNotice(null);
-      setIsZapSignModalOpen(false);
-    }, 4000);
+  const handleSendZapSign = async () => {
+    setIsZapSignLoading(true);
+    try {
+      const el = document.getElementById('contract-preview-text');
+      const res = await dispatchToZapSign({
+        contractTitle: contractType === 'promesa_compraventa' ? 'Promesa de Compraventa' : 'Contrato de Arriendo',
+        contractType,
+        propertyAddress,
+        propertyRolSII,
+        contractHtmlText: el ? el.innerText : '',
+        signers: [
+          {
+            name: sellerName,
+            rut: sellerRut,
+            email: sellerEmail,
+            phone: sellerPhone,
+            role: contractType === 'promesa_compraventa' ? 'Vendedor' : 'Arrendador'
+          },
+          {
+            name: buyerName,
+            rut: buyerRut,
+            email: buyerEmail,
+            phone: buyerPhone,
+            role: contractType === 'promesa_compraventa' ? 'Comprador' : 'Arrendatario'
+          }
+        ]
+      });
+      setZapSignResult(res);
+      setZapSignSuccessNotice(`¡Contrato generado en ZapSign con éxito! Doc ID: ${res.docToken}`);
+      if (onSaveContract) {
+        onSaveContract({
+          propertyAddress,
+          tenantName: buyerName,
+          tenantRut: buyerRut,
+          rentCLP: priceAmount,
+          readjustmentIndex: readjustmentFreq,
+          paymentDay: rentPaymentDay,
+          ownerName: sellerName
+        });
+      }
+    } catch (e: any) {
+      console.error('Error enviando a ZapSign:', e);
+      setZapSignSuccessNotice('Error al conectar con ZapSign. Verifique su conexión.');
+    } finally {
+      setIsZapSignLoading(false);
+    }
   };
 
   // Enviar a Firma Electrónica Avanzada (FEA / Notaría Digital)
-  const handleSendFea = () => {
-    const providerName = feaProvider === 'firmavirtual' ? 'FirmaVirtual.legal' : 'E-Sign Chile';
-    setFeaSuccessNotice(`¡Expediente despachado a ${providerName} con certificación FEA y validación biométrica con Registro Civil para ${buyerName} y ${sellerName}!`);
-    setTimeout(() => {
-      setFeaSuccessNotice(null);
-      setIsFeaModalOpen(false);
-    }, 4500);
+  const handleSendFea = async () => {
+    setIsFeaLoading(true);
+    try {
+      const el = document.getElementById('contract-preview-text');
+      const res = await dispatchToFeaNotary({
+        contractTitle: contractType === 'promesa_compraventa' ? 'Promesa de Compraventa' : 'Contrato de Arriendo',
+        contractType,
+        propertyAddress,
+        propertyRolSII,
+        provider: feaProvider,
+        amountCLP: 7990,
+        contractHtmlText: el ? el.innerText : '',
+        signers: [
+          {
+            name: sellerName,
+            rut: sellerRut,
+            email: sellerEmail,
+            phone: sellerPhone,
+            role: contractType === 'promesa_compraventa' ? 'Vendedor' : 'Arrendador'
+          },
+          {
+            name: buyerName,
+            rut: buyerRut,
+            email: buyerEmail,
+            phone: buyerPhone,
+            role: contractType === 'promesa_compraventa' ? 'Comprador' : 'Arrendatario'
+          }
+        ]
+      });
+      setFeaResult(res);
+      const prov = feaProvider === 'firmavirtual' ? 'FirmaVirtual.legal' : 'E-Sign Chile';
+      setFeaSuccessNotice(`¡Orden FEA pagada exitosamente ($7.990) y despachada a ${prov}! Folio: ${res.orderFolio}`);
+      if (onSaveContract) {
+        onSaveContract({
+          propertyAddress,
+          tenantName: buyerName,
+          tenantRut: buyerRut,
+          rentCLP: priceAmount,
+          readjustmentIndex: readjustmentFreq,
+          paymentDay: rentPaymentDay,
+          ownerName: sellerName
+        });
+      }
+    } catch (e: any) {
+      console.error('Error enviando a Notaría Digital FEA:', e);
+      setFeaSuccessNotice('Error al procesar pago o conexión FEA.');
+    } finally {
+      setIsFeaLoading(false);
+    }
   };
 
   return (
@@ -435,12 +536,20 @@ export const ContractGeneratorModal: React.FC<ContractGeneratorModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-700 mb-1">Cédula de Identidad (RUT):</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[11px] font-bold text-gray-700">Cédula (RUT):</label>
+                      {sellerRut && (
+                        <span className={`text-[9px] font-black px-1.5 py-0.2 rounded ${isSellerRutValid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                          {isSellerRutValid ? '✓ Válido' : '⚠️ Inválido'}
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="text"
                       value={sellerRut}
                       onChange={(e) => setSellerRut(e.target.value)}
-                      className="w-full bg-[#FAF9F8] border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-gray-900 outline-none"
+                      onBlur={() => setSellerRut(formatChileanRut(sellerRut))}
+                      className={`w-full bg-[#FAF9F8] border rounded-xl px-3 py-2 text-xs font-mono font-bold text-gray-900 outline-none ${isSellerRutValid ? 'border-emerald-400 focus:border-emerald-600' : 'border-gray-300 focus:border-[#D02126]'}`}
                     />
                   </div>
                   <div>
@@ -529,12 +638,20 @@ export const ContractGeneratorModal: React.FC<ContractGeneratorModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-700 mb-1">RUT Comprador:</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[11px] font-bold text-gray-700">RUT Comprador / Arrendatario:</label>
+                      {buyerRut && (
+                        <span className={`text-[9px] font-black px-1.5 py-0.2 rounded ${isBuyerRutValid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                          {isBuyerRutValid ? '✓ Válido' : '⚠️ Inválido'}
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="text"
                       value={buyerRut}
                       onChange={(e) => setBuyerRut(e.target.value)}
-                      className="w-full bg-[#FAF9F8] border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-gray-900 outline-none"
+                      onBlur={() => setBuyerRut(formatChileanRut(buyerRut))}
+                      className={`w-full bg-[#FAF9F8] border rounded-xl px-3 py-2 text-xs font-mono font-bold text-gray-900 outline-none ${isBuyerRutValid ? 'border-emerald-400 focus:border-emerald-600' : 'border-gray-300 focus:border-[#D02126]'}`}
                     />
                   </div>
                   <div>
@@ -1035,15 +1152,73 @@ export const ContractGeneratorModal: React.FC<ContractGeneratorModalProps> = ({
                 </button>
               </div>
 
-              {zapSignSuccessNotice ? (
-                <div className="py-6 text-center space-y-3">
-                  <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
-                    <CheckCircle2 className="w-6 h-6" />
+              {zapSignResult ? (
+                <div className="py-4 space-y-4">
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-emerald-950 text-xs">¡Contrato Bilateral Creado en ZapSign!</h4>
+                      <p className="text-[11px] text-emerald-800">
+                        Doc Folio: <span className="font-mono font-bold">{zapSignResult.docToken}</span>
+                      </p>
+                    </div>
                   </div>
-                  <h4 className="font-bold text-gray-900 text-sm">{zapSignSuccessNotice}</h4>
-                  <p className="text-xs text-gray-500">
-                    Se generaron los enlaces para firma digital remota de las partes mediante WhatsApp y correo electrónico.
-                  </p>
+
+                  <div className="space-y-3">
+                    <span className="text-xs font-bold text-gray-800 block">
+                      Despacha los enlaces directos de firma a cada parte:
+                    </span>
+                    {zapSignResult.signers.map((s, idx) => (
+                      <div key={idx} className="p-3 bg-gray-50 border border-gray-200 rounded-2xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="font-bold text-gray-900 text-xs block">{s.name}</span>
+                            <span className="text-[11px] text-gray-500 font-mono">RUT: {s.rut} • {s.phone}</span>
+                          </div>
+                          <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded">
+                            {idx === 0 ? 'Parte Vendedora' : 'Parte Compradora'}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <a
+                            href={s.whatsappUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>Abrir WhatsApp y Enviar</span>
+                          </a>
+
+                          <a
+                            href={s.signUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-1.5 rounded-xl bg-white border border-gray-300 hover:bg-gray-100 text-gray-800 font-semibold text-xs flex items-center gap-1.5 transition-colors"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Probar Enlace de Firma</span>
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-end pt-2 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setZapSignResult(null);
+                        setIsZapSignModalOpen(false);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black cursor-pointer"
+                    >
+                      Listo / Cerrar
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3.5 text-xs">
@@ -1133,15 +1308,88 @@ export const ContractGeneratorModal: React.FC<ContractGeneratorModalProps> = ({
                 </button>
               </div>
 
-              {feaSuccessNotice ? (
-                <div className="py-6 text-center space-y-3">
-                  <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
-                    <CheckCircle2 className="w-8 h-8" />
+              {feaResult ? (
+                <div className="py-4 space-y-4">
+                  <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-2xl space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                        <ShieldCheck className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-emerald-950 text-xs">¡Certificación FEA y Notaría Digital Activa!</h4>
+                          <span className="text-[9px] bg-emerald-200 text-emerald-900 font-black px-1.5 py-0.2 rounded uppercase">Válido SII</span>
+                        </div>
+                        <p className="text-[11px] text-emerald-800">
+                          Orden Pagada ($7.990 CLP) • Folio: <span className="font-mono font-bold">{feaResult.orderFolio}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-emerald-900 leading-relaxed border-t border-emerald-200 pt-2">
+                      {feaResult.siiComplianceNote}
+                    </p>
                   </div>
-                  <h4 className="font-bold text-gray-900 text-sm">{feaSuccessNotice}</h4>
-                  <p className="text-xs text-gray-600 max-w-md mx-auto">
-                    Se generó la orden de firma digital legal. Ambas partes recibirán un SMS y correo con enlace biométrico para escanear su cédula y validar con ClaveÚnica. Una vez firmado, el documento quedará timbrado con firma notarial electrónica y QR verificable ante el SII.
-                  </p>
+
+                  <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 border border-gray-200 rounded-2xl text-[11px]">
+                    <div>
+                      <span className="text-gray-400 font-bold uppercase text-[9px] block">Código Verificación Notarial:</span>
+                      <span className="font-mono font-bold text-gray-800">{feaResult.verificationCode}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 font-bold uppercase text-[9px] block">Sello de Tiempo RFC 3161:</span>
+                      <span className="font-mono text-gray-700 text-[10px]">{new Date(feaResult.timestampRfc3161).toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-gray-400 font-bold uppercase text-[9px] block">Integridad Hash SHA-256:</span>
+                      <span className="font-mono text-gray-600 text-[10px] break-all">{feaResult.documentHashSha256}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <span className="text-xs font-bold text-gray-800 block">
+                      Enlaces biométricos directos para los comparecientes:
+                    </span>
+                    {feaResult.signers.map((s, idx) => (
+                      <div key={idx} className="p-3 bg-white border border-gray-200 rounded-2xl flex items-center justify-between">
+                        <div>
+                          <span className="font-bold text-gray-900 text-xs block">{s.name}</span>
+                          <span className="text-[11px] text-gray-500 font-mono">RUT: {s.rut}</span>
+                        </div>
+                        <a
+                          href={s.biometricVerifyUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Validar Biometría y Cédula</span>
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                    <a
+                      href={feaResult.qrVerificationUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-emerald-700 hover:underline font-bold text-xs flex items-center gap-1.5"
+                    >
+                      <QrCode className="w-4 h-4 text-emerald-600" />
+                      <span>Ver Portal de Consulta Pública con QR</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFeaResult(null);
+                        setIsFeaModalOpen(false);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black cursor-pointer"
+                    >
+                      Listo / Cerrar
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4 text-xs">

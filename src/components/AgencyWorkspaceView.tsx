@@ -462,7 +462,7 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
   const [tickets, setTickets] = useState<AgencyMaintenanceTicket[]>(MOCK_AGENCY_TICKETS);
 
   // View toggle: Clean Initial State (matches Altenda fresh account) vs Demo Populated State
-  const [showDemoData, setShowDemoData] = useState(false);
+  const [showDemoData, setShowDemoData] = useState(true);
 
   // Contracts module state (Altenda screenshot 2)
   const [contractsSubTab, setContractsSubTab] = useState<'catalog' | 'list'>('catalog');
@@ -3527,36 +3527,46 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                     </div>
 
                     {/* Content Box with Empty State or Filtered Table */}
-                    <div className="bg-white rounded-3xl p-6 sm:p-12 border border-gray-200/90 shadow-2xs min-h-[300px] flex flex-col justify-center">
-                      {!showDemoData && contractsSearch === '' ? (
-                        <div className="flex items-center justify-center gap-2.5 text-xs text-gray-400 py-16">
-                          <Inbox className="w-5 h-5 text-gray-400 shrink-0" />
-                          <span>Aún no hay contratos registrados.</span>
-                        </div>
-                      ) : (
-                        <div className="overflow-x-auto w-full">
-                          <table className="w-full text-left text-xs">
-                            <thead>
-                              <tr className="border-b border-gray-200 text-gray-400 uppercase font-bold text-[10px]">
-                                <th className="pb-3">Inmueble</th>
-                                <th className="pb-3">Arrendatario / Comprador</th>
-                                <th className="pb-3">Monto</th>
-                                <th className="pb-3">Reajuste</th>
-                                <th className="pb-3">Estado</th>
-                                <th className="pb-3 text-right">Acciones</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                              {contracts
-                                .filter(c => {
-                                  if (contractsStatusFilter !== 'Todos' && contractsStatusFilter !== 'Vigente') return false;
-                                  if (contractsSearch.trim()) {
-                                    return c.propertyAddress.toLowerCase().includes(contractsSearch.toLowerCase()) ||
-                                           c.tenantName.toLowerCase().includes(contractsSearch.toLowerCase());
-                                  }
-                                  return true;
-                                })
-                                .map((c) => (
+                    <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/90 shadow-2xs min-h-[300px] flex flex-col justify-center">
+                      {(() => {
+                        const filteredContracts = contracts.filter(c => {
+                          if (contractsStatusFilter !== 'Todos' && contractsStatusFilter !== 'Vigente') return false;
+                          if (contractsSearch.trim()) {
+                            return c.propertyAddress.toLowerCase().includes(contractsSearch.toLowerCase()) ||
+                                   c.tenantName.toLowerCase().includes(contractsSearch.toLowerCase());
+                          }
+                          return true;
+                        });
+
+                        if (filteredContracts.length === 0) {
+                          return (
+                            <div className="flex flex-col items-center justify-center gap-2.5 text-xs text-gray-400 py-16">
+                              <Inbox className="w-8 h-8 text-gray-300 stroke-1" />
+                              <span className="font-bold text-gray-600">No se encontraron contratos registrados</span>
+                              <span className="text-[11px] text-gray-400">
+                                {contracts.length === 0 
+                                  ? 'Crea tu primer contrato con el botón "+ Redactar Nuevo Contrato"' 
+                                  : 'Prueba cambiando los filtros de búsqueda o estado'}
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="overflow-x-auto w-full">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="border-b border-gray-200 text-gray-400 uppercase font-bold text-[10px]">
+                                  <th className="pb-3">Inmueble</th>
+                                  <th className="pb-3">Arrendatario / Comprador</th>
+                                  <th className="pb-3">Monto</th>
+                                  <th className="pb-3">Reajuste</th>
+                                  <th className="pb-3">Estado</th>
+                                  <th className="pb-3 text-right">Acciones</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100">
+                                {filteredContracts.map((c) => (
                                   <tr key={c.id} className="hover:bg-gray-50/60 transition-colors">
                                     <td className="py-3 font-semibold text-[#0F1115]">{c.propertyAddress}</td>
                                     <td className="py-3 text-gray-600">{c.tenantName}</td>
@@ -3590,10 +3600,11 @@ export const AgencyWorkspaceView: React.FC<AgencyWorkspaceViewProps> = ({
                                     </td>
                                   </tr>
                                 ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}

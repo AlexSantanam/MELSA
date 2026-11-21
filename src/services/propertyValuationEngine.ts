@@ -9,6 +9,7 @@ import {
   getSectorsForCommune,
   normalizeTerritoryName
 } from '../data/chileTerritory';
+import { MARKET_COMPARABLES, distanceKm } from '../data/marketComparables';
 
 export type ConstructionMaterialType = 
   | 'Hormigón Armado / Albañilería Armada (Clase A-B)'
@@ -82,6 +83,18 @@ export interface ValuationInput {
   metroDistanceMinutes?: number;
   specialAttributes?: string; // Mejoras singulares: quincho, azotea amplia, piscina, paneles solares, etc.
   siiCadastralData?: Partial<SiiCadastralProfile>;
+  /** Ubicación del pin en el mapa (activa el ajuste por zona con comparables cercanos) */
+  pinLat?: number;
+  pinLng?: number;
+}
+
+/** Ajuste del valor según comparables reales cercanos al pin */
+export interface ZoneAdjustment {
+  /** Factor aplicado al valor (1 = igual al promedio de la comuna) */
+  factor: number;
+  compsUsed: number;
+  maxDistanceKm: number;
+  sectors: string[];
 }
 
 export interface DetectedSpecialFeature {
@@ -91,17 +104,18 @@ export interface DetectedSpecialFeature {
   description: string;
 }
 
+/** Propiedad real publicada usada como comparable (nunca generada) */
 export interface ValuationWitnessComp {
   title: string;
   address: string;
   priceUF: number;
+  /** UF por m² construido; 0 si es solo terreno */
   ufM2: number;
   usefulM2: number;
-  bedrooms: number;
-  bathrooms: number;
-  distanceMeters: number;
-  status: 'Cierre CBR reciente' | 'Oferta activa';
-  photo: string;
+  landM2?: number;
+  /** Distancia al pin; undefined si no se marcó la ubicación */
+  distanceMeters?: number;
+  status: string;
 }
 
 export interface ValuationResult {
@@ -121,6 +135,8 @@ export interface ValuationResult {
   marketDataSource?: string;
   /** true si se valoró como parcela / zona rural */
   isRuralValuation?: boolean;
+  /** Ajuste por zona aplicado (solo si hay pin y comparables cercanos) */
+  zoneAdjustment?: ZoneAdjustment;
   constructionMaterialUsed?: ConstructionMaterialType;
   materialityFactorPct?: number;
   urbanPlusvalia?: UrbanPlusvaliaInsight;
@@ -575,7 +591,7 @@ export const CHILE_COMMUNE_BENCHMARKS: Record<string, CommuneBenchmark> = {
     storageUF: 15,
     liquidityDiscount: 0.08,
     patiencePremium: 0.05,
-    ruralBuildUFm2: 14,
+    ruralBuildUFm2: 13,
     ruralLandUFm2: 0.11,
     dataSource: 'oferta publicada en Portal Inmobiliario (noviembre 2026)'
   },
@@ -1533,6 +1549,153 @@ export function analyzeSpecialAttributes(
   return { features, totalBonusPct, totalBonusUF };
 }
 
+// --- Modelo de superficie (construcción + terreno) ---
+
+// Solo un lote urbano típico se valora como patio: en parcelas o terrenos grandes,
+// el excedente es suelo rural/periurbano y vale una fracción mucho menor.
+const TERRACE_COEFF_CASA = 0.22;
+const TERRACE_COEFF_DEPTO = 0.38;
+const URBAN_LOT_M2 = 500;
+const EXTRA_LAND_COEFF = 0.006; // ≈0,2 UF/m² con base nacional de casas (34 UF/m²)
+// Parcelas: ≥ 3.000 m² o tipo Parcela. El precio por m² de terreno baja con el tamaño
+// (una parcela de 3 ha no vale 6 veces una de 5.000 m²).
+const RURAL_MIN_LAND_M2 = 3000;
+const RURAL_STD_PARCEL_M2 = 5000;
+const RURAL_LAND_SIZE_EXPONENT = 0.8;
+// Avisos urbanos sin terreno informado: se asume un sitio de 2 veces lo construido (máx. 500 m²)
+const ASSUMED_URBAN_LOT_RATIO = 2;
+
+function isRuralValuationCase(bench: CommuneBenchmark, commKey: string, isCasa: boolean, isParcela: boolean, totalM2: number): boolean {
+  // Solo en comunas calibradas con datos rurales o sin benchmark propio (pueblos y comunas
+  // rurales); las grandes ciudades mantienen su modelo urbano.
+  return isCasa && (isParcela || totalM2 >= RURAL_MIN_LAND_M2) && (bench.ruralBuildUFm2 !== undefined || commKey === 'nacional');
+}
+
+function ruralLandEquivalentM2(landM2: number): number {
+  return landM2 <= RURAL_STD_PARCEL_M2
+    ? landM2
+    : RURAL_STD_PARCEL_M2 * Math.pow(landM2 / RURAL_STD_PARCEL_M2, RURAL_LAND_SIZE_EXPONENT);
+}
+
+function surfaceModelUF(
+  bench: CommuneBenchmark,
+  isCasa: boolean,
+  isRural: boolean,
+  usefulM2: number,
+  totalM2: number,
+  hasBuilding: boolean
+): number {
+  if (isRural) {
+    const ruralBuildUFm2 = bench.ruralBuildUFm2 ?? Math.round(bench.baseUFm2Casa * 0.42);
+    const ruralLandUFm2 = bench.ruralLandUFm2 ?? 0.11;
+    return (hasBuilding ? usefulM2 * ruralBuildUFm2 : 0) + ruralLandEquivalentM2(totalM2) * ruralLandUFm2;
+  }
+  const baseUFm2 = isCasa ? bench.baseUFm2Casa : bench.baseUFm2Depto;
+  const terraceCoeff = isCasa ? TERRACE_COEFF_CASA : TERRACE_COEFF_DEPTO;
+  const terraceOrLandM2 = Math.max(0, totalM2 - usefulM2);
+  const lotM2 = Math.min(terraceOrLandM2, URBAN_LOT_M2);
+  const extraLandM2 = Math.max(0, terraceOrLandM2 - URBAN_LOT_M2);
+  return usefulM2 * baseUFm2 + lotM2 * baseUFm2 * terraceCoeff + extraLandM2 * baseUFm2 * EXTRA_LAND_COEFF;
+}
+
+// --- Ajuste por zona con comparables reales cercanos al pin ---
+const ZONE_SEARCH_RADII_KM = [8, 15];
+const ZONE_MIN_COMPS = 3;
+const ZONE_MAX_COMPS = 6;
+const ZONE_FACTOR_MIN = 0.5;
+const ZONE_FACTOR_MAX = 1.6;
+const ZONE_CREDIBILITY_K = 2; // con pocos comparables, el ajuste se acerca a 1
+
+/** Comparables reales de la misma comuna y tipo (urbano/parcela), los más cercanos primero si hay pin */
+function findWitnessComparables(
+  pin: { lat: number; lng: number } | undefined,
+  commune: string,
+  bench: CommuneBenchmark,
+  commKey: string,
+  subjectIsRural: boolean,
+  subjectUsefulM2: number
+): ValuationWitnessComp[] {
+  const subjectCommune = normalizeTerritoryName(findCommuneLocation(commune)?.commune || commune);
+  return MARKET_COMPARABLES
+    .filter((comp) => normalizeTerritoryName(comp.commune) === subjectCommune)
+    .filter((comp) => {
+      const landM2 = comp.landM2 ?? comp.usefulM2;
+      return isRuralValuationCase(bench, commKey, true, comp.usefulM2 === 0, landM2) === subjectIsRural;
+    })
+    .map((comp) => ({ comp, distance: pin ? distanceKm(pin, comp) : undefined }))
+    .sort((a, b) =>
+      a.distance !== undefined && b.distance !== undefined
+        ? a.distance - b.distance
+        : Math.abs(a.comp.usefulM2 - subjectUsefulM2) - Math.abs(b.comp.usefulM2 - subjectUsefulM2)
+    )
+    .slice(0, 3)
+    .map(({ comp, distance }) => ({
+      title: comp.usefulM2 > 0 ? `Casa de ${comp.usefulM2} m²` : `Terreno de ${comp.landM2?.toLocaleString('es-CL')} m²`,
+      address: `${comp.sector}, ${comp.commune}`,
+      priceUF: comp.priceUF,
+      ufM2: comp.usefulM2 > 0 ? Math.round(comp.priceUF / comp.usefulM2) : 0,
+      usefulM2: comp.usefulM2,
+      landM2: comp.landM2,
+      distanceMeters: distance !== undefined ? Math.round(distance * 1000) : undefined,
+      status: `Publicada en ${comp.source} (${comp.date})`
+    }));
+}
+
+function computeZoneAdjustment(
+  pin: { lat: number; lng: number },
+  commune: string,
+  bench: CommuneBenchmark,
+  commKey: string,
+  subjectIsRural: boolean
+): ZoneAdjustment | undefined {
+  const subjectCommune = normalizeTerritoryName(findCommuneLocation(commune)?.commune || commune);
+
+  const candidates = MARKET_COMPARABLES
+    .filter((comp) => normalizeTerritoryName(comp.commune) === subjectCommune)
+    .map((comp) => {
+      const landM2 = comp.landM2 ?? Math.min(comp.usefulM2 * ASSUMED_URBAN_LOT_RATIO, URBAN_LOT_M2 + comp.usefulM2);
+      const compIsRural = isRuralValuationCase(bench, commKey, true, comp.usefulM2 === 0, landM2);
+      const model = surfaceModelUF(bench, true, compIsRural, comp.usefulM2, landM2, comp.usefulM2 > 0);
+      return { comp, compIsRural, ratio: model > 0 ? comp.priceUF / model : 0, distance: distanceKm(pin, comp) };
+    })
+    .filter((c) => c.compIsRural === subjectIsRural && c.ratio > 0);
+
+  const median = (values: number[]) => {
+    const s = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(s.length / 2);
+    return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+  };
+  if (candidates.length < ZONE_MIN_COMPS) return undefined;
+  // Referencia de toda la comuna: el benchmark ya está calibrado con estos datos,
+  // así que la zona solo aporta cuánto se aparta el sector del resto de la comuna.
+  const communeMedian = median(candidates.map((c) => c.ratio));
+
+  for (const radius of ZONE_SEARCH_RADII_KM) {
+    const nearby = candidates
+      .filter((c) => c.distance <= radius)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, ZONE_MAX_COMPS);
+    if (nearby.length < ZONE_MIN_COMPS) continue;
+
+    const relative = median(nearby.map((c) => c.ratio)) / communeMedian;
+    const credibility = nearby.length / (nearby.length + ZONE_CREDIBILITY_K);
+    const factor = Math.min(ZONE_FACTOR_MAX, Math.max(ZONE_FACTOR_MIN, 1 + (relative - 1) * credibility));
+
+    return {
+      factor: Math.round(factor * 100) / 100,
+      compsUsed: nearby.length,
+      maxDistanceKm: Math.round(Math.max(...nearby.map((c) => c.distance)) * 10) / 10,
+      sectors: Array.from(new Set(nearby.map((c) => c.comp.sector)))
+    };
+  }
+  return undefined;
+}
+
+/** Centro conocido de una comuna, o null si no está en la base (el mapa lo busca en OpenStreetMap) */
+export function findCommuneCenterCoord(commune: string): { lat: number; lng: number } | null {
+  return findStreetDataForCommune(commune)?.centerCoord ?? null;
+}
+
 /**
  * Calcula la tasación AVM con precisión cuantitativa ajustada por comuna real
  */
@@ -1558,38 +1721,19 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
   const totalM2 = Math.max(usefulM2, Number(input.totalM2) || usefulM2);
   const terraceOrLandM2 = Math.max(0, totalM2 - usefulM2);
   
-  // En Chile las terrazas o patio se homogenizan a una fracción del valor del m2 útil.
-  // Solo un lote urbano típico se valora como patio: en parcelas de agrado o terrenos
-  // grandes, el excedente es suelo rural/periurbano y vale una fracción mucho menor.
-  // (Antes 5.000 m² de parcela se valoraban como patio urbano: +36.000 UF en Parral.)
-  const terraceCoeff = isCasa ? 0.22 : 0.38;
-  const URBAN_LOT_M2 = 500;
-  const EXTRA_LAND_COEFF = 0.006; // ≈0,2 UF/m² con base nacional de casas (34 UF/m²)
-
-  // Zona rural / parcela de agrado (≥ 3.000 m² o tipo Parcela): se valora como
-  // construcción rural + terreno rural, que es como se transan en el mercado.
-  // Solo en comunas calibradas con datos rurales o sin benchmark propio (pueblos y
-  // comunas rurales); las grandes ciudades mantienen su modelo urbano.
-  const RURAL_MIN_LAND_M2 = 3000;
-  const isRural =
-    isCasa &&
-    (input.propertyType === 'Parcela' || totalM2 >= RURAL_MIN_LAND_M2) &&
-    (bench.ruralBuildUFm2 !== undefined || commKey === 'nacional');
+  const isRural = isRuralValuationCase(bench, commKey, isCasa, input.propertyType === 'Parcela', totalM2);
   const ruralBuildUFm2 = bench.ruralBuildUFm2 ?? Math.round(bench.baseUFm2Casa * 0.42);
   const ruralLandUFm2 = bench.ruralLandUFm2 ?? 0.11;
+  const hasBuilding = input.propertyType !== 'Parcela' || usefulM2 > 20;
 
-  let surfaceValueUF: number;
-  if (isRural) {
-    const hasBuilding = input.propertyType !== 'Parcela' || usefulM2 > 20;
-    surfaceValueUF = (hasBuilding ? usefulM2 * ruralBuildUFm2 : 0) + (totalM2 * ruralLandUFm2);
-  } else {
-    const lotM2 = Math.min(terraceOrLandM2, URBAN_LOT_M2);
-    const extraLandM2 = Math.max(0, terraceOrLandM2 - URBAN_LOT_M2);
-    surfaceValueUF =
-      (usefulM2 * baseUFm2) +
-      (lotM2 * baseUFm2 * terraceCoeff) +
-      (extraLandM2 * baseUFm2 * EXTRA_LAND_COEFF);
-  }
+  const modelSurfaceUF = surfaceModelUF(bench, isCasa, isRural, usefulM2, totalM2, hasBuilding);
+
+  // Ajuste por zona: si hay pin, comparar con propiedades reales cercanas de la comuna
+  const zoneAdjustment =
+    input.pinLat !== undefined && input.pinLng !== undefined
+      ? computeZoneAdjustment({ lat: input.pinLat, lng: input.pinLng }, input.commune, bench, commKey, isRural)
+      : undefined;
+  const surfaceValueUF = modelSurfaceUF * (zoneAdjustment?.factor ?? 1);
 
   // Amenidades (Estacionamientos y Bodegas con valores acordes a la comuna).
   // En parcelas el estacionamiento y la bodega van incluidos en el terreno.
@@ -1668,45 +1812,15 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
   const estimatedRentCLP = Math.round(baseMarketCLP * (isCasa ? 0.0044 : 0.0049));
   const capRateGrossPct = parseFloat(((estimatedRentCLP * 12 / baseMarketCLP) * 100).toFixed(2));
 
-  // Generación de 3 Testigos de Mercado Homogéneos (Comps) en la comuna real
-  const comparableComps: ValuationWitnessComp[] = [
-    {
-      title: `${input.propertyType} similar en ${bench.name}`,
-      address: input.address ? `${input.address} (a 350m)` : `Sector residencial de ${bench.name}`,
-      priceUF: Math.round(baseMarketUF * 0.97),
-      ufM2: Math.round(averageUfM2 * 0.98),
-      usefulM2: Math.round(usefulM2 * 0.97),
-      bedrooms: input.bedrooms,
-      bathrooms: input.bathrooms,
-      distanceMeters: 350,
-      status: 'Cierre CBR reciente',
-      photo: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=600'
-    },
-    {
-      title: `${input.propertyType} con similares atributos`,
-      address: `Avenida cercana a 600m en ${bench.name}`,
-      priceUF: Math.round(baseMarketUF * 1.03),
-      ufM2: Math.round(averageUfM2 * 1.02),
-      usefulM2: Math.round(usefulM2 * 1.02),
-      bedrooms: input.bedrooms,
-      bathrooms: Math.max(1, input.bathrooms),
-      distanceMeters: 600,
-      status: 'Oferta activa',
-      photo: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=600'
-    },
-    {
-      title: `${input.propertyType} en barrio consolidado`,
-      address: `Sector residencial a 900m en ${bench.name}`,
-      priceUF: Math.round(baseMarketUF * 0.94),
-      ufM2: Math.round(averageUfM2 * 0.96),
-      usefulM2: Math.round(usefulM2 * 0.98),
-      bedrooms: Math.max(1, input.bedrooms - 1),
-      bathrooms: input.bathrooms,
-      distanceMeters: 900,
-      status: 'Cierre CBR reciente',
-      photo: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=600'
-    }
-  ];
+  // Comparables reales publicados en la comuna (los más cercanos al pin si se marcó). Nunca se generan.
+  const comparableComps: ValuationWitnessComp[] = findWitnessComparables(
+    input.pinLat !== undefined && input.pinLng !== undefined ? { lat: input.pinLat, lng: input.pinLng } : undefined,
+    input.commune,
+    bench,
+    commKey,
+    isRural,
+    usefulM2
+  );
 
   const methodologyNotes = [
     isRural
@@ -1715,6 +1829,11 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
     isRural
       ? `Superficie: ${usefulM2} m² construidos sobre ${totalM2} m² de terreno.`
       : `Superficie útil: ${usefulM2} m² + ${terraceOrLandM2} m² exteriores homogenizados.`,
+    zoneAdjustment
+      ? `Ajuste por zona: ${zoneAdjustment.factor >= 1 ? '+' : ''}${Math.round((zoneAdjustment.factor - 1) * 100)}% según ${zoneAdjustment.compsUsed} propiedades publicadas a menos de ${zoneAdjustment.maxDistanceKm} km del pin (${zoneAdjustment.sectors.join(', ')}).`
+      : input.pinLat !== undefined
+        ? `Sin ajuste por zona: no hay suficientes comparables cerca del pin en ${bench.name}.`
+        : `Sin ajuste por zona: ubica la propiedad con el pin en el mapa para compararla con su sector.`,
     bench.dataSource
       ? `Fuente de valores: ${bench.dataSource}. Precios de publicación; el cierre suele ser algo menor.`
       : `Sin datos de mercado propios de ${bench.name}: valores referenciales de promedio nacional. Confirmar con comparables de la zona antes de usar con un cliente.`,
@@ -1748,6 +1867,7 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
     regionName: bench.region,
     marketDataSource: bench.dataSource,
     isRuralValuation: isRural,
+    zoneAdjustment,
     constructionMaterialUsed: materialUsed,
     materialityFactorPct: Math.round((materialCoeff - 1) * 100),
     urbanPlusvalia,
@@ -1833,5 +1953,5 @@ Tasación AVM:
 
   return `Estimado propietario, ${basisText}, valoramos su ${input.propertyType.toLowerCase()} en un precio de mercado objetivo de **${calc.baseMarketUF.toLocaleString('es-CL')} UF** (aproximadamente $${calc.baseMarketCLP.toLocaleString('es-CL')} CLP), con un rango de negociación entre **${calc.liquidityUF.toLocaleString('es-CL')} UF** (estrategia de liquidez para cierre ágil en menos de 45 días) y **${calc.premiumUF.toLocaleString('es-CL')} UF** (precio de paciencia patrimonial).
 
-Este valor se fundamenta en un promedio de **${calc.averageUfM2} UF/m² útil** para el sector de ${calc.communeFormatted}, ${calc.isRuralValuation ? 'considerando la superficie de terreno de la parcela, la materialidad' : `complementado por sus amenidades (${input.parking} estacionamiento(s) y ${input.storage} bodega(s)), orientación`} y estado de conservación.${bonusSnippet} En MELSA recomendamos este rango para maximizar el valor efectivo de su activo sin riesgo de estancamiento prolongado en portales.`;
+Este valor se fundamenta en un promedio de **${calc.averageUfM2} UF/m² útil** para el sector de ${calc.communeFormatted}, ${calc.isRuralValuation ? 'considerando la superficie de terreno de la parcela, la materialidad' : `complementado por sus amenidades (${input.parking} estacionamiento(s) y ${input.storage} bodega(s)), orientación`} y estado de conservación.${calc.zoneAdjustment ? ` Incluye un ajuste por zona de ${calc.zoneAdjustment.factor >= 1 ? '+' : ''}${Math.round((calc.zoneAdjustment.factor - 1) * 100)}%, calculado con ${calc.zoneAdjustment.compsUsed} propiedades publicadas cerca de la ubicación indicada en el mapa (${calc.zoneAdjustment.sectors.join(', ')}).` : ''}${bonusSnippet} En MELSA recomendamos este rango para maximizar el valor efectivo de su activo sin riesgo de estancamiento prolongado en portales.`;
 }

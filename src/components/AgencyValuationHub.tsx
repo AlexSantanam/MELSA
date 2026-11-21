@@ -78,6 +78,10 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
   const [siiCadastralResult, setSiiCadastralResult] = useState<SiiCadastralProfile | null>(null);
   const [siiNotFound, setSiiNotFound] = useState(false);
 
+  // Flujo por pasos: 1) Ubicación y Rol SII → 2) Dirección y pin → 3) Características
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
+
   // Execution State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisStep, setAnalysisStep] = useState(0);
@@ -116,6 +120,7 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
   const clearSiiLookup = () => {
     setSiiCadastralResult(null);
     setSiiNotFound(false);
+    setStep(1);
   };
 
   const handleRegionChange = (newRegionId: string) => {
@@ -147,6 +152,8 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
     setSelectedProvinceId('');
     setCommune('');
     setSiiNotFound(false);
+    setStep(1);
+    setPin(null);
     setAddress('');
     setRolManzana('');
     setRolPredio('');
@@ -190,6 +197,8 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
       rolPredio,
       rolSII: rolManzana && rolPredio ? `${rolManzana}-${rolPredio}` : undefined,
       siiCadastralData: activeSiiProfile || undefined,
+      pinLat: pin?.lat,
+      pinLng: pin?.lng,
       constructionMaterial,
       usefulM2: Number(usefulM2) || 100,
       totalM2: Number(totalM2) || Number(usefulM2) || 120,
@@ -328,24 +337,16 @@ Generado con tecnología pericial MELSA.`;
 
           <form onSubmit={handleExecuteValuation} autoComplete="off" className="space-y-4">
             
-            {/* Tipo de Inmueble, Región, Provincia y Comuna (Filtro en cascada sin confusiones) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                  Tipo Inmueble
-                </label>
-                <select
-                  value={propertyType}
-                  onChange={(e) => setPropertyType(e.target.value as any)}
-                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-2.5 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
-                >
-                  <option value="Casa">Casa</option>
-                  <option value="Departamento">Departamento</option>
-                  <option value="Oficina">Oficina Comercial</option>
-                  <option value="Parcela">Parcela / Terreno</option>
-                </select>
-              </div>
-
+                {/* PASO 1: Ubicación y Rol SII */}
+                <div className="flex items-start gap-2.5">
+                  <span className="w-6 h-6 shrink-0 rounded-full bg-[#D02126] text-white text-xs font-black flex items-center justify-center">1</span>
+                  <div>
+                    <h4 className="text-sm font-extrabold text-[#0F1115]">Ubicación y Rol SII</h4>
+                    <p className="text-[11px] text-gray-500">Elige la comuna e ingresa el rol: si el SII lo encuentra, completamos la dirección, el destino y el avalúo.</p>
+                  </div>
+                </div>
+            {/* Región, Provincia y Comuna (Filtro en cascada sin confusiones) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
                   Región de Chile
@@ -404,40 +405,6 @@ Generado con tecnología pericial MELSA.`;
                   ))}
                 </select>
               </div>
-            </div>
-
-            {/* Dirección o Sector con Búsqueda Reactiva Inteligente */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">
-                  Dirección, Calle o Sector
-                </label>
-                <span className="text-[10px] text-gray-400">Autocompletado y geocodificación activa</span>
-              </div>
-              
-              <AddressSearchAutocomplete
-                value={address}
-                onChange={(newAddr) => setAddress(newAddr)}
-                commune={commune}
-                placeholder="Ingresa calle y número de la propiedad"
-              />
-
-              {/* Sugerencias de calles principales de la comuna */}
-              {commune && (
-              <div className="mt-2 flex flex-wrap gap-1.5 items-center">
-                <span className="text-[10px] text-gray-400 font-medium">Frecuentes:</span>
-                {getSuggestedStreetsForCommune(commune).slice(0, 4).map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setAddress(st)}
-                    className="text-[10px] px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-red-50 hover:text-[#D02126] text-gray-600 transition-colors border border-gray-200 cursor-pointer"
-                  >
-                    {st}
-                  </button>
-                ))}
-              </div>
-              )}
             </div>
 
             {/* Rol de Avalúo Fiscal (Opcional · Referencia CBR) */}
@@ -549,6 +516,138 @@ Generado con tecnología pericial MELSA.`;
                 Permite indexar la propiedad para la tasación pericial y asociar antecedentes en el Conservador de Bienes Raíces (CBR).
               </p>
             </div>
+
+                {step === 1 && (
+                  <div className="space-y-1.5 text-xs">
+                    {!commune && (
+                      <p className="text-[11px] text-gray-500">Selecciona región, provincia y comuna para comenzar.</p>
+                    )}
+                    {siiCadastralResult ? (
+                      <button
+                        type="button"
+                        onClick={() => setStep(2)}
+                        className="w-full py-2.5 rounded-xl bg-[#0F1115] hover:bg-black text-white font-bold transition-colors cursor-pointer"
+                      >
+                        Rol encontrado · Continuar con la ubicación →
+                      </button>
+                    ) : siiNotFound ? (
+                      <button
+                        type="button"
+                        onClick={() => setStep(2)}
+                        className="w-full py-2.5 rounded-xl bg-[#0F1115] hover:bg-black text-white font-bold transition-colors cursor-pointer"
+                      >
+                        Continuar y completar los datos manualmente →
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={!commune}
+                        onClick={() => setStep(2)}
+                        className="w-full py-2.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {rolManzana && rolPredio ? 'Continuar sin consultar el rol →' : 'No tengo el rol · Continuar sin él →'}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {step >= 2 && (
+                <>
+                {/* PASO 2: Dirección y ubicación en el mapa */}
+                <div className="flex items-start gap-2.5 pt-4 border-t border-gray-100">
+                  <span className="w-6 h-6 shrink-0 rounded-full bg-[#D02126] text-white text-xs font-black flex items-center justify-center">2</span>
+                  <div>
+                    <h4 className="text-sm font-extrabold text-[#0F1115]">Dirección y ubicación</h4>
+                    <p className="text-[11px] text-gray-500">
+                      {siiCadastralResult
+                        ? 'Confirma la dirección del SII y marca la propiedad con el pin en el mapa.'
+                        : 'Ingresa la dirección y marca la propiedad con el pin en el mapa.'}
+                    </p>
+                  </div>
+                </div>
+            {/* Dirección o Sector con Búsqueda Reactiva Inteligente */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">
+                  Dirección, Calle o Sector
+                </label>
+                <span className="text-[10px] text-gray-400">Autocompletado y geocodificación activa</span>
+              </div>
+              
+              <AddressSearchAutocomplete
+                value={address}
+                onChange={(newAddr) => setAddress(newAddr)}
+                commune={commune}
+                placeholder="Ingresa calle y número de la propiedad"
+                onPinChange={setPin}
+              />
+
+              {/* Sugerencias de calles principales de la comuna */}
+              {commune && (
+              <div className="mt-2 flex flex-wrap gap-1.5 items-center">
+                <span className="text-[10px] text-gray-400 font-medium">Frecuentes:</span>
+                {getSuggestedStreetsForCommune(commune).slice(0, 4).map((st) => (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => setAddress(st)}
+                    className="text-[10px] px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-red-50 hover:text-[#D02126] text-gray-600 transition-colors border border-gray-200 cursor-pointer"
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
+              )}
+            </div>
+                {step === 2 && (
+                  <div className="space-y-1.5 text-xs">
+                    {pin ? (
+                      <p className="text-[11px] text-emerald-700 font-semibold">✓ Ubicación marcada: el valor se ajustará según las propiedades de su sector.</p>
+                    ) : (
+                      <p className="text-[11px] text-amber-700">Recomendado: abre el mapa y pon el pin en la propiedad para ajustar el valor según su sector.</p>
+                    )}
+                    <button
+                      type="button"
+                      disabled={!address.trim() && !pin}
+                      onClick={() => setStep(3)}
+                      className="w-full py-2.5 rounded-xl bg-[#0F1115] hover:bg-black text-white font-bold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Continuar a las características →
+                    </button>
+                  </div>
+                )}
+                </>
+                )}
+
+                {step >= 3 && (
+                <>
+                {/* PASO 3: Características de la propiedad */}
+                <div className="flex items-start gap-2.5 pt-4 border-t border-gray-100">
+                  <span className="w-6 h-6 shrink-0 rounded-full bg-[#D02126] text-white text-xs font-black flex items-center justify-center">3</span>
+                  <div>
+                    <h4 className="text-sm font-extrabold text-[#0F1115]">Características de la propiedad</h4>
+                    <p className="text-[11px] text-gray-500">
+                      {siiCadastralResult
+                        ? 'El SII no informa estas características: complétalas con los datos reales para obtener el valor.'
+                        : 'Completa las características para obtener el valor.'}
+                    </p>
+                  </div>
+                </div>
+              <div>
+                <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Tipo Inmueble
+                </label>
+                <select
+                  value={propertyType}
+                  onChange={(e) => setPropertyType(e.target.value as any)}
+                  className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-2.5 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
+                >
+                  <option value="Casa">Casa</option>
+                  <option value="Departamento">Departamento</option>
+                  <option value="Oficina">Oficina Comercial</option>
+                  <option value="Parcela">Parcela / Terreno</option>
+                </select>
+              </div>
 
             {/* Material de Construcción (NCh 3658) */}
             <div>
@@ -763,6 +862,8 @@ Generado con tecnología pericial MELSA.`;
               )}
             </button>
 
+                </>
+                )}
           </form>
         </div>
 
@@ -1012,31 +1113,37 @@ Generado con tecnología pericial MELSA.`;
                 </div>
               </div>
 
-              {/* Card 3: Comparable Comps (Testigos) */}
+              {/* Card 3: Comparables reales publicados (solo si existen; nunca inventados) */}
               <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-sm space-y-4 text-xs">
                 <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                   <h3 className="font-extrabold text-sm text-[#0F1115]">
-                    Testigos de Mercado Directos en {valuationResult.communeFormatted}
+                    Comparables reales en {valuationResult.communeFormatted}
                   </h3>
-                  <span className="text-[10px] text-gray-400">3 propiedades testigo</span>
+                  <span className="text-[10px] text-gray-400">{valuationResult.comparableComps.length} propiedades publicadas</span>
                 </div>
 
+                {valuationResult.comparableComps.length === 0 ? (
+                  <p className="text-[11px] text-gray-500">
+                    Aún no hay propiedades comparables cargadas para {valuationResult.communeFormatted}. El valor es referencial: confírmalo con comparables de la zona.
+                  </p>
+                ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {valuationResult.comparableComps.map((comp, idx) => (
                     <div key={idx} className="p-3 bg-gray-50 rounded-2xl border border-gray-200/80 space-y-2">
                       <div className="flex justify-between items-center text-[10px]">
                         <span className="font-bold text-[#D02126]">{comp.status}</span>
-                        <span className="text-gray-400">{comp.distanceMeters}m</span>
+                        {comp.distanceMeters !== undefined && <span className="text-gray-400">a {(comp.distanceMeters / 1000).toFixed(1)} km</span>}
                       </div>
                       <div className="font-extrabold text-xs text-[#0F1115] truncate">{comp.title}</div>
-                      <div className="text-[11px] text-gray-500">{comp.address}</div>
+                      <div className="text-[11px] text-gray-500">{comp.address} · {comp.landM2 ? `terreno ${comp.landM2.toLocaleString('es-CL')} m²` : 'terreno no informado'}</div>
                       <div className="pt-1 border-t border-gray-200 flex justify-between items-center text-xs">
                         <span className="font-extrabold text-[#0F1115]">{comp.priceUF.toLocaleString('es-CL')} UF</span>
-                        <span className="text-gray-500 text-[10px]">{comp.ufM2} UF/m²</span>
+                        {comp.ufM2 > 0 && <span className="text-gray-500 text-[10px]">{comp.ufM2} UF/m²</span>}
                       </div>
                     </div>
                   ))}
                 </div>
+                )}
               </div>
 
             </div>

@@ -78,6 +78,10 @@ export const SellPropertySection: React.FC = () => {
   const [siiCadastralResult, setSiiCadastralResult] = useState<SiiCadastralProfile | null>(null);
   const [siiNotFound, setSiiNotFound] = useState(false);
 
+  // Flujo por pasos: 1) Ubicación y Rol SII → 2) Dirección y pin → 3) Características
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
+
   // Sincronizar Ficha Catastral del SII (Consulta en vivo al Web Service oficial).
   // El SII solo informa dirección, destino, avalúo y contribuciones: m², dormitorios,
   // baños y material los completa el usuario (no se inventan).
@@ -127,6 +131,7 @@ export const SellPropertySection: React.FC = () => {
     setAddress('');
     setSiiCadastralResult(null);
     setSiiNotFound(false);
+    setStep(1);
   };
 
   const handleProvinceChange = (newProvinceId: string) => {
@@ -135,6 +140,7 @@ export const SellPropertySection: React.FC = () => {
     setAddress('');
     setSiiCadastralResult(null);
     setSiiNotFound(false);
+    setStep(1);
   };
 
   const handleCommuneChange = (newCommune: string) => {
@@ -143,6 +149,7 @@ export const SellPropertySection: React.FC = () => {
     setSelectedProvinceId(getProvinceForCommune(newCommune));
     setSiiCadastralResult(null);
     setSiiNotFound(false);
+    setStep(1);
   };
 
   // Calles sugeridas según la comuna
@@ -158,6 +165,8 @@ export const SellPropertySection: React.FC = () => {
     setSelectedProvinceId('');
     setCommune('');
     setSiiNotFound(false);
+    setStep(1);
+    setPin(null);
     setAddress('');
     setRolManzana('');
     setRolPredio('');
@@ -201,6 +210,8 @@ export const SellPropertySection: React.FC = () => {
       rolPredio,
       rolSII: rolManzana && rolPredio ? `${rolManzana}-${rolPredio}` : undefined,
       siiCadastralData: activeSiiProfile || undefined,
+      pinLat: pin?.lat,
+      pinLng: pin?.lng,
       constructionMaterial,
       usefulM2: Number(usefulM2) || 80,
       totalM2: Number(totalM2) || Number(usefulM2) || 120,
@@ -227,6 +238,10 @@ Propiedad analizada en ${baseCalc.communeFormatted} (${baseCalc.regionName}) · 
 • Rango de Valor Comercial: ${baseCalc.baseMarketUF.toLocaleString('es-CL')} UF ($${baseCalc.baseMarketCLP.toLocaleString('es-CL')} CLP).
 • Rango de Liquidez Rápida (< 45 días): ${baseCalc.liquidityUF.toLocaleString('es-CL')} UF.
 • Promedio zonal homogenizado: ${baseCalc.averageUfM2} UF/m² útil.
+• ${baseCalc.zoneAdjustment
+    ? `Ajuste por zona: ${baseCalc.zoneAdjustment.factor >= 1 ? '+' : ''}${Math.round((baseCalc.zoneAdjustment.factor - 1) * 100)}% según ${baseCalc.zoneAdjustment.compsUsed} propiedades publicadas a menos de ${baseCalc.zoneAdjustment.maxDistanceKm} km (${baseCalc.zoneAdjustment.sectors.slice(0, 3).join(', ')}).`
+    : 'Sin ajuste por zona (no se marcó la ubicación en el mapa o no hay comparables cercanos).'}
+• Fuente de valores: ${baseCalc.marketDataSource ? baseCalc.marketDataSource : 'promedios nacionales referenciales (sin datos de mercado propios de la comuna); se recomienda visita del tasador'}.
 • Materialidad: ${baseCalc.constructionMaterialUsed} (${baseCalc.materialityFactorPct >= 0 ? '+' : ''}${baseCalc.materialityFactorPct}%).
 • Impacto Territorial IA: ${baseCalc.urbanPlusvalia?.projectName} (+${baseCalc.urbanPlusvalia?.projectImpactPct}% de plusvalía estimada).
 ${baseCalc.siiAssessment?.hasValidRol 
@@ -413,24 +428,16 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                   </div>
                 </div>
 
-                {/* Grid 1: Tipología & Región / Provincia / Comuna en Cascada */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                {/* PASO 1: Ubicación y Rol SII */}
+                <div className="flex items-start gap-2.5">
+                  <span className="w-6 h-6 shrink-0 rounded-full bg-[#D02126] text-white text-xs font-black flex items-center justify-center">1</span>
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      Tipo de Inmueble
-                    </label>
-                    <select
-                      value={propertyType}
-                      onChange={(e) => setPropertyType(e.target.value as any)}
-                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
-                    >
-                      <option value="Casa">Casa</option>
-                      <option value="Departamento">Departamento</option>
-                      <option value="Oficina">Oficina Comercial</option>
-                      <option value="Parcela">Parcela / Terreno</option>
-                    </select>
+                    <h4 className="text-sm font-extrabold text-[#0F1115]">Ubicación y Rol SII</h4>
+                    <p className="text-[11px] text-gray-500">Elige la comuna e ingresa el rol: si el SII lo encuentra, completamos la dirección, el destino y el avalúo.</p>
                   </div>
-
+                </div>
+                {/* Grid 1: Región / Provincia / Comuna en Cascada */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   <div>
                     <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
                       Región de Chile
@@ -491,64 +498,6 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                   </div>
                 </div>
 
-                {/* Dirección con Autocompletado Reactivo */}
-                <div className="text-xs">
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">
-                      Calle o Dirección Real (Búsqueda Activa)
-                    </label>
-                    <span className="text-[10px] text-gray-400">Autocompletado de calles chilenas</span>
-                  </div>
-                  <AddressSearchAutocomplete
-                    value={address}
-                    onChange={(newAddr) => setAddress(newAddr)}
-                    commune={commune}
-                    placeholder="Ingresa calle y número de la propiedad"
-                  />
-                </div>
-
-                {/* Calles sugeridas del sector */}
-                {commune && (
-                <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px]">
-                  <span className="text-gray-400 font-bold">Calles del sector:</span>
-                  {suggestedStreets.slice(0, 5).map((street, idx) => (
-                    <button
-                      type="button"
-                      key={idx}
-                      onClick={() => setAddress(street)}
-                      className={`px-2 py-0.5 rounded-lg border transition-colors cursor-pointer ${
-                        address.includes(street) 
-                          ? 'bg-[#D02126] text-white border-[#D02126]' 
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'
-                      }`}
-                    >
-                      {street}
-                    </button>
-                  ))}
-                </div>
-                )}
-
-                {/* Radar de Plusvalía si se detecta un megaproyecto en la dirección */}
-                {previewUrbanPlusvalia.hasKeyInfrastructure && (
-                  <div className="p-3 bg-purple-950/20 border border-purple-300 rounded-2xl text-xs text-purple-900 flex items-start gap-2.5">
-                    <Sparkles className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-extrabold text-[#0F1115] flex items-center gap-1.5">
-                        <span>{previewUrbanPlusvalia.projectName}</span>
-                        <span className="text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full font-bold">
-                          +{previewUrbanPlusvalia.projectImpactPct}% Plusvalía
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-gray-600 mt-0.5">
-                        {previewUrbanPlusvalia.description}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Grid 2: Rol SII Funcional (Manzana - Predio) & Materialidad */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  
                   {/* Rol de Avalúo Fiscal (Opcional · Referencia CBR) */}
                   <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-2xl space-y-2">
                     <div className="flex items-center justify-between">
@@ -660,6 +609,162 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                     <p className="text-[10px] text-gray-500 pt-1 border-t border-gray-200/60 leading-tight">
                       Indexa el inmueble para el estudio de títulos en el Conservador de Bienes Raíces (CBR) y estimación referencial de contribuciones.
                     </p>
+                  </div>
+
+                {step === 1 && (
+                  <div className="space-y-1.5 text-xs">
+                    {!commune && (
+                      <p className="text-[11px] text-gray-500">Selecciona región, provincia y comuna para comenzar.</p>
+                    )}
+                    {siiCadastralResult ? (
+                      <button
+                        type="button"
+                        onClick={() => setStep(2)}
+                        className="w-full py-2.5 rounded-xl bg-[#0F1115] hover:bg-black text-white font-bold transition-colors cursor-pointer"
+                      >
+                        Rol encontrado · Continuar con la ubicación →
+                      </button>
+                    ) : siiNotFound ? (
+                      <button
+                        type="button"
+                        onClick={() => setStep(2)}
+                        className="w-full py-2.5 rounded-xl bg-[#0F1115] hover:bg-black text-white font-bold transition-colors cursor-pointer"
+                      >
+                        Continuar y completar los datos manualmente →
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={!commune}
+                        onClick={() => setStep(2)}
+                        className="w-full py-2.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {rolManzana && rolPredio ? 'Continuar sin consultar el rol →' : 'No tengo el rol · Continuar sin él →'}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {step >= 2 && (
+                <>
+                {/* PASO 2: Dirección y ubicación en el mapa */}
+                <div className="flex items-start gap-2.5 pt-4 border-t border-gray-100">
+                  <span className="w-6 h-6 shrink-0 rounded-full bg-[#D02126] text-white text-xs font-black flex items-center justify-center">2</span>
+                  <div>
+                    <h4 className="text-sm font-extrabold text-[#0F1115]">Dirección y ubicación</h4>
+                    <p className="text-[11px] text-gray-500">
+                      {siiCadastralResult
+                        ? 'Confirma la dirección del SII y marca la propiedad con el pin en el mapa.'
+                        : 'Ingresa la dirección y marca la propiedad con el pin en el mapa.'}
+                    </p>
+                  </div>
+                </div>
+                {/* Dirección con Autocompletado Reactivo */}
+                <div className="text-xs">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">
+                      Calle o Dirección Real (Búsqueda Activa)
+                    </label>
+                    <span className="text-[10px] text-gray-400">Autocompletado de calles chilenas</span>
+                  </div>
+                  <AddressSearchAutocomplete
+                    value={address}
+                    onChange={(newAddr) => setAddress(newAddr)}
+                    commune={commune}
+                    placeholder="Ingresa calle y número de la propiedad"
+                    onPinChange={setPin}
+                  />
+                </div>
+
+                {/* Calles sugeridas del sector */}
+                {commune && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px]">
+                  <span className="text-gray-400 font-bold">Calles del sector:</span>
+                  {suggestedStreets.slice(0, 5).map((street, idx) => (
+                    <button
+                      type="button"
+                      key={idx}
+                      onClick={() => setAddress(street)}
+                      className={`px-2 py-0.5 rounded-lg border transition-colors cursor-pointer ${
+                        address.includes(street) 
+                          ? 'bg-[#D02126] text-white border-[#D02126]' 
+                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'
+                      }`}
+                    >
+                      {street}
+                    </button>
+                  ))}
+                </div>
+                )}
+
+                {/* Radar de Plusvalía si se detecta un megaproyecto en la dirección */}
+                {previewUrbanPlusvalia.hasKeyInfrastructure && (
+                  <div className="p-3 bg-purple-950/20 border border-purple-300 rounded-2xl text-xs text-purple-900 flex items-start gap-2.5">
+                    <Sparkles className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-extrabold text-[#0F1115] flex items-center gap-1.5">
+                        <span>{previewUrbanPlusvalia.projectName}</span>
+                        <span className="text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full font-bold">
+                          +{previewUrbanPlusvalia.projectImpactPct}% Plusvalía
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-600 mt-0.5">
+                        {previewUrbanPlusvalia.description}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <div className="space-y-1.5 text-xs">
+                    {pin ? (
+                      <p className="text-[11px] text-emerald-700 font-semibold">✓ Ubicación marcada: el valor se ajustará según las propiedades de su sector.</p>
+                    ) : (
+                      <p className="text-[11px] text-amber-700">Recomendado: abre el mapa y pon el pin en la propiedad para ajustar el valor según su sector.</p>
+                    )}
+                    <button
+                      type="button"
+                      disabled={!address.trim() && !pin}
+                      onClick={() => setStep(3)}
+                      className="w-full py-2.5 rounded-xl bg-[#0F1115] hover:bg-black text-white font-bold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Continuar a las características →
+                    </button>
+                  </div>
+                )}
+                </>
+                )}
+
+                {step >= 3 && (
+                <>
+                {/* PASO 3: Características de la propiedad */}
+                <div className="flex items-start gap-2.5 pt-4 border-t border-gray-100">
+                  <span className="w-6 h-6 shrink-0 rounded-full bg-[#D02126] text-white text-xs font-black flex items-center justify-center">3</span>
+                  <div>
+                    <h4 className="text-sm font-extrabold text-[#0F1115]">Características de la propiedad</h4>
+                    <p className="text-[11px] text-gray-500">
+                      {siiCadastralResult
+                        ? 'El SII no informa estas características: complétalas con los datos reales para obtener el valor.'
+                        : 'Completa las características para obtener el valor.'}
+                    </p>
+                  </div>
+                </div>
+                {/* Grid 2: Rol SII Funcional (Manzana - Predio) & Materialidad */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Tipo de Inmueble
+                    </label>
+                    <select
+                      value={propertyType}
+                      onChange={(e) => setPropertyType(e.target.value as any)}
+                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
+                    >
+                      <option value="Casa">Casa</option>
+                      <option value="Departamento">Departamento</option>
+                      <option value="Oficina">Oficina Comercial</option>
+                      <option value="Parcela">Parcela / Terreno</option>
+                    </select>
                   </div>
 
                   {/* Material de Construcción (NCh 3658) */}
@@ -885,6 +990,8 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                   <span>⚡ Calcular Tasación AVM con Inteligencia Territorial</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
+                </>
+                )}
               </form>
             )}
 
@@ -1141,31 +1248,32 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                   </div>
                 </div>
 
-                {/* 3 Testigos de Mercado Homogéneos (Comps) */}
+                {/* Comparables reales publicados (solo si existen en la base; nunca inventados) */}
+                {valuationResult.comparableComps.length > 0 && (
                 <div className="space-y-2">
                   <span className="text-[11px] uppercase font-bold text-gray-400 block tracking-wider">
-                    Testigos Reales de Comparación en el Radio (Comps)
+                    Propiedades publicadas en la zona (comparables reales)
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {valuationResult.comparableComps.map((comp, i) => (
-                      <div key={i} className="p-3 bg-white border border-gray-200 rounded-2xl space-y-2 hover:border-[#D02126]/30 transition-colors">
-                        <img 
-                          src={comp.photo} 
-                          alt={comp.title} 
-                          className="w-full h-24 object-cover rounded-xl"
-                        />
-                        <div>
-                          <span className="text-[10px] font-bold text-gray-400 block">{comp.address}</span>
-                          <span className="text-xs font-bold text-[#0F1115] block">{comp.priceUF.toLocaleString('es-CL')} UF</span>
-                          <div className="flex items-center justify-between text-[10px] text-gray-500 pt-1">
-                            <span>{comp.usefulM2} m² · {comp.bedrooms}D/{comp.bathrooms}B</span>
-                            <span className="font-mono">{comp.ufM2} UF/m²</span>
-                          </div>
+                      <div key={i} className="p-3 bg-white border border-gray-200 rounded-2xl space-y-1 hover:border-[#D02126]/30 transition-colors">
+                        <span className="text-[10px] font-bold text-gray-400 block">{comp.address}</span>
+                        <span className="text-xs font-extrabold text-[#0F1115] block">{comp.title}</span>
+                        <span className="text-xs font-bold text-[#0F1115] block">{comp.priceUF.toLocaleString('es-CL')} UF</span>
+                        <div className="flex items-center justify-between text-[10px] text-gray-500 pt-1">
+                          <span>{comp.landM2 ? `Terreno ${comp.landM2.toLocaleString('es-CL')} m²` : 'Terreno no informado'}</span>
+                          {comp.ufM2 > 0 && <span className="font-mono">{comp.ufM2} UF/m²</span>}
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-gray-400">
+                          <span>{comp.status}</span>
+                          {comp.distanceMeters !== undefined && <span>a {(comp.distanceMeters / 1000).toFixed(1)} km</span>}
                         </div>
                       </div>
                     ))}
                   </div>
+                  <p className="text-[10px] text-gray-400">Precios de publicación; el valor de cierre suele ser algo menor.</p>
                 </div>
+                )}
 
                 {/* Banner para Corredores / Agencias */}
                 <div className="p-4 rounded-2xl bg-gradient-to-r from-gray-900 to-[#0F1115] text-white border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">

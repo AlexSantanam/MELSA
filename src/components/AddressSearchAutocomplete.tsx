@@ -17,8 +17,9 @@ import L from 'leaflet';
 import { 
   searchChileanAddresses, 
   getSuggestedStreetsForCommune, 
-  getCommuneCenterCoord, 
-  AddressSuggestion 
+  getCommuneCenterCoord,
+  findCommuneCenterCoord,
+  AddressSuggestion
 } from '../services/propertyValuationEngine';
 
 interface AddressSearchAutocompleteProps {
@@ -28,6 +29,8 @@ interface AddressSearchAutocompleteProps {
   placeholder?: string;
   className?: string;
   onSelectSuggestion?: (suggestion: AddressSuggestion) => void;
+  /** Ubicación confirmada por el usuario (pin, sugerencia o GPS); null al cambiar de comuna */
+  onPinChange?: (pin: { lat: number; lng: number } | null) => void;
 }
 
 // Custom vector red pin marker matching MELSA brand (100% reliable, zero 404 missing asset bugs)
@@ -54,8 +57,13 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
   commune,
   placeholder = 'Ingresa calle y número de la propiedad',
   className = '',
-  onSelectSuggestion
+  onSelectSuggestion,
+  onPinChange
 }) => {
+  // Ref para que los eventos de Leaflet (registrados una sola vez) usen siempre el callback actual
+  const onPinChangeRef = useRef(onPinChange);
+  onPinChangeRef.current = onPinChange;
+  const reportPin = (pin: { lat: number; lng: number } | null) => onPinChangeRef.current?.(pin);
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [isLoadingOnline, setIsLoadingOnline] = useState(false);
@@ -75,14 +83,37 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
   const markerInstanceRef = useRef<L.Marker | null>(null);
   const isDraggingMapRef = useRef<boolean>(false);
 
-  // Actualizar coordenadas cuando cambia la comuna
+  // Actualizar coordenadas cuando cambia la comuna (el pin anterior deja de ser válido)
   useEffect(() => {
-    const newCoord = getCommuneCenterCoord(commune);
-    setCoords(newCoord);
-    if (mapInstanceRef.current && markerInstanceRef.current) {
-      mapInstanceRef.current.setView([newCoord.lat, newCoord.lng], 15);
-      markerInstanceRef.current.setLatLng([newCoord.lat, newCoord.lng]);
+    reportPin(null);
+    setPinAddressNote('');
+    const moveMap = (coord: { lat: number; lng: number }, zoom: number) => {
+      setCoords(coord);
+      if (mapInstanceRef.current && markerInstanceRef.current) {
+        mapInstanceRef.current.setView([coord.lat, coord.lng], zoom);
+        markerInstanceRef.current.setLatLng([coord.lat, coord.lng]);
+      }
+    };
+
+    const known = findCommuneCenterCoord(commune);
+    if (known || !commune) {
+      moveMap(known || getCommuneCenterCoord(commune), 15);
+      return;
     }
+
+    // Comuna sin centro en la base (ej. Parral): buscarlo en OpenStreetMap
+    let cancelled = false;
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=cl&q=${encodeURIComponent(commune + ', Chile')}`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (!cancelled && Array.isArray(data) && data.length > 0) {
+          moveMap({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }, 13);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [commune]);
 
   // Sugerencias locales instantáneas (0ms)
@@ -187,6 +218,7 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
           const lat = parseFloat(data[0].lat);
           const lng = parseFloat(data[0].lon);
           setCoords({ lat, lng });
+          reportPin({ lat, lng });
           if (mapInstanceRef.current && markerInstanceRef.current) {
             mapInstanceRef.current.setView([lat, lng], 16);
             markerInstanceRef.current.setLatLng([lat, lng]);
@@ -261,6 +293,7 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
   // Manejo cuando el usuario mueve el pin en el mapa
   const handleMapPositionChange = async (lat: number, lng: number) => {
     setCoords({ lat, lng });
+    reportPin({ lat, lng });
     setPinAddressNote(`Coordenadas: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
 
     // Reverse geocoding para obtener la calle exacta
@@ -286,6 +319,7 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
     onChange(item.address);
     if (item.lat && item.lng) {
       setCoords({ lat: item.lat, lng: item.lng });
+      reportPin({ lat: item.lat, lng: item.lng });
       if (mapInstanceRef.current && markerInstanceRef.current) {
         mapInstanceRef.current.setView([item.lat, item.lng], 16);
         markerInstanceRef.current.setLatLng([item.lat, item.lng]);
@@ -310,6 +344,7 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
       async (pos) => {
         const { latitude, longitude } = pos.coords;
         setCoords({ lat: latitude, lng: longitude });
+        reportPin({ lat: latitude, lng: longitude });
         if (mapInstanceRef.current && markerInstanceRef.current) {
           mapInstanceRef.current.setView([latitude, longitude], 16);
           markerInstanceRef.current.setLatLng([latitude, longitude]);

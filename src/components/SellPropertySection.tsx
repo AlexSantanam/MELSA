@@ -83,6 +83,18 @@ export const SellPropertySection: React.FC = () => {
   // Flujo por pasos: 1) Ubicación y Rol SII → 2) Dirección y pin → 3) Características
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
+  // El usuario confirmó que el rol del SII corresponde a la dirección/pin ingresados
+  const [siiRolConfirmed, setSiiRolConfirmed] = useState(false);
+  const [pdfError, setPdfError] = useState('');
+
+  // Descartar un rol que no corresponde a la propiedad: el informe deja de usar sus datos
+  const handleDiscardSiiRol = () => {
+    setSiiCadastralResult(null);
+    setSiiNotFound(false);
+    setSiiRolConfirmed(false);
+    setRolManzana('');
+    setRolPredio('');
+  };
 
   // Sincronizar Ficha Catastral del SII (Consulta en vivo al Web Service oficial).
   // El SII solo informa dirección, destino, avalúo y contribuciones: m², dormitorios,
@@ -96,6 +108,7 @@ export const SellPropertySection: React.FC = () => {
       const profile = await fetchLiveSiiCadastralProfile(commune, rolManzana, rolPredio);
       if (profile) {
         setSiiCadastralResult(profile);
+        setSiiRolConfirmed(false);
         if (profile.officialAddress && (!address || address.length < 3)) {
           setAddress(profile.officialAddress);
         }
@@ -125,10 +138,12 @@ export const SellPropertySection: React.FC = () => {
   const handleDownloadPdf = async () => {
     if (!valuationResult || !lastValuationInput) return;
     setIsGeneratingPdf(true);
+    setPdfError('');
     try {
       await downloadValuationPdf(lastValuationInput, valuationResult, { ownerName: ownerName.trim() || undefined });
     } catch (err) {
       console.error('Error al generar el PDF de la tasación:', err);
+      setPdfError('No se pudo generar el PDF. Intenta nuevamente en unos segundos.');
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -735,6 +750,32 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
 
                 {step === 2 && (
                   <div className="space-y-1.5 text-xs">
+                    {siiCadastralResult?.officialAddress && !siiRolConfirmed && address.trim() &&
+                      address.trim().toUpperCase() !== siiCadastralResult.officialAddress.trim().toUpperCase() && (
+                      <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 space-y-2">
+                        <p>
+                          La ubicación ingresada (<strong>{address}</strong>) no coincide con la dirección que el SII registra para el rol{' '}
+                          {siiCadastralResult.rolFormatted} (<strong>{siiCadastralResult.officialAddress}</strong>). Si el rol no corresponde
+                          a esta propiedad, descártalo para que el informe no use sus datos.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={handleDiscardSiiRol}
+                            className="px-2.5 py-1 rounded-lg bg-[#D02126] text-white font-bold hover:bg-[#B81B1F] cursor-pointer"
+                          >
+                            Descartar el rol del SII
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSiiRolConfirmed(true)}
+                            className="px-2.5 py-1 rounded-lg bg-white border border-amber-300 font-bold hover:bg-amber-100 cursor-pointer"
+                          >
+                            El rol es correcto
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     {pin ? (
                       <p className="text-[11px] text-emerald-700 font-semibold">✓ Ubicación marcada: el valor se ajustará según las propiedades de su sector.</p>
                     ) : (
@@ -1088,6 +1129,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                     </button>
                   </div>
                 </div>
+                {pdfError && <p className="text-[11px] text-red-600 font-semibold -mt-2">{pdfError}</p>}
 
                 {/* 3 Horizontes de Precio (Las 3 Tarjetas de Cierre) */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

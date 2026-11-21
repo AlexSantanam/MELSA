@@ -39,7 +39,16 @@ export async function buildValuationPdf(
   result: ValuationResult,
   extras: ValuationPdfExtras = {}
 ) {
-  const [{ jsPDF }, { default: autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')]);
+  const [jspdfModule, autoTableModule] = await Promise.all([import('jspdf'), import('jspdf-autotable')]);
+  // jspdf-autotable publica su build CommonJS para el navegador: según el empaquetado, la función
+  // llega como default, como default.default o como propiedad con nombre. Se acepta cualquiera.
+  const jsPDF: any = (jspdfModule as any).jsPDF ?? (jspdfModule as any).default?.jsPDF ?? (jspdfModule as any).default;
+  const atm: any = autoTableModule;
+  const autoTable: (doc: any, options: any) => void =
+    [atm.default, atm.default?.default, atm.autoTable, atm.default?.autoTable].find((f) => typeof f === 'function');
+  if (typeof jsPDF !== 'function' || !autoTable) {
+    throw new Error('No se pudo cargar la librería de PDF');
+  }
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();

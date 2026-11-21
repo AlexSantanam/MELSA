@@ -86,7 +86,26 @@ export interface ValuationInput {
   /** Ubicación del pin en el mapa (activa el ajuste por zona con comparables cercanos) */
   pinLat?: number;
   pinLng?: number;
+  /** Situación legal de la construcción (recepción final municipal) */
+  regularization?: RegularizationStatus;
 }
+
+export type RegularizationStatus =
+  | 'Regularizada (con recepción final)'
+  | 'En trámite de regularización'
+  | 'Sin regularizar';
+
+/**
+ * Factor sobre el valor de la CONSTRUCCIÓN (el terreno no se ve afectado).
+ * Una casa sin recepción final no se puede hipotecar: el banco financia solo el terreno,
+ * el comprador debe pagar al contado o asumir el costo y el riesgo de regularizar.
+ * Valores de criterio comercial (no provienen de datos): ajustarlos con la experiencia de MELSA.
+ */
+export const REGULARIZATION_BUILDING_FACTOR: Record<RegularizationStatus, number> = {
+  'Regularizada (con recepción final)': 1,
+  'En trámite de regularización': 0.85,
+  'Sin regularizar': 0.7
+};
 
 /** Ajuste del valor según comparables reales cercanos al pin */
 export interface ZoneAdjustment {
@@ -1583,19 +1602,21 @@ function surfaceModelUF(
   isRural: boolean,
   usefulM2: number,
   totalM2: number,
-  hasBuilding: boolean
+  hasBuilding: boolean,
+  /** Factor sobre la construcción (regularización); el terreno no cambia */
+  buildingFactor = 1
 ): number {
   if (isRural) {
     const ruralBuildUFm2 = bench.ruralBuildUFm2 ?? Math.round(bench.baseUFm2Casa * 0.42);
     const ruralLandUFm2 = bench.ruralLandUFm2 ?? 0.11;
-    return (hasBuilding ? usefulM2 * ruralBuildUFm2 : 0) + ruralLandEquivalentM2(totalM2) * ruralLandUFm2;
+    return (hasBuilding ? usefulM2 * ruralBuildUFm2 * buildingFactor : 0) + ruralLandEquivalentM2(totalM2) * ruralLandUFm2;
   }
   const baseUFm2 = isCasa ? bench.baseUFm2Casa : bench.baseUFm2Depto;
   const terraceCoeff = isCasa ? TERRACE_COEFF_CASA : TERRACE_COEFF_DEPTO;
   const terraceOrLandM2 = Math.max(0, totalM2 - usefulM2);
   const lotM2 = Math.min(terraceOrLandM2, URBAN_LOT_M2);
   const extraLandM2 = Math.max(0, terraceOrLandM2 - URBAN_LOT_M2);
-  return usefulM2 * baseUFm2 + lotM2 * baseUFm2 * terraceCoeff + extraLandM2 * baseUFm2 * EXTRA_LAND_COEFF;
+  return usefulM2 * baseUFm2 * buildingFactor + lotM2 * baseUFm2 * terraceCoeff + extraLandM2 * baseUFm2 * EXTRA_LAND_COEFF;
 }
 
 // --- Ajuste por zona con comparables reales cercanos al pin ---
@@ -1726,7 +1747,8 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
   const ruralLandUFm2 = bench.ruralLandUFm2 ?? 0.11;
   const hasBuilding = input.propertyType !== 'Parcela' || usefulM2 > 20;
 
-  const modelSurfaceUF = surfaceModelUF(bench, isCasa, isRural, usefulM2, totalM2, hasBuilding);
+  const regularizationFactor = input.regularization ? REGULARIZATION_BUILDING_FACTOR[input.regularization] : 1;
+  const modelSurfaceUF = surfaceModelUF(bench, isCasa, isRural, usefulM2, totalM2, hasBuilding, regularizationFactor);
 
   // Ajuste por zona: si hay pin, comparar con propiedades reales cercanas de la comuna
   const zoneAdjustment =
@@ -1838,12 +1860,19 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
       ? `Fuente de valores: ${bench.dataSource}. Precios de publicación; el cierre suele ser algo menor.`
       : `Sin datos de mercado propios de ${bench.name}: valores referenciales de promedio nacional. Confirmar con comparables de la zona antes de usar con un cliente.`,
     `Materialidad constructiva: ${materialUsed} (${((materialCoeff - 1) * 100).toFixed(0)}% s/NCh).`,
+    input.regularization
+      ? `Regularización: ${input.regularization}${regularizationFactor < 1 ? ` (valor de la construcción ${Math.round((regularizationFactor - 1) * 100)}%; el terreno no se ajusta).` : '.'}`
+      : 'Regularización de la construcción no informada: se asume regularizada.',
     `Plusvalía por equipamiento: ${urbanPlusvalia.projectName} (+${urbanPlusvalia.projectImpactPct}%).`,
     siiAssessment.hasValidRol
-      ? `Rol SII ${siiAssessment.rolFormatted}: Avalúo fiscal estimado de $${Math.round(siiAssessment.estimatedFiscalAssessmentCLP / 1000000)}M CLP (${siiAssessment.contributionsStatus}).`
+      ? `Rol SII ${siiAssessment.rolFormatted}: avalúo fiscal ${siiAssessment.isLiveVerified ? 'vigente según el SII' : 'estimado'} de $${Math.round(siiAssessment.estimatedFiscalAssessmentCLP / 1000000)}M CLP (${siiAssessment.contributionsStatus}).`
       : `Avalúo fiscal referencial estimado de $${Math.round(siiAssessment.estimatedFiscalAssessmentCLP / 1000000)}M CLP (${siiAssessment.contributionsStatus} · Sin Rol especificado).`,
-    `Aporte de amenidades: ${parkingCount} estacionamiento(s) (+${parkingCount * bench.parkingUF} UF) y ${storageCount} bodega(s) (+${storageCount * bench.storageUF} UF).`,
-    `Ajustes de mercado: Orientación ${input.orientation || 'Estándar'} (${((orientationCoeff - 1) * 100).toFixed(0)}%) y Estado ${input.condition || 'Buen estado'} (${((conditionCoeff - 1) * 100).toFixed(0)}%).`
+    isRural
+      ? 'Estacionamientos y bodegas: incluidos en el valor del terreno de la parcela (sin aporte adicional).'
+      : `Aporte de amenidades: ${parkingCount} estacionamiento(s) (+${parkingCount * bench.parkingUF} UF) y ${storageCount} bodega(s) (+${storageCount * bench.storageUF} UF).`,
+    isRural
+      ? `Ajustes de mercado: Estado ${input.condition || 'Buen estado'} (${((conditionCoeff - 1) * 100).toFixed(0)}%). En parcelas no se ajusta por orientación.`
+      : `Ajustes de mercado: Orientación ${input.orientation || 'Estándar'} (${((orientationCoeff - 1) * 100).toFixed(0)}%) y Estado ${input.condition || 'Buen estado'} (${((conditionCoeff - 1) * 100).toFixed(0)}%).`
   ];
 
   if (specialFeatures.features.length > 0) {
@@ -1908,6 +1937,8 @@ Inmueble: ${input.propertyType} en ${calc.communeFormatted}, ${calc.regionName} 
 Distribución: ${input.bedrooms}D / ${input.bathrooms}B · ${input.usefulM2} m² útiles (Total ${input.totalM2 || input.usefulM2} m²).
 Amenidades: ${input.parking} estacionamiento(s), ${input.storage} bodega(s).
 Orientación: ${input.orientation || 'Estándar'} · Estado: ${input.condition || 'Buen estado'}.
+Regularización de la construcción: ${input.regularization || 'No informada'}${input.regularization === 'Sin regularizar' ? ' (IMPORTANTE: sin recepción final no es hipotecable; menciona que el valor ya descuenta este riesgo y que regularizar puede aumentar el valor)' : ''}.
+${calc.isRuralValuation ? 'Es una parcela: el valor se compone de construcción rural + terreno; estacionamientos y bodegas van incluidos en el terreno (no los menciones como aporte).' : ''}
 ${input.specialAttributes ? `Atributos singulares declarados: "${input.specialAttributes}" (Aporte estimado: +${calc.specialFeaturesBonusPct || 0}% / +${calc.specialFeaturesBonusUF || 0} UF).` : ''}
 Tasación AVM:
 • Valor Mercado Sugerido: ${calc.baseMarketUF.toLocaleString('es-CL')} UF ($${calc.baseMarketCLP.toLocaleString('es-CL')} CLP).

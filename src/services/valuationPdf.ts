@@ -165,6 +165,7 @@ export async function buildValuationPdf(
     ['Dormitorios / Banos', `${input.bedrooms} / ${input.bathrooms}`],
     ['Estacionamientos / Bodegas', `${input.parking} / ${input.storage}`],
     ['Material de construccion', input.constructionMaterial || 'No informado'],
+    ['Regularizacion de la construccion', input.regularization || 'No informada'],
     ['Estado de conservacion', input.condition || 'No informado'],
     ['Orientacion', input.orientation || 'No informada']
   ];

@@ -37,6 +37,7 @@ import {
   getProvincesForRegion,
   getCommunesForProvince,
   fetchLiveSiiCadastralProfile,
+  RegularizationStatus,
   SiiCadastralProfile,
   UF_CURRENT_CLP 
 } from '../services/propertyValuationEngine';
@@ -66,6 +67,8 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
   const [rolPredio, setRolPredio] = useState('');
   const [constructionMaterial, setConstructionMaterial] = useState<ConstructionMaterialType>('Albañilería Confinada / Ladrillo Fiscal (Clase C)');
   const [usefulM2, setUsefulM2] = useState<number | ''>('');
+  // Situación legal de la construcción (obligatoria: cambia mucho el valor)
+  const [regularization, setRegularization] = useState<RegularizationStatus | ''>('');
   const [totalM2, setTotalM2] = useState<number | ''>('');
   const [bedrooms, setBedrooms] = useState<number>(3);
   const [bathrooms, setBathrooms] = useState<number>(2);
@@ -191,6 +194,7 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
     setRolPredio('');
     setConstructionMaterial('Albañilería Confinada / Ladrillo Fiscal (Clase C)');
     setUsefulM2('');
+    setRegularization('');
     setTotalM2('');
     setBedrooms(3);
     setBathrooms(2);
@@ -231,6 +235,7 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
       siiCadastralData: activeSiiProfile || undefined,
       pinLat: pin?.lat,
       pinLng: pin?.lng,
+      regularization: regularization || undefined,
       constructionMaterial,
       usefulM2: Number(usefulM2) || 100,
       totalM2: Number(totalM2) || Number(usefulM2) || 120,
@@ -735,6 +740,31 @@ Generado con tecnología pericial MELSA.`;
                 </option>
               </select>
             </div>
+                  {/* Regularización de la construcción */}
+                  <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-2xl space-y-2 text-xs">
+                    <label className="block text-[11px] font-black text-gray-800 uppercase tracking-wider">
+                      Regularización de la construcción
+                    </label>
+                    <select
+                      required
+                      value={regularization}
+                      onChange={(e) => setRegularization(e.target.value as RegularizationStatus)}
+                      className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs font-semibold text-[#0F1115] outline-none focus:border-[#D02126]"
+                    >
+                      <option value="" disabled>Selecciona la situación</option>
+                      <option value="Regularizada (con recepción final)">Regularizada (con recepción final municipal)</option>
+                      <option value="En trámite de regularización">En trámite de regularización (-15% construcción)</option>
+                      <option value="Sin regularizar">Sin regularizar (-30% construcción)</option>
+                    </select>
+                    <p className="text-[10px] text-gray-500">
+                      Sin recepción final la casa no se puede hipotecar: el banco financia solo el terreno. El descuento se aplica a la construcción, no al terreno.
+                    </p>
+                    {siiCadastralResult && /eriazo/i.test(siiCadastralResult.destination) && propertyType !== 'Parcela' && regularization !== 'Sin regularizar' && (
+                      <p className="text-[10px] text-amber-700 font-semibold">
+                        El SII registra este rol como sitio eriazo: la construcción probablemente no está declarada ni regularizada.
+                      </p>
+                    )}
+                  </div>
 
             {/* Superficies */}
             <div className="grid grid-cols-2 gap-3">

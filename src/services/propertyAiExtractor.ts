@@ -28,15 +28,15 @@ const numWordsMap: Record<string, number> = {
  * respetando con fidelidad matemática las características que el usuario dictó.
  */
 export async function extractPropertyWithGroq(inputText: string): Promise<ExtractedPropertyData> {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY || (import.meta.env as any).VITE_GROK_API_KEY;
+  const apiKey = true; // IA vía /api/groq (la clave GROQ_API_KEY vive solo en el servidor)
 
   if (!inputText || inputText.trim().length === 0) {
     return extractPropertyHeuristic('Casa de 3 dormitorios');
   }
 
-  if (apiKey && apiKey !== 'TU_GROQ_API_KEY') {
+  if (apiKey) {
     try {
-      const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+      const endpoint = '/api/groq';
       const systemPrompt = `
 Eres el motor de IA inmobiliaria de MELSA Gestión Inmobiliaria (Chile).
 Tu trabajo es escuchar con FIDELIDAD MATEMÁTICA ABSOLUTA lo que el usuario describe y estructurarlo.
@@ -83,7 +83,6 @@ Debes responder EXCLUSIVAMENTE con un JSON válido con esta estructura:
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
           model: 'qwen/qwen3.8-27b',

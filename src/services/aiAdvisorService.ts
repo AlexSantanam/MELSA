@@ -48,11 +48,11 @@ LLAMADO A LA ACCIÓN:
 `;
 
 export async function askMelsaAI(userMessage: string, history: ChatMessage[] = []): Promise<string> {
-  const groqApiKey = import.meta.env.VITE_GROQ_API_KEY || (import.meta.env as any).VITE_GROK_API_KEY;
+  const groqApiKey = true; // IA vía /api/groq (la clave GROQ_API_KEY vive solo en el servidor)
 
-  if (groqApiKey && groqApiKey !== 'TU_GROQ_API_KEY') {
+  if (groqApiKey) {
     try {
-      const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+      const endpoint = '/api/groq';
       const model = 'qwen/qwen3.8-27b';
 
       const messages: ChatMessage[] = [
@@ -65,7 +65,6 @@ export async function askMelsaAI(userMessage: string, history: ChatMessage[] = [
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${groqApiKey}`
         },
         body: JSON.stringify({
           model,
@@ -150,11 +149,11 @@ Dime qué estás buscando o, si prefieres una atención telefónica inmediata, e
 }
 
 export async function optimizeListingWithAI(draft: string, meta?: { type?: string; location?: string; price?: string; operation?: string }): Promise<string> {
-  const groqApiKey = import.meta.env.VITE_GROQ_API_KEY || (import.meta.env as any).VITE_GROK_API_KEY;
+  const groqApiKey = true; // IA vía /api/groq (la clave GROQ_API_KEY vive solo en el servidor)
 
-  if (groqApiKey && groqApiKey !== 'TU_GROQ_API_KEY') {
+  if (groqApiKey) {
     try {
-      const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+      const endpoint = '/api/groq';
       const model = 'qwen/qwen3.8-27b';
 
       const prompt = `Eres el redactor inmobiliario senior de MELSA Gestión Inmobiliaria (Chile). Transforma las notas o borrador en una ficha de propiedad atractiva, 100% optimizada para SEO en Google Chile y portales como PortalInmobiliario y TocToc.
@@ -171,7 +170,6 @@ Sé cercano, profesional, elegante y persuasivo.`;
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${groqApiKey}`
         },
         body: JSON.stringify({
           model,

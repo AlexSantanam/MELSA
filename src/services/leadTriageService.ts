@@ -157,15 +157,14 @@ export async function analyzeLeadWithAI(
     channel?: string;
   }
 ): Promise<{ triage: LeadAITriage; suggestedReply: string }> {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY || (import.meta.env as any).VITE_GROK_API_KEY;
+  const apiKey = true; // IA vía /api/groq (la clave GROQ_API_KEY vive solo en el servidor)
 
-  if (apiKey && apiKey !== 'TU_GROQ_API_KEY') {
+  if (apiKey) {
     try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      const response = await fetch('/api/groq', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',

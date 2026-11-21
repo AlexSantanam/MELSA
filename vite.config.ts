@@ -5,114 +5,45 @@ import fs from 'fs';
 import https from 'https';
 import url from 'url';
 import { defineConfig, loadEnv, Plugin } from 'vite';
+import { handleGroqRequest } from './server/groqProxy';
+import { handleSiiLookup } from './server/siiLookup';
 
-function siiProxyPlugin(): Plugin {
-  let comunasMap: Record<string, number> | null = null;
+/**
+ * Rutas /api del servidor de desarrollo. Usan la misma lógica que las funciones
+ * de Vercel (carpeta api/), así local y producción se comportan igual.
+ */
+function serverApiPlugin(env: Record<string, string>): Plugin {
+  const sendJson = (res: any, result: { status: number; body: unknown }) => {
+    res.statusCode = result.status;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(result.body));
+  };
 
   return {
-    name: 'sii-proxy-plugin',
+    name: 'server-api-plugin',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
-        if (!req.url?.startsWith('/api/sii-lookup')) {
-          return next();
+        if (req.url?.startsWith('/api/sii-lookup')) {
+          const { comuna, manzana, predio } = url.parse(req.url, true).query;
+          return sendJson(res, await handleSiiLookup(comuna, manzana, predio));
         }
 
-        const parsedUrl = url.parse(req.url, true);
-        const { comuna, manzana, predio } = parsedUrl.query;
-
-        if (!comuna || !manzana || !predio) {
-          res.statusCode = 400;
-          res.setHeader('Content-Type', 'application/json');
-          return res.end(JSON.stringify({ error: 'Faltan parámetros requeridos: comuna, manzana, predio' }));
+        if (req.url?.startsWith('/api/groq')) {
+          if (req.method !== 'POST') return sendJson(res, { status: 405, body: { error: 'Method Not Allowed' } });
+          let raw = '';
+          req.on('data', (chunk) => (raw += chunk));
+          req.on('end', async () => {
+            try {
+              const payload = raw ? JSON.parse(raw) : {};
+              sendJson(res, await handleGroqRequest(payload, env.GROQ_API_KEY || process.env.GROQ_API_KEY));
+            } catch {
+              sendJson(res, { status: 400, body: { error: 'JSON inválido' } });
+            }
+          });
+          return;
         }
 
-        try {
-          if (!comunasMap) {
-            const comunasPath = path.resolve(__dirname, 'src/data/siiComunas.json');
-            if (fs.existsSync(comunasPath)) {
-              comunasMap = JSON.parse(fs.readFileSync(comunasPath, 'utf-8'));
-            }
-          }
-
-          const normComuna = String(comuna)
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .trim()
-            .toUpperCase();
-
-          // Nombres oficiales de comuna que el catálogo SII escribe distinto
-          const siiAliases: Record<string, string> = {
-            'MOSTAZAL': 'SAN FRANCISCO DE MOSTAZAL',
-            'TREGUACO': 'TREHUACO',
-            'TILTIL': 'TIL-TIL',
-            "O'HIGGINS": 'OHIGGINS',
-            'LLAILLAY': 'LLAY-LLAY',
-            'SANTIAGO CENTRO': 'SANTIAGO'
-          };
-          const lookupKey = siiAliases[normComuna] || normComuna;
-          const comunaCnp = comunasMap ? comunasMap[lookupKey] : null;
-          if (!comunaCnp) {
-            res.statusCode = 404;
-            res.setHeader('Content-Type', 'application/json');
-            return res.end(JSON.stringify({ error: `Comuna no encontrada en catálogo SII: ${comuna}` }));
-          }
-
-          const postData = JSON.stringify({
-            token: " ",
-            action: "BusquedaSC",
-            bienesRaices: {
-              comunaCnp: comunaCnp,
-              manzanaCnp: parseInt(String(manzana), 10),
-              predioCnp: parseInt(String(predio), 10)
-            }
-          });
-
-          const siiReq = https.request('https://www2.sii.cl/app/vicana/v1/bienes-raices/buscar/por-rol', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Content-Length': Buffer.byteLength(postData),
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-              'Referer': 'https://www2.sii.cl/vicana/',
-              'Origin': 'https://www2.sii.cl'
-            }
-          }, (siiRes) => {
-            let body = '';
-            siiRes.on('data', chunk => body += chunk);
-            siiRes.on('end', () => {
-              res.statusCode = siiRes.statusCode || 200;
-              res.setHeader('Content-Type', 'application/json');
-              res.setHeader('Access-Control-Allow-Origin', '*');
-              // Solo reenviar los campos que usa la app: el SII también devuelve el RUT
-              // del propietario (rutdv) y otros datos personales que no deben exponerse.
-              const SAFE_FIELDS = ['comuna', 'rol', 'direccion', 'destino', 'avaluoFiscal', 'avaluoFiscalS', 'totalContrib', 'totalContribS'];
-              try {
-                const parsed = JSON.parse(body);
-                const items = Array.isArray(parsed) ? parsed : [];
-                const safe = items.map((item: Record<string, unknown>) =>
-                  Object.fromEntries(SAFE_FIELDS.filter((k) => k in item).map((k) => [k, item[k]]))
-                );
-                res.end(JSON.stringify(safe));
-              } catch {
-                res.statusCode = 502;
-                res.end(JSON.stringify({ error: 'Respuesta inválida del SII' }));
-              }
-            });
-          });
-
-          siiReq.on('error', (err) => {
-            res.statusCode = 502;
-            res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ error: 'Error conectando con SII', details: err.message }));
-          });
-
-          siiReq.write(postData);
-          siiReq.end();
-        } catch (e: any) {
-          res.statusCode = 500;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ error: 'Error interno en consulta SII', details: e?.message }));
-        }
+        return next();
       });
     }
   };
@@ -217,14 +148,11 @@ function contractSigningProxyPlugin(env: Record<string, string>): Plugin {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '');
   return {
-    plugins: [react(), tailwindcss(), siiProxyPlugin(), contractSigningProxyPlugin(env)],
+    plugins: [react(), tailwindcss(), serverApiPlugin(env), contractSigningProxyPlugin(env)],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
-    },
-    define: {
-      'import.meta.env.VITE_GROQ_API_KEY': JSON.stringify(env.VITE_GROQ_API_KEY || process.env.VITE_GROQ_API_KEY || ''),
     },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',

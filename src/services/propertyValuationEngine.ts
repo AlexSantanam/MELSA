@@ -117,6 +117,10 @@ export interface ValuationResult {
   ufValueTodayCLP: number;
   communeFormatted: string;
   regionName: string;
+  /** Fuente de los valores de mercado; undefined = promedio nacional referencial */
+  marketDataSource?: string;
+  /** true si se valoró como parcela / zona rural */
+  isRuralValuation?: boolean;
   constructionMaterialUsed?: ConstructionMaterialType;
   materialityFactorPct?: number;
   urbanPlusvalia?: UrbanPlusvaliaInsight;
@@ -141,6 +145,12 @@ export interface CommuneBenchmark {
   storageUF: number;
   liquidityDiscount: number;
   patiencePremium: number;
+  /** Zona rural / parcela de agrado: UF por m² construido (sin terreno) */
+  ruralBuildUFm2?: number;
+  /** Zona rural / parcela de agrado: UF por m² de terreno */
+  ruralLandUFm2?: number;
+  /** Origen de los datos de mercado del benchmark (si está calibrado con datos reales) */
+  dataSource?: string;
 }
 
 // Matriz Completa y Rigurosa de Comunas en Chile por Región (Datos Homogenizados Reales)
@@ -553,6 +563,21 @@ export const CHILE_COMMUNE_BENCHMARKS: Record<string, CommuneBenchmark> = {
     storageUF: 55,
     liquidityDiscount: 0.06,
     patiencePremium: 0.05
+  },
+  // Calibrado con oferta publicada en Portal Inmobiliario (nov 2026): 5 casas urbanas,
+  // 9 parcelas de ~5.000 m² con casa y 12 parcelas sin construir (Catillo, Machicura, Digua, Remulcao).
+  'parral': {
+    name: 'Parral',
+    region: 'Región del Maule',
+    baseUFm2Depto: 26,
+    baseUFm2Casa: 23,
+    parkingUF: 40,
+    storageUF: 15,
+    liquidityDiscount: 0.08,
+    patiencePremium: 0.05,
+    ruralBuildUFm2: 14,
+    ruralLandUFm2: 0.11,
+    dataSource: 'oferta publicada en Portal Inmobiliario (noviembre 2026)'
   },
 
   // ==========================================
@@ -1533,20 +1558,52 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
   const totalM2 = Math.max(usefulM2, Number(input.totalM2) || usefulM2);
   const terraceOrLandM2 = Math.max(0, totalM2 - usefulM2);
   
-  // En Chile las terrazas o patio se homogenizan al 30% - 40% del valor del m2 útil
+  // En Chile las terrazas o patio se homogenizan a una fracción del valor del m2 útil.
+  // Solo un lote urbano típico se valora como patio: en parcelas de agrado o terrenos
+  // grandes, el excedente es suelo rural/periurbano y vale una fracción mucho menor.
+  // (Antes 5.000 m² de parcela se valoraban como patio urbano: +36.000 UF en Parral.)
   const terraceCoeff = isCasa ? 0.22 : 0.38;
-  const surfaceValueUF = (usefulM2 * baseUFm2) + (terraceOrLandM2 * baseUFm2 * terraceCoeff);
-  
-  // Amenidades (Estacionamientos y Bodegas con valores acordes a la comuna)
+  const URBAN_LOT_M2 = 500;
+  const EXTRA_LAND_COEFF = 0.006; // ≈0,2 UF/m² con base nacional de casas (34 UF/m²)
+
+  // Zona rural / parcela de agrado (≥ 3.000 m² o tipo Parcela): se valora como
+  // construcción rural + terreno rural, que es como se transan en el mercado.
+  // Solo en comunas calibradas con datos rurales o sin benchmark propio (pueblos y
+  // comunas rurales); las grandes ciudades mantienen su modelo urbano.
+  const RURAL_MIN_LAND_M2 = 3000;
+  const isRural =
+    isCasa &&
+    (input.propertyType === 'Parcela' || totalM2 >= RURAL_MIN_LAND_M2) &&
+    (bench.ruralBuildUFm2 !== undefined || commKey === 'nacional');
+  const ruralBuildUFm2 = bench.ruralBuildUFm2 ?? Math.round(bench.baseUFm2Casa * 0.42);
+  const ruralLandUFm2 = bench.ruralLandUFm2 ?? 0.11;
+
+  let surfaceValueUF: number;
+  if (isRural) {
+    const hasBuilding = input.propertyType !== 'Parcela' || usefulM2 > 20;
+    surfaceValueUF = (hasBuilding ? usefulM2 * ruralBuildUFm2 : 0) + (totalM2 * ruralLandUFm2);
+  } else {
+    const lotM2 = Math.min(terraceOrLandM2, URBAN_LOT_M2);
+    const extraLandM2 = Math.max(0, terraceOrLandM2 - URBAN_LOT_M2);
+    surfaceValueUF =
+      (usefulM2 * baseUFm2) +
+      (lotM2 * baseUFm2 * terraceCoeff) +
+      (extraLandM2 * baseUFm2 * EXTRA_LAND_COEFF);
+  }
+
+  // Amenidades (Estacionamientos y Bodegas con valores acordes a la comuna).
+  // En parcelas el estacionamiento y la bodega van incluidos en el terreno.
   const parkingCount = Math.max(0, Number(input.parking) || 0);
   const storageCount = Math.max(0, Number(input.storage) || 0);
-  const amenitiesValueUF = (parkingCount * bench.parkingUF) + (storageCount * bench.storageUF);
+  const amenitiesValueUF = isRural ? 0 : (parkingCount * bench.parkingUF) + (storageCount * bench.storageUF);
   
   // Coeficiente de Orientación (NCh 3658)
   let orientationCoeff = 1.0;
-  if (input.orientation === 'Nor-Oriente') orientationCoeff = 1.03;
-  else if (input.orientation === 'Sur-Poniente') orientationCoeff = 0.97;
-  else if (input.orientation === 'Nor-Poniente') orientationCoeff = 1.01;
+  if (!isRural) {
+    if (input.orientation === 'Nor-Oriente') orientationCoeff = 1.03;
+    else if (input.orientation === 'Sur-Poniente') orientationCoeff = 0.97;
+    else if (input.orientation === 'Nor-Poniente') orientationCoeff = 1.01;
+  }
 
   // Coeficiente de Estado de Conservación (Ross-Heidecke)
   let conditionCoeff = 1.0;
@@ -1652,8 +1709,15 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
   ];
 
   const methodologyNotes = [
-    `Comuna analizada: ${bench.name} (${bench.region}) — Base referencial ${baseUFm2} UF/m² útil.`,
-    `Superficie útil: ${usefulM2} m² + ${terraceOrLandM2} m² exteriores homogenizados.`,
+    isRural
+      ? `Comuna analizada: ${bench.name} (${bench.region}) — Zona rural / parcela: ${ruralBuildUFm2} UF/m² construido + ${ruralLandUFm2} UF/m² de terreno.`
+      : `Comuna analizada: ${bench.name} (${bench.region}) — Base referencial ${baseUFm2} UF/m² útil.`,
+    isRural
+      ? `Superficie: ${usefulM2} m² construidos sobre ${totalM2} m² de terreno.`
+      : `Superficie útil: ${usefulM2} m² + ${terraceOrLandM2} m² exteriores homogenizados.`,
+    bench.dataSource
+      ? `Fuente de valores: ${bench.dataSource}. Precios de publicación; el cierre suele ser algo menor.`
+      : `Sin datos de mercado propios de ${bench.name}: valores referenciales de promedio nacional. Confirmar con comparables de la zona antes de usar con un cliente.`,
     `Materialidad constructiva: ${materialUsed} (${((materialCoeff - 1) * 100).toFixed(0)}% s/NCh).`,
     `Plusvalía por equipamiento: ${urbanPlusvalia.projectName} (+${urbanPlusvalia.projectImpactPct}%).`,
     siiAssessment.hasValidRol
@@ -1682,6 +1746,8 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
     ufValueTodayCLP: UF_CURRENT_CLP,
     communeFormatted: bench.name,
     regionName: bench.region,
+    marketDataSource: bench.dataSource,
+    isRuralValuation: isRural,
     constructionMaterialUsed: materialUsed,
     materialityFactorPct: Math.round((materialCoeff - 1) * 100),
     urbanPlusvalia,
@@ -1701,11 +1767,11 @@ export async function generateValuationReportWithAI(
   input: ValuationInput,
   calc: Omit<ValuationResult, 'executiveReportCMA'>
 ): Promise<string> {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY || (import.meta.env as any).VITE_GROK_API_KEY;
+  const apiKey = true; // IA vía /api/groq (la clave GROQ_API_KEY vive solo en el servidor)
 
-  if (apiKey && apiKey !== 'TU_GROQ_API_KEY') {
+  if (apiKey) {
     try {
-      const endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+      const endpoint = '/api/groq';
       const systemPrompt = `
 Eres el Perito Tasador Senior de MELSA Gestión Inmobiliaria en Chile.
 Tu misión es redactar un Análisis Comparativo de Mercado (CMA) profesional, certero y justificado para el propietario.
@@ -1734,7 +1800,6 @@ Tasación AVM:
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
           model: 'qwen/qwen3.8-27b',
@@ -1762,7 +1827,11 @@ Tasación AVM:
     ? `\n\nAdicionalmente, destacamos de forma especial los atributos singulares informados (**${input.specialAttributes}**). En el mercado actual de ${calc.communeFormatted}, estas comodidades diferencian de manera sobresaliente el inmueble frente a la oferta tradicional de la zona, aportando un plus comercial de **+${calc.specialFeaturesBonusUF.toLocaleString('es-CL')} UF** y acelerando notablemente la tasa de interés de compradores calificados.`
     : '';
 
-  return `Estimado propietario, tras evaluar los antecedentes técnicos y transacciones inscritas en el sector de ${calc.communeFormatted} (${calc.regionName}), valoramos su ${input.propertyType.toLowerCase()} en un precio de mercado objetivo de **${calc.baseMarketUF.toLocaleString('es-CL')} UF** (aproximadamente $${calc.baseMarketCLP.toLocaleString('es-CL')} CLP), con un rango de negociación entre **${calc.liquidityUF.toLocaleString('es-CL')} UF** (estrategia de liquidez para cierre ágil en menos de 45 días) y **${calc.premiumUF.toLocaleString('es-CL')} UF** (precio de paciencia patrimonial).
+  const basisText = calc.marketDataSource
+    ? `tras comparar los antecedentes técnicos de su propiedad con la ${calc.marketDataSource} en ${calc.communeFormatted} (${calc.regionName})`
+    : `como estimación referencial basada en promedios nacionales (aún no contamos con datos de mercado propios de ${calc.communeFormatted}, ${calc.regionName}; recomendamos confirmarla con una visita del tasador)`;
 
-Este valor se fundamenta en un promedio de **${calc.averageUfM2} UF/m² útil** para el sector de ${calc.communeFormatted}, complementado por sus amenidades (${input.parking} estacionamiento(s) y ${input.storage} bodega(s)), orientación y estado de conservación.${bonusSnippet} En MELSA recomendamos este rango para maximizar el valor efectivo de su activo sin riesgo de estancamiento prolongado en portales.`;
+  return `Estimado propietario, ${basisText}, valoramos su ${input.propertyType.toLowerCase()} en un precio de mercado objetivo de **${calc.baseMarketUF.toLocaleString('es-CL')} UF** (aproximadamente $${calc.baseMarketCLP.toLocaleString('es-CL')} CLP), con un rango de negociación entre **${calc.liquidityUF.toLocaleString('es-CL')} UF** (estrategia de liquidez para cierre ágil en menos de 45 días) y **${calc.premiumUF.toLocaleString('es-CL')} UF** (precio de paciencia patrimonial).
+
+Este valor se fundamenta en un promedio de **${calc.averageUfM2} UF/m² útil** para el sector de ${calc.communeFormatted}, ${calc.isRuralValuation ? 'considerando la superficie de terreno de la parcela, la materialidad' : `complementado por sus amenidades (${input.parking} estacionamiento(s) y ${input.storage} bodega(s)), orientación`} y estado de conservación.${bonusSnippet} En MELSA recomendamos este rango para maximizar el valor efectivo de su activo sin riesgo de estancamiento prolongado en portales.`;
 }

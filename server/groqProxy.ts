@@ -4,7 +4,7 @@
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 
 /** Solo los modelos que usa la app */
-const ALLOWED_MODELS = new Set(['qwen/qwen3.8-27b', 'llama-3.3-70b-versatile']);
+const ALLOWED_MODELS = new Set(['qwen/qwen3.8-27b']);
 const MAX_TOKENS_CAP = 1200;
 const MAX_MESSAGES = 12;
 const MAX_TOTAL_CHARS = 24000;

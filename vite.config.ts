@@ -40,7 +40,17 @@ function siiProxyPlugin(): Plugin {
             .trim()
             .toUpperCase();
 
-          const comunaCnp = comunasMap ? comunasMap[normComuna] : null;
+          // Nombres oficiales de comuna que el catálogo SII escribe distinto
+          const siiAliases: Record<string, string> = {
+            'MOSTAZAL': 'SAN FRANCISCO DE MOSTAZAL',
+            'TREGUACO': 'TREHUACO',
+            'TILTIL': 'TIL-TIL',
+            "O'HIGGINS": 'OHIGGINS',
+            'LLAILLAY': 'LLAY-LLAY',
+            'SANTIAGO CENTRO': 'SANTIAGO'
+          };
+          const lookupKey = siiAliases[normComuna] || normComuna;
+          const comunaCnp = comunasMap ? comunasMap[lookupKey] : null;
           if (!comunaCnp) {
             res.statusCode = 404;
             res.setHeader('Content-Type', 'application/json');
@@ -73,7 +83,20 @@ function siiProxyPlugin(): Plugin {
               res.statusCode = siiRes.statusCode || 200;
               res.setHeader('Content-Type', 'application/json');
               res.setHeader('Access-Control-Allow-Origin', '*');
-              res.end(body);
+              // Solo reenviar los campos que usa la app: el SII también devuelve el RUT
+              // del propietario (rutdv) y otros datos personales que no deben exponerse.
+              const SAFE_FIELDS = ['comuna', 'rol', 'direccion', 'destino', 'avaluoFiscal', 'avaluoFiscalS', 'totalContrib', 'totalContribS'];
+              try {
+                const parsed = JSON.parse(body);
+                const items = Array.isArray(parsed) ? parsed : [];
+                const safe = items.map((item: Record<string, unknown>) =>
+                  Object.fromEntries(SAFE_FIELDS.filter((k) => k in item).map((k) => [k, item[k]]))
+                );
+                res.end(JSON.stringify(safe));
+              } catch {
+                res.statusCode = 502;
+                res.end(JSON.stringify({ error: 'Respuesta inválida del SII' }));
+              }
             });
           });
 

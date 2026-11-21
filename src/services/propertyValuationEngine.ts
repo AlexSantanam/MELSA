@@ -2,6 +2,14 @@
 // Motor de Tasación Inmobiliaria Inteligente (AVM - Automated Valuation Model) de MELSA.
 // Basado en la Norma Chilena NCh 3658, benchmarks de UF/m² por microzona, CBR, SII y análisis comparativo con IA (Groq).
 
+import {
+  CHILE_TERRITORY,
+  ChileProvince,
+  findCommuneLocation,
+  getSectorsForCommune,
+  normalizeTerritoryName
+} from '../data/chileTerritory';
+
 export type ConstructionMaterialType = 
   | 'Hormigón Armado / Albañilería Armada (Clase A-B)'
   | 'Albañilería Confinada / Ladrillo Fiscal (Clase C)'
@@ -31,18 +39,22 @@ export interface SiiTaxAssessment {
   isLiveVerified?: boolean;
 }
 
+/**
+ * Ficha del SII por rol. El servicio público del SII solo entrega dirección, destino,
+ * avalúo fiscal y contribuciones: los campos físicos son opcionales y NUNCA se inventan.
+ */
 export interface SiiCadastralProfile {
   rolManzana: string;
   rolPredio: string;
   rolFormatted: string;
   commune: string;
-  propertyType: 'Casa' | 'Departamento';
-  usefulM2: number;
-  totalM2: number;
-  constructionMaterial: ConstructionMaterialType;
-  bedrooms: number;
-  bathrooms: number;
-  estimatedYearBuilt: number;
+  propertyType?: 'Casa' | 'Departamento';
+  usefulM2?: number;
+  totalM2?: number;
+  constructionMaterial?: ConstructionMaterialType;
+  bedrooms?: number;
+  bathrooms?: number;
+  estimatedYearBuilt?: number;
   estimatedFiscalAssessmentCLP: number;
   contributionsStatus: string;
   destination: string;
@@ -689,76 +701,51 @@ export const CHILE_COMMUNE_BENCHMARKS: Record<string, CommuneBenchmark> = {
 };
 
 /**
- * Normaliza nombres de comuna para hacer match con el benchmark
- * y revisa tanto la comuna seleccionada como el campo dirección libre
+ * Comunas oficiales que comparten benchmark con una comuna vecina de referencia.
+ * (La clave y el valor están normalizados: minúsculas y sin tildes.)
  */
-export function normalizeCommuneKey(communeInput: string, addressInput: string = ''): string {
-  const combined = `${communeInput} ${addressInput}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const COMMUNE_BENCHMARK_ALIASES: Record<string, string> = {
+  'la cruz': 'la calera',
+  'santo domingo': 'san antonio',
+  'el quisco': 'algarrobo',
+  'el tabo': 'algarrobo',
+  'zapallar': 'maitencillo',
+  'papudo': 'maitencillo',
+  'puchuncavi': 'maitencillo',
+  'colina': 'chicureo',
+  'paine': 'buin',
+  'penaflor': 'talagante',
+  'padre hurtado': 'talagante',
+  'recoleta': 'independencia',
+  'machali': 'rancagua',
+  'hualpen': 'talcahuano',
+  'villarrica': 'pucon',
+  'frutillar': 'puerto varas',
+  'llanquihue': 'puerto varas'
+};
 
-  // Valparaíso
-  if (combined.includes('villa alemana')) return 'villa alemana';
-  if (combined.includes('quilpue')) return 'quilpue';
-  if (combined.includes('concon')) return 'concon';
-  if (combined.includes('vina') || combined.includes('viña')) return 'vina del mar';
-  if (combined.includes('valparaiso')) return 'valparaiso';
-  if (combined.includes('limache')) return 'limache';
-  if (combined.includes('olmue')) return 'olmue';
-  if (combined.includes('quillota')) return 'quillota';
-  if (combined.includes('calera') || combined.includes('la cruz')) return 'la calera';
-  if (combined.includes('san antonio') || combined.includes('santo domingo')) return 'san antonio';
-  if (combined.includes('algarrobo') || combined.includes('quisco') || combined.includes('tabo')) return 'algarrobo';
-  if (combined.includes('maitencillo') || combined.includes('zapallar') || combined.includes('papudo') || combined.includes('puchuncavi')) return 'maitencillo';
+/**
+ * Normaliza nombres de comuna para hacer match con el benchmark.
+ * Usa SOLO la comuna seleccionada y coincidencia exacta: la dirección libre ya no
+ * decide la comuna (antes "Centro" en cualquier ciudad se tasaba como Santiago y
+ * "Talcahuano" como Talca). El parámetro addressInput se mantiene por compatibilidad.
+ */
+export function normalizeCommuneKey(communeInput: string, _addressInput: string = ''): string {
+  const candidates: string[] = [];
+  const loc = findCommuneLocation(communeInput);
+  if (loc) candidates.push(normalizeTerritoryName(loc.commune));
+  // Valores antiguos tipo "Chicureo / Colina" o "Buin / Paine"
+  for (const part of (communeInput || '').split('/')) {
+    const norm = normalizeTerritoryName(part);
+    if (norm) candidates.push(norm);
+  }
 
-  // Santiago RM Oriente
-  if (combined.includes('vitacura')) return 'vitacura';
-  if (combined.includes('las condes') || combined.includes('condes')) return 'las condes';
-  if (combined.includes('barnechea') || combined.includes('dehesa')) return 'lo barnechea';
-  if (combined.includes('providencia')) return 'providencia';
-  if (combined.includes('la reina')) return 'la reina';
-  if (combined.includes('nunoa')) return 'nunoa';
-
-  // Santiago RM Centro & Pericentro
-  if (combined.includes('santiago') || combined.includes('centro')) return 'santiago';
-  if (combined.includes('san miguel')) return 'san miguel';
-  if (combined.includes('macul')) return 'macul';
-  if (combined.includes('la florida')) return 'la florida';
-  if (combined.includes('penalolen')) return 'penalolen';
-  if (combined.includes('independencia') || combined.includes('recoleta')) return 'independencia';
-  if (combined.includes('estacion central')) return 'estacion central';
-  if (combined.includes('maipu')) return 'maipu';
-  if (combined.includes('puente alto')) return 'puente alto';
-  if (combined.includes('san bernardo')) return 'san bernardo';
-  if (combined.includes('chicureo') || combined.includes('colina')) return 'chicureo';
-  if (combined.includes('buin') || combined.includes('paine')) return 'buin';
-  if (combined.includes('talagante') || combined.includes('penaflor') || combined.includes('padre hurtado')) return 'talagante';
-
-  // Coquimbo & Norte
-  if (combined.includes('la serena')) return 'la serena';
-  if (combined.includes('coquimbo')) return 'coquimbo';
-  if (combined.includes('ovalle')) return 'ovalle';
-  if (combined.includes('antofagasta')) return 'antofagasta';
-  if (combined.includes('calama')) return 'calama';
-
-  // Centro Sur & Maule
-  if (combined.includes('rancagua') || combined.includes('machali')) return 'rancagua';
-  if (combined.includes('talca')) return 'talca';
-  if (combined.includes('curico')) return 'curico';
-
-  // Biobío
-  if (combined.includes('concepcion')) return 'concepcion';
-  if (combined.includes('san pedro')) return 'san pedro de la paz';
-  if (combined.includes('chiguayante')) return 'chiguayante';
-  if (combined.includes('talcahuano') || combined.includes('hualpen')) return 'talcahuano';
-  if (combined.includes('los angeles')) return 'los angeles';
-
-  // Araucanía, Ríos y Lagos
-  if (combined.includes('temuco')) return 'temuco';
-  if (combined.includes('pucon') || combined.includes('villarrica')) return 'pucon';
-  if (combined.includes('valdivia')) return 'valdivia';
-  if (combined.includes('puerto varas') || combined.includes('frutillar') || combined.includes('llanquihue')) return 'puerto varas';
-  if (combined.includes('puerto montt')) return 'puerto montt';
-  if (combined.includes('osorno')) return 'osorno';
-  if (combined.includes('punta arenas')) return 'punta arenas';
+  for (const key of candidates) {
+    if (CHILE_COMMUNE_BENCHMARKS[key]) return key;
+    const alias = COMMUNE_BENCHMARK_ALIASES[key];
+    if (alias && CHILE_COMMUNE_BENCHMARKS[alias]) return alias;
+    if (key === 'santiago centro') return 'santiago';
+  }
 
   return 'nacional'; // Fallback nacional moderado (NUNCA Las Condes)
 }
@@ -767,181 +754,35 @@ export interface ChileRegionItem {
   id: string;
   name: string;
   shortName: string;
+  provinces: ChileProvince[];
+  /** Todas las comunas de la región (lista plana, para compatibilidad) */
   communes: string[];
 }
 
-export const CHILE_REGIONS: ChileRegionItem[] = [
-  {
-    id: 'valparaiso',
-    name: 'Región de Valparaíso (V)',
-    shortName: 'Valparaíso',
-    communes: [
-      'Villa Alemana',
-      'Quilpué',
-      'Viña del Mar',
-      'Concón',
-      'Valparaíso',
-      'Limache',
-      'Olmué',
-      'Quillota',
-      'La Calera',
-      'La Cruz',
-      'San Antonio',
-      'Santo Domingo',
-      'Algarrobo',
-      'El Quisco',
-      'Maitencillo',
-      'Zapallar',
-      'Papudo',
-      'Casablanca'
-    ]
-  },
-  {
-    id: 'metropolitana',
-    name: 'Región Metropolitana (RM)',
-    shortName: 'Metropolitana',
-    communes: [
-      'Las Condes',
-      'Vitacura',
-      'Lo Barnechea',
-      'Providencia',
-      'Ñuñoa',
-      'La Reina',
-      'Santiago Centro',
-      'San Miguel',
-      'Macul',
-      'La Florida',
-      'Peñalolén',
-      'Chicureo / Colina',
-      'Independencia',
-      'Recoleta',
-      'Estación Central',
-      'Maipú',
-      'Puente Alto',
-      'San Bernardo',
-      'Buin / Paine',
-      'Talagante / Peñaflor',
-      'Lampa',
-      'Huechuraba'
-    ]
-  },
-  {
-    id: 'coquimbo',
-    name: 'Región de Coquimbo (IV)',
-    shortName: 'Coquimbo',
-    communes: [
-      'La Serena',
-      'Coquimbo',
-      'Ovalle',
-      'Vicuña',
-      'Salamanca',
-      'Illapel',
-      'Los Vilos'
-    ]
-  },
-  {
-    id: 'antofagasta',
-    name: 'Región de Antofagasta (II)',
-    shortName: 'Antofagasta',
-    communes: [
-      'Antofagasta',
-      'Calama',
-      'Mejillones',
-      'San Pedro de Atacama',
-      'Tocopilla'
-    ]
-  },
-  {
-    id: 'ohiggins',
-    name: "Región de O'Higgins (VI)",
-    shortName: "O'Higgins",
-    communes: [
-      'Rancagua',
-      'Machalí',
-      'San Fernando',
-      'Rengo',
-      'Pichilemu',
-      'Santa Cruz'
-    ]
-  },
-  {
-    id: 'maule',
-    name: 'Región del Maule (VII)',
-    shortName: 'Maule',
-    communes: [
-      'Talca',
-      'Curicó',
-      'Linares',
-      'Constitución'
-    ]
-  },
-  {
-    id: 'biobio',
-    name: 'Región del Biobío (VIII)',
-    shortName: 'Biobío',
-    communes: [
-      'Concepción',
-      'San Pedro de la Paz',
-      'Chiguayante',
-      'Talcahuano',
-      'Hualpén',
-      'Los Ángeles',
-      'Coronel'
-    ]
-  },
-  {
-    id: 'araucania',
-    name: 'Región de La Araucanía (IX)',
-    shortName: 'La Araucanía',
-    communes: [
-      'Temuco',
-      'Pucón',
-      'Villarrica',
-      'Padre Las Casas'
-    ]
-  },
-  {
-    id: 'los_rios',
-    name: 'Región de Los Ríos (XIV)',
-    shortName: 'Los Ríos',
-    communes: [
-      'Valdivia',
-      'La Unión',
-      'Panguipulli'
-    ]
-  },
-  {
-    id: 'los_lagos',
-    name: 'Región de Los Lagos (X)',
-    shortName: 'Los Lagos',
-    communes: [
-      'Puerto Varas',
-      'Frutillar',
-      'Puerto Montt',
-      'Osorno',
-      'Castro',
-      'Ancud'
-    ]
-  },
-  {
-    id: 'magallanes',
-    name: 'Región de Magallanes (XII)',
-    shortName: 'Magallanes',
-    communes: [
-      'Punta Arenas',
-      'Puerto Natales'
-    ]
-  }
-];
+export const CHILE_REGIONS: ChileRegionItem[] = CHILE_TERRITORY.map((region) => ({
+  id: region.id,
+  name: region.name,
+  shortName: region.shortName,
+  provinces: region.provinces,
+  communes: region.provinces.flatMap((p) => p.communes)
+}));
 
 export function getRegionForCommune(commune: string): string {
-  const norm = (commune || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  for (const reg of CHILE_REGIONS) {
-    if (reg.communes.some(c => c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(norm) || norm.includes(c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')))) {
-      return reg.id;
-    }
-  }
-  return 'valparaiso';
+  return findCommuneLocation(commune)?.regionId || 'valparaiso';
+}
+
+export function getProvinceForCommune(commune: string): string {
+  return findCommuneLocation(commune)?.provinceId || '';
+}
+
+/** Provincias de una región (para el selector en cascada Región → Provincia → Comuna) */
+export function getProvincesForRegion(regionId: string): ChileProvince[] {
+  return CHILE_REGIONS.find((r) => r.id === regionId)?.provinces || [];
+}
+
+/** Comunas de una provincia dentro de una región */
+export function getCommunesForProvince(regionId: string, provinceId: string): string[] {
+  return getProvincesForRegion(regionId).find((p) => p.id === provinceId)?.communes || [];
 }
 
 export interface AddressSuggestion {
@@ -1156,19 +997,17 @@ export const REAL_STREETS_BY_COMMUNE: Record<string, { streets: string[]; center
 /**
  * Obtener lista de calles sugeridas para una comuna (insensible a mayúsculas y tildes)
  */
+function findStreetDataForCommune(commune: string) {
+  const loc = findCommuneLocation(commune);
+  const key = normalizeTerritoryName(loc ? loc.commune : commune);
+  return REAL_STREETS_BY_COMMUNE[key] || (key === 'santiago' ? REAL_STREETS_BY_COMMUNE['santiago centro'] : undefined);
+}
+
 export function getSuggestedStreetsForCommune(commune: string): string[] {
-  const norm = commune.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  for (const [key, data] of Object.entries(REAL_STREETS_BY_COMMUNE)) {
-    if (norm.includes(key) || key.includes(norm)) {
-      return data.streets;
-    }
-  }
-  return [
-    'Av. Principal',
-    'Calle Central',
-    'Av. Los Parques',
-    'Sector Residencial'
-  ];
+  const streets = findStreetDataForCommune(commune)?.streets || [];
+  const sectors = getSectorsForCommune(commune);
+  // Calles reales primero, luego sectores/localidades del catastro (sin duplicados)
+  return Array.from(new Set([...streets, ...sectors]));
 }
 
 /**
@@ -1176,11 +1015,8 @@ export function getSuggestedStreetsForCommune(commune: string): string[] {
  */
 export function getCommuneCenterCoord(commune: string): { lat: number; lng: number } {
   const norm = (commune || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  for (const [key, data] of Object.entries(REAL_STREETS_BY_COMMUNE)) {
-    if (norm.includes(key) || key.includes(norm)) {
-      return data.centerCoord;
-    }
-  }
+  const data = norm ? findStreetDataForCommune(commune) : undefined;
+  if (data) return data.centerCoord;
   return { lat: -33.0425, lng: -71.3741 }; // Default central Valparaíso / Marga Marga
 }
 
@@ -1491,162 +1327,9 @@ export function calculateSiiFiscalAssessment(
 }
 
 /**
- * Registro Catastral Verificado Oficial (SII Chile)
- * Roles reales verificados con certificados de avalúo del Servicio de Impuestos Internos
- */
-export const OFFICIAL_SII_CADASTRAL_REGISTRY: Record<string, Partial<SiiCadastralProfile>> = {
-  // Villa Alemana: Rol 433-032 (Pasaje Fernanda 596, Los Aromos II)
-  'villa alemana:433:32': {
-    rolManzana: '433',
-    rolPredio: '032',
-    rolFormatted: '433-032',
-    commune: 'Villa Alemana',
-    officialAddress: 'Pje. Fernanda 596, Lt 2, Pb. Los Aromos II Mzc, Villa Alemana',
-    destination: 'HABITACIONAL (DFL-2)',
-    propertyType: 'Casa',
-    usefulM2: 72,
-    totalM2: 135,
-    constructionMaterial: 'Albañilería Confinada / Ladrillo Fiscal (Clase C)',
-    bedrooms: 3,
-    bathrooms: 1,
-    estimatedYearBuilt: 1996,
-    estimatedFiscalAssessmentCLP: 7565515,
-    contributionsStatus: 'Exento DFL-2 (Cuota $0)',
-    foundInDatabase: true,
-    sourceType: 'SII_OFICIAL_VERIFICADO'
-  },
-  // Villa Alemana: Rol 433-028 (Valentín Letelier)
-  'villa alemana:433:28': {
-    rolManzana: '433',
-    rolPredio: '028',
-    rolFormatted: '433-028',
-    commune: 'Villa Alemana',
-    officialAddress: 'Valentín Letelier 693, Villa Alemana',
-    destination: 'HABITACIONAL',
-    propertyType: 'Casa',
-    usefulM2: 85,
-    totalM2: 180,
-    constructionMaterial: 'Albañilería Confinada / Ladrillo Fiscal (Clase C)',
-    bedrooms: 3,
-    bathrooms: 2,
-    estimatedYearBuilt: 1991,
-    estimatedFiscalAssessmentCLP: 18450000,
-    contributionsStatus: 'Exento DFL-2 (Cuota $0)',
-    foundInDatabase: true,
-    sourceType: 'SII_OFICIAL_VERIFICADO'
-  }
-};
-
-/**
- * Consulta de Ficha Catastral SII de Bienes Raíces
- * Resuelve y autocompleta los datos técnicos registrados por Rol (Manzana y Predio)
- */
-export function querySiiCadastralProfile(
-  commune: string,
-  rolManzana: string,
-  rolPredio: string
-): SiiCadastralProfile {
-  const cleanM = (rolManzana || '').replace(/\D/g, '');
-  const cleanP = (rolPredio || '').replace(/\D/g, '');
-  const m = parseInt(cleanM, 10);
-  const p = parseInt(cleanP, 10);
-
-  if (!m || !p) {
-    return {
-      rolManzana: '',
-      rolPredio: '',
-      rolFormatted: 'Sin Rol',
-      commune: commune || 'Villa Alemana',
-      propertyType: 'Casa',
-      usefulM2: 80,
-      totalM2: 160,
-      constructionMaterial: 'Albañilería Confinada / Ladrillo Fiscal (Clase C)',
-      bedrooms: 3,
-      bathrooms: 2,
-      estimatedYearBuilt: 2012,
-      estimatedFiscalAssessmentCLP: 42000000,
-      contributionsStatus: 'Exento DFL-2 (Cuota $0)',
-      destination: 'Habitacional Serie No Agrícola (DFL-2)',
-      foundInDatabase: false,
-      sourceType: 'ESTIMACION_CATASTRAL_IA'
-    };
-  }
-
-  // 1. Verificación en Registro Catastral Oficial Indexado
-  const normCommune = (commune || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const lookupKey = `${normCommune}:${m}:${p}`;
-  const verified = OFFICIAL_SII_CADASTRAL_REGISTRY[lookupKey];
-
-  if (verified) {
-    return {
-      rolManzana: verified.rolManzana || String(m),
-      rolPredio: verified.rolPredio || String(p),
-      rolFormatted: verified.rolFormatted || `${m}-${p}`,
-      commune: verified.commune || commune,
-      propertyType: verified.propertyType || 'Casa',
-      usefulM2: verified.usefulM2 || 70,
-      totalM2: verified.totalM2 || 140,
-      constructionMaterial: verified.constructionMaterial || 'Albañilería Confinada / Ladrillo Fiscal (Clase C)',
-      bedrooms: verified.bedrooms || 3,
-      bathrooms: verified.bathrooms || 1,
-      estimatedYearBuilt: verified.estimatedYearBuilt || 1996,
-      estimatedFiscalAssessmentCLP: verified.estimatedFiscalAssessmentCLP || 7565515,
-      contributionsStatus: verified.contributionsStatus || 'Exento DFL-2 (Cuota $0)',
-      destination: verified.destination || 'HABITACIONAL (DFL-2)',
-      foundInDatabase: true,
-      officialAddress: verified.officialAddress,
-      sourceType: 'SII_OFICIAL_VERIFICADO'
-    };
-  }
-
-  // 2. Si es un Rol no indexado previamente, aplicar modelo algorítmico paramétrico
-  const isDepto = p > 80 || (m % 5 === 0);
-
-  // Generación determinista y consistente para cualquier rol ingresado
-  const seed = (m * 31 + p * 17) % 1000;
-  
-  // Metros útiles coherentes con tipología chilena
-  const usefulM2 = isDepto ? Math.round(52 + (seed % 65)) : Math.round(85 + (seed % 140));
-  const totalM2 = isDepto ? Math.round(usefulM2 * 1.15) : Math.round(usefulM2 * 1.8 + (seed % 150));
-
-  // Material predominante según rol y comuna
-  let constructionMaterial: ConstructionMaterialType = 'Albañilería Confinada / Ladrillo Fiscal (Clase C)';
-  if (isDepto || seed % 3 === 0) {
-    constructionMaterial = 'Hormigón Armado / Albañilería Armada (Clase A-B)';
-  } else if (seed % 7 === 0) {
-    constructionMaterial = 'Estructura Acero / Metalcon (Clase D)';
-  }
-
-  // Dormitorios y baños según superficie
-  const bedrooms = usefulM2 < 60 ? 1 : usefulM2 < 85 ? 2 : usefulM2 < 140 ? 3 : 4;
-  const bathrooms = usefulM2 < 70 ? 1 : usefulM2 < 120 ? 2 : 3;
-
-  const estimatedYearBuilt = 1995 + (seed % 28);
-  const estimatedFiscalAssessmentCLP = Math.round(usefulM2 * 395000 + (totalM2 - usefulM2) * 85000);
-  const isExento = estimatedFiscalAssessmentCLP <= 46500000;
-
-  return {
-    rolManzana: String(m),
-    rolPredio: String(p),
-    rolFormatted: `${m}-${p}`,
-    commune: commune || 'Villa Alemana',
-    propertyType: isDepto ? 'Departamento' : 'Casa',
-    usefulM2,
-    totalM2,
-    constructionMaterial,
-    bedrooms,
-    bathrooms,
-    estimatedYearBuilt,
-    estimatedFiscalAssessmentCLP,
-    contributionsStatus: isExento ? 'Exento DFL-2 (Cuota $0)' : 'Afecto a Contribuciones',
-    destination: 'Habitacional Serie No Agrícola (DFL-2)',
-    foundInDatabase: true
-  };
-}
-
-/**
- * Consulta en tiempo real al Web Service del Servicio de Impuestos Internos (SII).
- * Devuelve la dirección legal registrada, destino y avalúo fiscal vigente oficial para cualquier comuna y rol de Chile.
+ * Consulta en vivo de un rol en el SII (vía /api/sii-lookup).
+ * Devuelve SOLO lo que el SII entrega: dirección, destino, avalúo fiscal y contribuciones.
+ * Si el SII no responde o el rol no existe, devuelve null: no se inventan datos.
  */
 export async function fetchLiveSiiCadastralProfile(
   commune: string,
@@ -1662,41 +1345,31 @@ export async function fetchLiveSiiCadastralProfile(
 
   try {
     const res = await fetch(`/api/sii-lookup?comuna=${encodeURIComponent(commune)}&manzana=${m}&predio=${p}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        const item = data[0];
-        const avaluo = Number(item.avaluoFiscal) || (item.avaluoFiscalS ? parseInt(String(item.avaluoFiscalS).replace(/\./g, ''), 10) : 0);
-        const contrib = Number(item.totalContrib) || 0;
-        const isExento = contrib === 0;
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return null;
 
-        return {
-          rolManzana: String(m),
-          rolPredio: String(cleanP),
-          rolFormatted: `${m}-${cleanP}`,
-          commune: item.comuna || commune,
-          officialAddress: item.direccion,
-          propertyType: (item.destino && item.destino.includes('HABIT')) ? 'Casa' : 'Departamento',
-          usefulM2: 72,
-          totalM2: 135,
-          constructionMaterial: 'Albañilería Confinada / Ladrillo Fiscal (Clase C)',
-          bedrooms: 3,
-          bathrooms: 1,
-          estimatedYearBuilt: 1996,
-          estimatedFiscalAssessmentCLP: avaluo,
-          contributionsStatus: isExento ? 'Exento DFL-2 (Cuota $0)' : `Afecto ($${item.totalContribS || contrib}/cuota)`,
-          destination: item.destino || 'HABITACIONAL',
-          foundInDatabase: true,
-          sourceType: 'SII_OFICIAL_VERIFICADO'
-        };
-      }
-    }
+    const item = data[0];
+    const avaluo = Number(item.avaluoFiscal) || (item.avaluoFiscalS ? parseInt(String(item.avaluoFiscalS).replace(/\./g, ''), 10) : 0);
+    const contrib = Number(item.totalContrib) || 0;
+    if (!item.direccion && !avaluo) return null; // Rol inexistente
+
+    return {
+      rolManzana: String(m),
+      rolPredio: String(cleanP),
+      rolFormatted: `${m}-${cleanP}`,
+      commune: item.comuna || commune,
+      officialAddress: item.direccion ? String(item.direccion).trim() : undefined,
+      estimatedFiscalAssessmentCLP: avaluo,
+      contributionsStatus: contrib === 0 ? 'Exento de contribuciones (cuota $0)' : `Afecto ($${item.totalContribS || contrib}/cuota)`,
+      destination: item.destino || 'Sin información',
+      foundInDatabase: true,
+      sourceType: 'SII_OFICIAL_VERIFICADO'
+    };
   } catch (err) {
     console.warn('[SII Live Query] Error conectando con API SII:', err);
+    return null;
   }
-
-  // Fallback si la API no está disponible o es offline
-  return querySiiCadastralProfile(commune, rolManzana, rolPredio);
 }
 
 /**
@@ -1840,8 +1513,19 @@ export function analyzeSpecialAttributes(
  */
 export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResult, 'executiveReportCMA'> {
   const commKey = normalizeCommuneKey(input.commune, input.address);
-  const bench = CHILE_COMMUNE_BENCHMARKS[commKey] || CHILE_COMMUNE_BENCHMARKS['nacional'];
-  
+  let bench = CHILE_COMMUNE_BENCHMARKS[commKey] || CHILE_COMMUNE_BENCHMARKS['nacional'];
+  // Comunas sin benchmark propio (ej. Parral): usar base nacional pero informar la comuna y región reales
+  if (commKey === 'nacional') {
+    const loc = findCommuneLocation(input.commune);
+    if (loc) {
+      bench = {
+        ...bench,
+        name: loc.commune,
+        region: `${loc.regionName.replace(/\s*\([^)]*\)\s*$/, '')} · Provincia de ${loc.provinceName}`
+      };
+    }
+  }
+
   const isCasa = input.propertyType === 'Casa' || input.propertyType === 'Parcela';
   const baseUFm2 = isCasa ? bench.baseUFm2Casa : bench.baseUFm2Depto;
   
@@ -1909,11 +1593,8 @@ export function calculateValuationAVM(input: ValuationInput): Omit<ValuationResu
   const rolManzana = (input.rolManzana || (input.rolSII ? input.rolSII.split('-')[0] : '') || '').trim();
   const rolPredio = (input.rolPredio || (input.rolSII ? input.rolSII.split('-')[1] : '') || '').trim();
   
-  // Buscar en registro oficial indexado o usar el dato catastral provisto en vivo
-  const normCommune = (input.commune || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const lookupKey = `${normCommune}:${parseInt(rolManzana, 10)}:${parseInt(rolPredio, 10)}`;
-  const registryMatch = OFFICIAL_SII_CADASTRAL_REGISTRY[lookupKey];
-  const verifiedProfile = input.siiCadastralData || registryMatch;
+  // Solo datos consultados en vivo al SII (sin registros fijos en el c\u00f3digo)
+  const verifiedProfile = input.siiCadastralData;
 
   const siiAssessment = calculateSiiFiscalAssessment(baseMarketCLP, rolManzana, rolPredio, verifiedProfile);
   

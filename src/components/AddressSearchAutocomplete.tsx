@@ -52,7 +52,7 @@ export const AddressSearchAutocomplete: React.FC<AddressSearchAutocompleteProps>
   value,
   onChange,
   commune,
-  placeholder = 'Ej. Av. Los Pinos 1420',
+  placeholder = 'Ingresa calle y número de la propiedad',
   className = '',
   onSelectSuggestion
 }) => {

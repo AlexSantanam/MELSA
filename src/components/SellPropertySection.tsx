@@ -36,7 +36,9 @@ import {
   detectUrbanPlusvalia,
   CHILE_REGIONS,
   getRegionForCommune,
-  querySiiCadastralProfile,
+  getProvinceForCommune,
+  getProvincesForRegion,
+  getCommunesForProvince,
   fetchLiveSiiCadastralProfile,
   SiiCadastralProfile
 } from '../services/propertyValuationEngine';
@@ -46,8 +48,10 @@ import { AddressSearchAutocomplete } from './AddressSearchAutocomplete';
 export const SellPropertySection: React.FC = () => {
   // Estado del Formulario AVM (Inicialmente vacío para desplegar placeholders de ejemplo en gris)
   const [propertyType, setPropertyType] = useState<'Departamento' | 'Casa' | 'Oficina' | 'Parcela'>('Casa');
-  const [selectedRegionId, setSelectedRegionId] = useState<string>(() => getRegionForCommune('Villa Alemana'));
-  const [commune, setCommune] = useState('Villa Alemana');
+  // Ubicación en blanco: el usuario debe seleccionarla (sin comunas de ejemplo)
+  const [selectedRegionId, setSelectedRegionId] = useState<string>('');
+  const [selectedProvinceId, setSelectedProvinceId] = useState<string>('');
+  const [commune, setCommune] = useState('');
   const [address, setAddress] = useState('');
   
   // Rol SII en 2 Campos Independientes (Formato Manzana - Predio)
@@ -72,29 +76,30 @@ export const SellPropertySection: React.FC = () => {
   // Estado de Consulta Catastral SII
   const [isQueryingSii, setIsQueryingSii] = useState(false);
   const [siiCadastralResult, setSiiCadastralResult] = useState<SiiCadastralProfile | null>(null);
+  const [siiNotFound, setSiiNotFound] = useState(false);
 
-  // Sincronizar Ficha Catastral del SII (Consulta en vivo al Web Service oficial)
+  // Sincronizar Ficha Catastral del SII (Consulta en vivo al Web Service oficial).
+  // El SII solo informa dirección, destino, avalúo y contribuciones: m², dormitorios,
+  // baños y material los completa el usuario (no se inventan).
   const handleFetchSiiCadastralData = async () => {
-    if (!rolManzana || !rolPredio) return;
+    if (!rolManzana || !rolPredio || !commune) return;
     setIsQueryingSii(true);
+    setSiiNotFound(false);
 
     try {
       const profile = await fetchLiveSiiCadastralProfile(commune, rolManzana, rolPredio);
       if (profile) {
         setSiiCadastralResult(profile);
-        setPropertyType(profile.propertyType);
-        if (profile.usefulM2 && (!usefulM2 || usefulM2 === '')) {
-          setUsefulM2(profile.usefulM2);
-        }
-        if (profile.totalM2 && (!totalM2 || totalM2 === '')) {
-          setTotalM2(profile.totalM2);
-        }
         if (profile.officialAddress && (!address || address.length < 3)) {
           setAddress(profile.officialAddress);
         }
+      } else {
+        setSiiCadastralResult(null);
+        setSiiNotFound(true);
       }
     } catch (err) {
       console.warn('Error en consulta SII en vivo:', err);
+      setSiiNotFound(true);
     } finally {
       setIsQueryingSii(false);
     }
@@ -114,22 +119,30 @@ export const SellPropertySection: React.FC = () => {
   const [ownerEmail, setOwnerEmail] = useState('');
   const [leadSubmitted, setLeadSubmitted] = useState(false);
 
-  // Handlers para Región y Comuna en Cascada
+  // Handlers para Región → Provincia → Comuna en Cascada
   const handleRegionChange = (newRegionId: string) => {
     setSelectedRegionId(newRegionId);
-    const reg = CHILE_REGIONS.find((r) => r.id === newRegionId);
-    if (reg && reg.communes.length > 0) {
-      setCommune(reg.communes[0]);
-    }
+    setSelectedProvinceId('');
+    setCommune('');
     setAddress('');
+    setSiiCadastralResult(null);
+    setSiiNotFound(false);
+  };
+
+  const handleProvinceChange = (newProvinceId: string) => {
+    setSelectedProvinceId(newProvinceId);
+    setCommune('');
+    setAddress('');
+    setSiiCadastralResult(null);
+    setSiiNotFound(false);
   };
 
   const handleCommuneChange = (newCommune: string) => {
     setCommune(newCommune);
-    const regId = getRegionForCommune(newCommune);
-    if (regId && regId !== selectedRegionId) {
-      setSelectedRegionId(regId);
-    }
+    setSelectedRegionId(getRegionForCommune(newCommune));
+    setSelectedProvinceId(getProvinceForCommune(newCommune));
+    setSiiCadastralResult(null);
+    setSiiNotFound(false);
   };
 
   // Calles sugeridas según la comuna
@@ -138,31 +151,13 @@ export const SellPropertySection: React.FC = () => {
   // Radar de Plusvalía en tiempo real para el sector
   const previewUrbanPlusvalia = detectUrbanPlusvalia(commune, address);
 
-  // Autocompletar con Rol SII de ejemplo demostrativo
-  const handleAutofillWithRol = () => {
-    setPropertyType('Casa');
-    setSelectedRegionId('valparaiso');
-    setCommune('Villa Alemana');
-    setAddress('Av. Las Araucarias 950');
-    setRolManzana('9999');
-    setRolPredio('01');
-    setConstructionMaterial('Albañilería Confinada / Ladrillo Fiscal (Clase C)');
-    setUsefulM2(120);
-    setTotalM2(240);
-    setBedrooms(3);
-    setBathrooms(2);
-    setParking(1);
-    setStorage(0);
-    setOrientation('Nor-Oriente');
-    setCondition('Buen estado general');
-    setSpecialAttributes('Patio techado con quincho, azotea amplia como bodega y ventanas termopanel');
-  };
-
   // Limpiar y resetear el formulario a blanco
   const handleResetForm = () => {
     setPropertyType('Casa');
-    setSelectedRegionId('valparaiso');
-    setCommune('Villa Alemana');
+    setSelectedRegionId('');
+    setSelectedProvinceId('');
+    setCommune('');
+    setSiiNotFound(false);
     setAddress('');
     setRolManzana('');
     setRolPredio('');
@@ -404,7 +399,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                   </div>
 
                   <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-                    {(address || rolManzana || rolPredio || usefulM2) && (
+                    {(commune || address || rolManzana || rolPredio || usefulM2) && (
                       <button
                         type="button"
                         onClick={handleResetForm}
@@ -415,21 +410,11 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                         <span>Limpiar</span>
                       </button>
                     )}
-
-                    <button
-                      type="button"
-                      onClick={handleAutofillWithRol}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-[#D02126] text-xs font-bold transition-colors cursor-pointer border border-rose-200/60"
-                      title="Carga de ejemplo demostrativo ficticio: Av. Las Araucarias 950 (Rol 9999-01)"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>⚡ Probar Ejemplo Demostrativo</span>
-                    </button>
                   </div>
                 </div>
 
-                {/* Grid 1: Tipología & Región / Comuna en Cascada */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                {/* Grid 1: Tipología & Región / Provincia / Comuna en Cascada */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div>
                     <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
                       Tipo de Inmueble
@@ -451,10 +436,12 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                       Región de Chile
                     </label>
                     <select
+                      required
                       value={selectedRegionId}
                       onChange={(e) => handleRegionChange(e.target.value)}
                       className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
                     >
+                      <option value="" disabled>Selecciona la región</option>
                       {CHILE_REGIONS.map((reg) => (
                         <option key={reg.id} value={reg.id}>
                           {reg.name}
@@ -465,14 +452,37 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
 
                   <div>
                     <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Provincia
+                    </label>
+                    <select
+                      required
+                      disabled={!selectedRegionId}
+                      value={selectedProvinceId}
+                      onChange={(e) => handleProvinceChange(e.target.value)}
+                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126] disabled:opacity-60"
+                    >
+                      <option value="" disabled>{selectedRegionId ? 'Selecciona la provincia' : 'Primero elige la región'}</option>
+                      {getProvincesForRegion(selectedRegionId).map((prov) => (
+                        <option key={prov.id} value={prov.id}>
+                          {prov.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
                       Comuna
                     </label>
                     <select
+                      required
+                      disabled={!selectedProvinceId}
                       value={commune}
                       onChange={(e) => handleCommuneChange(e.target.value)}
-                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126]"
+                      className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-[#0F1115] font-semibold outline-none focus:border-[#D02126] disabled:opacity-60"
                     >
-                      {(CHILE_REGIONS.find((r) => r.id === selectedRegionId)?.communes || [commune]).map((c) => (
+                      <option value="" disabled>{selectedProvinceId ? 'Selecciona la comuna' : 'Primero elige la provincia'}</option>
+                      {getCommunesForProvince(selectedRegionId, selectedProvinceId).map((c) => (
                         <option key={c} value={c}>
                           {c}
                         </option>
@@ -493,11 +503,12 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                     value={address}
                     onChange={(newAddr) => setAddress(newAddr)}
                     commune={commune}
-                    placeholder="Ej. Av. Los Pinos 1420"
+                    placeholder="Ingresa calle y número de la propiedad"
                   />
                 </div>
 
                 {/* Calles sugeridas del sector */}
+                {commune && (
                 <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px]">
                   <span className="text-gray-400 font-bold">Calles del sector:</span>
                   {suggestedStreets.slice(0, 5).map((street, idx) => (
@@ -515,6 +526,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                     </button>
                   ))}
                 </div>
+                )}
 
                 {/* Radar de Plusvalía si se detecta un megaproyecto en la dirección */}
                 {previewUrbanPlusvalia.hasKeyInfrastructure && (
@@ -558,8 +570,9 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                           onChange={(e) => {
                             setRolManzana(e.target.value.replace(/\D/g, ''));
                             setSiiCadastralResult(null);
+                            setSiiNotFound(false);
                           }}
-                          placeholder="Ej. 433"
+                          placeholder="N° manzana"
                           className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-center font-mono font-bold text-xs text-[#0F1115] placeholder-gray-400 outline-none focus:border-[#D02126]"
                         />
                       </div>
@@ -574,15 +587,21 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                           onChange={(e) => {
                             setRolPredio(e.target.value.replace(/\D/g, ''));
                             setSiiCadastralResult(null);
+                            setSiiNotFound(false);
                           }}
-                          placeholder="Ej. 032"
+                          placeholder="N° predio"
                           className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-center font-mono font-bold text-xs text-[#0F1115] placeholder-gray-400 outline-none focus:border-[#D02126]"
                         />
                       </div>
                     </div>
 
                     {/* Botón para consultar en vivo al SII */}
-                    {rolManzana && rolPredio && (
+                    {rolManzana && rolPredio && !commune && (
+                      <p className="text-[10px] text-amber-700 font-semibold">
+                        Selecciona la comuna para poder consultar el rol en el SII.
+                      </p>
+                    )}
+                    {rolManzana && rolPredio && commune && (
                       <button
                         type="button"
                         onClick={handleFetchSiiCadastralData}
@@ -626,6 +645,15 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                         <div className="text-[10px] text-emerald-700 font-semibold">
                           Contribuciones: {siiCadastralResult.contributionsStatus}
                         </div>
+                        <p className="text-[10px] text-gray-600 pt-1">
+                          El SII no informa m², dormitorios, baños ni material: complétalos abajo con los datos reales de la propiedad.
+                        </p>
+                      </div>
+                    )}
+
+                    {siiNotFound && !siiCadastralResult && (
+                      <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800">
+                        No se encontró el rol {rolManzana}-{rolPredio} en {commune}, o el SII no respondió. Revisa el número de rol o completa los datos manualmente.
                       </div>
                     )}
 
@@ -678,9 +706,11 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                     </label>
                     <input
                       type="number"
+                      required
+                      min={1}
                       value={usefulM2}
                       onChange={(e) => setUsefulM2(e.target.value === '' ? '' : Number(e.target.value))}
-                      placeholder="Ej. 150"
+                      placeholder="Ingresa m² útiles"
                       className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-bold text-[#0F1115] placeholder-gray-400 outline-none focus:border-[#D02126]"
                     />
                   </div>
@@ -693,7 +723,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                       type="number"
                       value={totalM2}
                       onChange={(e) => setTotalM2(e.target.value === '' ? '' : Number(e.target.value))}
-                      placeholder="Ej. 300"
+                      placeholder="Ingresa m² de terreno"
                       className="w-full bg-[#FAF9F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-bold text-[#0F1115] placeholder-gray-400 outline-none focus:border-[#D02126]"
                     />
                   </div>
@@ -816,7 +846,7 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                     value={specialAttributes}
                     onChange={(e) => setSpecialAttributes(e.target.value)}
                     rows={2}
-                    placeholder="Ej. Patio techado con quincho y parrilla, azotea amplia como bodega/estudio, piscina, paneles solares o cocina recién remodelada con cuarzo..."
+                    placeholder="Describe mejoras o atributos especiales de la propiedad (opcional)"
                     className="w-full bg-white border border-amber-200 rounded-xl p-3 text-xs text-[#0F1115] outline-none focus:border-amber-500 placeholder-gray-400 resize-none font-medium leading-relaxed"
                   />
 
@@ -1175,21 +1205,21 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                         <input
                           type="text"
-                          placeholder="Tu Nombre Completo"
+                          placeholder="Ingresa tu nombre completo"
                           value={ownerName}
                           onChange={(e) => setOwnerName(e.target.value)}
                           className="bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-white placeholder-gray-400 outline-none focus:border-[#D02126]"
                         />
                         <input
                           type="tel"
-                          placeholder="WhatsApp (+56 9 1234 5678)"
+                          placeholder="Ingresa tu WhatsApp"
                           value={ownerPhone}
                           onChange={(e) => setOwnerPhone(e.target.value)}
                           className="bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-white placeholder-gray-400 outline-none focus:border-[#D02126]"
                         />
                         <input
                           type="email"
-                          placeholder="Correo Electrónico"
+                          placeholder="Ingresa tu correo electrónico"
                           value={ownerEmail}
                           onChange={(e) => setOwnerEmail(e.target.value)}
                           className="bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-white placeholder-gray-400 outline-none focus:border-[#D02126]"

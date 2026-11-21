@@ -512,14 +512,14 @@ Generado con tecnología pericial MELSA.`;
                     </p>
                   )}
                   <div className="flex items-center justify-between text-[11px] text-gray-700 pt-0.5">
-                    <span>Destino: <strong>{siiCadastralResult.destination}</strong></span>
+                    <span>Comuna SII: <strong>{siiCadastralResult.commune}</strong> · Destino: <strong>{siiCadastralResult.destination}</strong></span>
                     <span>Avalúo: <strong className="text-emerald-700">${siiCadastralResult.estimatedFiscalAssessmentCLP.toLocaleString('es-CL')} CLP</strong></span>
                   </div>
                   <div className="text-[10px] text-emerald-700 font-semibold">
                     Contribuciones: {siiCadastralResult.contributionsStatus}
                   </div>
                   <p className="text-[10px] text-gray-600 pt-1">
-                    El SII no informa m², dormitorios, baños ni material: complétalos abajo con los datos reales de la propiedad.
+                    El SII no informa m², dormitorios, baños ni material: complétalos abajo con los datos reales de la propiedad.{/eriazo/i.test(siiCadastralResult.destination) && ' Ojo: el SII registra este rol como terreno sin construcción (sitio eriazo). Si la propiedad tiene casa, puede que la construcción no esté regularizada o que el rol corresponda a otro lote.'}
                   </p>
                 </div>
               )}

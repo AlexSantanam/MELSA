@@ -5,8 +5,8 @@ import fs from 'fs';
 import https from 'https';
 import url from 'url';
 import { defineConfig, loadEnv, Plugin } from 'vite';
-import { handleGroqRequest } from './server/groqProxy';
-import { handleSiiLookup } from './server/siiLookup';
+import { handleGroqRequest } from './server/groqProxy.js';
+import { handleSiiLookup } from './server/siiLookup.js';
 
 /**
  * Rutas /api del servidor de desarrollo. Usan la misma lógica que las funciones

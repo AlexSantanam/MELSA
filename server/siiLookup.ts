@@ -3,8 +3,8 @@
 // Solo devuelve los campos que usa la app: el SII también entrega el RUT del
 // propietario y otros datos personales que no deben llegar al navegador.
 
-import comunasMap from '../src/data/siiComunas.json';
-import type { ProxyResult } from './groqProxy';
+import comunasMap from './siiComunas.js';
+import type { ProxyResult } from './groqProxy.js';
 
 const SII_ENDPOINT = 'https://www2.sii.cl/app/vicana/v1/bienes-raices/buscar/por-rol';
 const SAFE_FIELDS = ['comuna', 'rol', 'direccion', 'destino', 'avaluoFiscal', 'avaluoFiscalS', 'totalContrib', 'totalContribS'];

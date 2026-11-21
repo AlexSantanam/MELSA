@@ -1,5 +1,5 @@
 // Función de Vercel: POST /api/groq → reenvía a Groq con la clave del servidor.
-import { handleGroqRequest, isAllowedOrigin } from '../server/groqProxy';
+import { handleGroqRequest, isAllowedOrigin } from '../server/groqProxy.js';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {

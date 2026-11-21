@@ -20,8 +20,10 @@ import {
   ArrowRight,
   RotateCcw,
   Search,
-  Loader2
+  Loader2,
+  FileDown
 } from 'lucide-react';
+import { downloadValuationPdf } from '../services/valuationPdf';
 import { 
   calculateValuationAVM, 
   generateValuationReportWithAI, 
@@ -86,6 +88,21 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisStep, setAnalysisStep] = useState(0);
   const [valuationResult, setValuationResult] = useState<ValuationResult | null>(null);
+  // Datos con los que se calculó la última tasación (para el PDF)
+  const [lastValuationInput, setLastValuationInput] = useState<ValuationInput | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!valuationResult || !lastValuationInput) return;
+    setIsGeneratingPdf(true);
+    try {
+      await downloadValuationPdf(lastValuationInput, valuationResult);
+    } catch (err) {
+      console.error('Error al generar el PDF de la tasación:', err);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
   const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [addedToPortfolioSuccess, setAddedToPortfolioSuccess] = useState(false);
 
@@ -216,6 +233,7 @@ export const AgencyValuationHub: React.FC<AgencyValuationHubProps> = ({ onAddPro
     setTimeout(() => setAnalysisStep(4), 1500);
 
     const baseCalc = calculateValuationAVM(inputData);
+    setLastValuationInput(inputData);
 
     try {
       const cmaText = await generateValuationReportWithAI(inputData, baseCalc);
@@ -888,6 +906,17 @@ Generado con tecnología pericial MELSA.`;
                   </div>
 
                   <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDownloadPdf}
+                      disabled={isGeneratingPdf}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 text-xs font-bold transition-all cursor-pointer disabled:opacity-60"
+                      title="Descargar el informe de tasación en PDF"
+                    >
+                      {isGeneratingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+                      <span>{isGeneratingPdf ? 'Generando...' : 'PDF'}</span>
+                    </button>
+
                     <button
                       onClick={handleCopyReport}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 text-xs font-bold transition-all cursor-pointer"

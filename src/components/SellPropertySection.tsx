@@ -23,8 +23,10 @@ import {
   Check,
   Search,
   Hammer,
-  Loader2
+  Loader2,
+  FileDown
 } from 'lucide-react';
+import { downloadValuationPdf } from '../services/valuationPdf';
 import { 
   ValuationInput, 
   ValuationResult, 
@@ -116,6 +118,21 @@ export const SellPropertySection: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisStep, setAnalysisStep] = useState(0);
   const [valuationResult, setValuationResult] = useState<ValuationResult | null>(null);
+  // Datos con los que se calculó la última tasación (para el PDF)
+  const [lastValuationInput, setLastValuationInput] = useState<ValuationInput | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!valuationResult || !lastValuationInput) return;
+    setIsGeneratingPdf(true);
+    try {
+      await downloadValuationPdf(lastValuationInput, valuationResult, { ownerName: ownerName.trim() || undefined });
+    } catch (err) {
+      console.error('Error al generar el PDF de la tasación:', err);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   // Datos del Propietario para Captación / Informe CMA
   const [ownerName, setOwnerName] = useState('');
@@ -231,6 +248,7 @@ export const SellPropertySection: React.FC = () => {
 
     // Cálculo cuantitativo NCh 3658 (100% en cliente, sin consumir tokens de IA en landing pública)
     const baseCalc = calculateValuationAVM(inputData);
+    setLastValuationInput(inputData);
 
     setTimeout(() => {
       const executiveSummary = `INFORME PERICIAL DE MERCADO — MELSA GESTIÓN INMOBILIARIA
@@ -1051,12 +1069,24 @@ Deseo coordinar la visita técnica del perito tasador y revisar el plan de venta
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => setValuationResult(null)}
-                    className="text-xs text-gray-500 hover:text-gray-900 font-semibold underline self-start sm:self-auto cursor-pointer"
-                  >
-                    ← Modificar parámetros
-                  </button>
+                  <div className="flex items-center gap-3 self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={handleDownloadPdf}
+                      disabled={isGeneratingPdf}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#D02126] hover:bg-[#B81B1F] text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-60"
+                      title="Descargar el informe de tasación en PDF"
+                    >
+                      {isGeneratingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+                      <span>{isGeneratingPdf ? 'Generando PDF...' : 'Descargar PDF'}</span>
+                    </button>
+                    <button
+                      onClick={() => setValuationResult(null)}
+                      className="text-xs text-gray-500 hover:text-gray-900 font-semibold underline cursor-pointer"
+                    >
+                      ← Modificar parámetros
+                    </button>
+                  </div>
                 </div>
 
                 {/* 3 Horizontes de Precio (Las 3 Tarjetas de Cierre) */}
